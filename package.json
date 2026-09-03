@@ -1,0 +1,17 @@
+{
+  "name": "nubjobs",
+  "version": "1.0.0",
+  "description": "NUBJobs — NUB Students Job & Internship Portal (Next.js 16 client + Express/Prisma server)",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"npm run dev --prefix server\" \"npm run dev --prefix client\"",
+    "build": "npm run build --prefix server && npm run build --prefix client",
+    "lint": "npm run lint --prefix server && npm run lint --prefix client"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.5",
+    "eslint": "^10.9.1",
+    "husky": "^9.1.7",
+    "prettier": "^3.9.6"
+  }
+}

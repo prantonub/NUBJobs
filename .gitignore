@@ -1,0 +1,57 @@
+# ---- Dependencies ----
+node_modules/
+.pnp
+.pnp.js
+
+# ---- Environment variables (keep the .example templates) ----
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+# (*.example files have different names and are intentionally NOT ignored)
+
+# ---- Build outputs ----
+dist/
+build/
+out/
+.next/
+next-env.d.ts.timestamp
+
+# ---- Prisma ----
+# Classic generator emits into node_modules/@prisma/client (already ignored).
+# Ignore local Prisma dev data if ever used:
+prisma/*.db
+prisma/*.db-journal
+
+# ---- Testing / coverage ----
+coverage/
+.nyc_output/
+
+# ---- Logs ----
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ---- TypeScript ----
+*.tsbuildinfo
+
+# ---- Caches ----
+.eslintcache
+.turbo/
+.cache/
+
+# ---- OS / editor ----
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+*~
+
+# ---- Claude Code (local, per-machine settings) ----
+.claude/settings.local.json
+
