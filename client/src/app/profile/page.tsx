@@ -194,7 +194,7 @@ const ProfilePage: FC = () => {
               </div>
             </div>
           </Card>
-
+{/* education card */}
           {/* Education */}
           <Card className="p-6">
             <h2 className="text-xl font-semibold mb-4">Education</h2>
