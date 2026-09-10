@@ -254,7 +254,7 @@ const ProfilePage: FC = () => {
             </div>
           </Card>
 
-          {/* Resume */}
+          {/* Resume card */}
           <Card className="p-6">
             <h2 className="text-xl font-semibold mb-4">Resume</h2>
             <div className="space-y-3">
