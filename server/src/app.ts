@@ -9,6 +9,12 @@ import jobsRoutes from './routes/jobs.routes'
 import applicationsRoutes from './routes/applications.routes'
 import profileRoutes from './routes/profile.routes'
 
+//new file
+import authRoutes from './routes/auth.routes'
+import employerRoutes from './routes/employer.routes'
+import jobPostingRoutes from './routes/job-posting.routes'
+import companyProfileRoutes from './routes/company-profile.routes'
+
 const app = express()
 
 // Middleware
@@ -25,6 +31,12 @@ app.get('/api/health', (req, res) => res.json({ status: 'ok', timestamp: new Dat
 app.use('/api/jobs', jobsRoutes)
 app.use('/api/applications', applicationsRoutes)
 app.use('/api/profile', profileRoutes)
+
+//new file
+app.use('/api/auth', authRoutes)
+app.use('/api/employer', employerRoutes)
+app.use('/api/employer/jobs', jobPostingRoutes)
+app.use('/api/company', companyProfileRoutes)
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
