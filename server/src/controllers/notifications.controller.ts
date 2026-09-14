@@ -3,29 +3,32 @@ import prisma from '../lib/prisma';
 import { responses } from '../utils/response.utils';
 
 export interface AuthRequest extends Request {
-  userId?: string;
+  userId?: string | string[];
   email?: string;
   role?: string;
 }
 
 /**
  * GET /api/notifications
- * Get all notifications for current user
+ * Get notifications with optional filtering
  */
 export async function getNotifications(req: AuthRequest, res: Response, next: NextFunction) {
   try {
     const userId = req.userId;
-    const { page = 1, limit = 20, unreadOnly = false } = req.query;
+    const userIdStr = Array.isArray(userId) ? userId[0] : userId;
 
-    if (!userId) {
+    if (!userIdStr) {
       return responses.unauthorized(res);
     }
 
+    const { unreadOnly = false, page = 1, limit = 20 } = req.query;
+
     const pageNum = Math.max(1, parseInt(page as string) || 1);
-    const pageSize = Math.max(1, Math.min(50, parseInt(limit as string) || 20));
+    const pageSize = Math.max(1, Math.min(100, parseInt(limit as string) || 20));
     const skip = (pageNum - 1) * pageSize;
 
-    const where: any = { userId };
+    const where: any = { userId: userIdStr };
+
     if (unreadOnly === 'true') {
       where.isRead = false;
     }
@@ -40,7 +43,7 @@ export async function getNotifications(req: AuthRequest, res: Response, next: Ne
       prisma.notification.count({ where }),
     ]);
 
-    return responses.ok(res, 'Notifications', {
+    return responses.ok(res, 'Notifications retrieved', {
       data: notifications,
       pagination: {
         total,
@@ -55,32 +58,34 @@ export async function getNotifications(req: AuthRequest, res: Response, next: Ne
 }
 
 /**
- * PATCH /api/notifications/:id/read
+ * PUT /api/notifications/:id/read
  * Mark notification as read
  */
 export async function markAsRead(req: AuthRequest, res: Response, next: NextFunction) {
   try {
-    const { id } = req.params;
     const userId = req.userId;
+    const userIdStr = Array.isArray(userId) ? userId[0] : userId;
+    const { id } = req.params;
+    const idStr = Array.isArray(id) ? id[0] : id;
 
-    if (!userId) {
+    if (!userIdStr) {
       return responses.unauthorized(res);
     }
 
     const notification = await prisma.notification.findUnique({
-      where: { id },
+      where: { id: idStr },
     });
 
     if (!notification) {
       return responses.notFound(res, 'Notification not found');
     }
 
-    if (notification.userId !== userId) {
+    if (notification.userId !== userIdStr) {
       return responses.forbidden(res);
     }
 
     const updated = await prisma.notification.update({
-      where: { id },
+      where: { id: idStr },
       data: { isRead: true },
     });
 
@@ -91,19 +96,20 @@ export async function markAsRead(req: AuthRequest, res: Response, next: NextFunc
 }
 
 /**
- * PATCH /api/notifications/mark-all-read
+ * PUT /api/notifications/mark-all-read
  * Mark all notifications as read
  */
 export async function markAllAsRead(req: AuthRequest, res: Response, next: NextFunction) {
   try {
     const userId = req.userId;
+    const userIdStr = Array.isArray(userId) ? userId[0] : userId;
 
-    if (!userId) {
+    if (!userIdStr) {
       return responses.unauthorized(res);
     }
 
     await prisma.notification.updateMany({
-      where: { userId, isRead: false },
+      where: { userId: userIdStr, isRead: false },
       data: { isRead: true },
     });
 
@@ -115,31 +121,32 @@ export async function markAllAsRead(req: AuthRequest, res: Response, next: NextF
 
 /**
  * DELETE /api/notifications/:id
- * Delete a notification
+ * Delete notification
  */
 export async function deleteNotification(req: AuthRequest, res: Response, next: NextFunction) {
   try {
-    const { id } = req.params;
     const userId = req.userId;
+    const userIdStr = Array.isArray(userId) ? userId[0] : userId;
+    const { id } = req.params;
+    const idStr = Array.isArray(id) ? id[0] : id;
 
-    if (!userId) {
+    if (!userIdStr) {
       return responses.unauthorized(res);
     }
 
     const notification = await prisma.notification.findUnique({
-      where: { id },
+      where: { id: idStr },
     });
 
     if (!notification) {
       return responses.notFound(res, 'Notification not found');
     }
 
-    if (notification.userId !== userId) {
+    if (notification.userId !== userIdStr) {
       return responses.forbidden(res);
     }
 
-    await prisma.notification.delete({ where: { id } });
-
+    await prisma.notification.delete({ where: { id: idStr } });
     return responses.ok(res, 'Notification deleted');
   } catch (error) {
     next(error);
@@ -147,22 +154,23 @@ export async function deleteNotification(req: AuthRequest, res: Response, next: 
 }
 
 /**
- * GET /api/notifications/unread-count
- * Get count of unread notifications
+ * GET /api/notifications/unread/count
+ * Get unread notification count
  */
 export async function getUnreadCount(req: AuthRequest, res: Response, next: NextFunction) {
   try {
     const userId = req.userId;
+    const userIdStr = Array.isArray(userId) ? userId[0] : userId;
 
-    if (!userId) {
+    if (!userIdStr) {
       return responses.unauthorized(res);
     }
 
     const count = await prisma.notification.count({
-      where: { userId, isRead: false },
+      where: { userId: userIdStr, isRead: false },
     });
 
-    return responses.ok(res, 'Unread count', { unreadCount: count });
+    return responses.ok(res, 'Unread count', { count });
   } catch (error) {
     next(error);
   }

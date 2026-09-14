@@ -3,7 +3,7 @@ import prisma from '../lib/prisma';
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../utils/jwt.utils';
 import { hashPassword, comparePassword, generateOTP, getOTPExpiry, isOTPValid } from '../utils/password.utils';
 import { responses } from '../utils/response.utils';
-import { sendOTPEmail, sendWelcomeEmail, sendPasswordResetEmail } from '../services/email.service';
+import { sendWelcomeEmail, sendPasswordResetEmail, sendOTPEmail } from '../services/email.service';
 
 export interface AuthRequest extends Request {
   userId?: string;
@@ -17,7 +17,12 @@ export interface AuthRequest extends Request {
  */
 export async function register(req: AuthRequest, res: Response, next: NextFunction) {
   try {
-    const { email, name, password, role } = req.body;
+    const { name, password, role } = req.body;
+    const email = String(req.body.email || '').trim().toLowerCase();
+
+    if (!/^[^\s@]+@gmail\.com$/i.test(email)) {
+      return responses.badRequest(res, 'Please use a valid Gmail address');
+    }
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({ where: { email } });
@@ -25,40 +30,29 @@ export async function register(req: AuthRequest, res: Response, next: NextFuncti
       return responses.conflict(res, 'Email already registered');
     }
 
-    // For students, check NUB email
-    if (role === 'STUDENT') {
-      if (!email.endsWith('@student.nub.edu.bd')) {
-        return responses.badRequest(res, 'Students must use NUB email address');
-      }
-    }
-
-    // Generate OTP
+    // Hash password
+    const hashedPassword = await hashPassword(password);
     const otp = generateOTP();
     const otpExpiry = getOTPExpiry();
 
-    // Hash password
-    const hashedPassword = await hashPassword(password);
-
-    // Create user with pending status
     const user = await prisma.user.create({
       data: {
         email,
         name,
         password: hashedPassword,
         role,
+        isEmailVerified: false,
         otpCode: otp,
         otpExpiry,
-        isEmailVerified: false,
       },
     });
 
-    // Send OTP email
-    await sendOTPEmail(email, otp, name);
+    await sendOTPEmail(user.email, otp, user.name);
 
-    return responses.created(res, 'Registration successful. Please verify your email.', {
+    return responses.created(res, 'Verification code sent to your email. Please verify it to continue.', {
       userId: user.id,
       email: user.email,
-      message: 'OTP sent to your email',
+      message: 'Check your inbox for the OTP code.',
     });
   } catch (error) {
     next(error);
@@ -84,14 +78,13 @@ export async function verifyEmail(req: AuthRequest, res: Response, next: NextFun
 
     // Check OTP
     if (!user.otpCode || !user.otpExpiry) {
-      return responses.badRequest(res, 'OTP not found');
+      return responses.badRequest(res, 'OTP not found. Please request a new one.');
     }
 
     if (!isOTPValid(user.otpCode, otp, user.otpExpiry)) {
       return responses.badRequest(res, 'Invalid or expired OTP');
     }
 
-    // Update user
     const updatedUser = await prisma.user.update({
       where: { id: user.id },
       data: {
@@ -101,25 +94,10 @@ export async function verifyEmail(req: AuthRequest, res: Response, next: NextFun
       },
     });
 
-    // Generate tokens
-    const accessToken = generateAccessToken({
-      userId: updatedUser.id,
-      email: updatedUser.email,
-      role: updatedUser.role,
-    });
-
-    const refreshToken = generateRefreshToken({
-      userId: updatedUser.id,
-      email: updatedUser.email,
-      role: updatedUser.role,
-    });
-
-    // Send welcome email
     await sendWelcomeEmail(updatedUser.email, updatedUser.name, updatedUser.role);
 
-    return responses.ok(res, 'Email verified successfully', {
-      accessToken,
-      refreshToken,
+    return responses.ok(res, 'Email verified successfully. Please log in.', {
+      email: updatedUser.email,
       user: {
         id: updatedUser.id,
         email: updatedUser.email,
@@ -146,7 +124,7 @@ export async function login(req: AuthRequest, res: Response, next: NextFunction)
     }
 
     if (!user.isEmailVerified) {
-      return responses.badRequest(res, 'Please verify your email first');
+      return responses.unauthorized(res, 'Please verify your email before logging in.');
     }
 
     // Compare password
@@ -251,6 +229,33 @@ export async function forgotPassword(req: AuthRequest, res: Response, next: Next
     await sendPasswordResetEmail(email, user.name, resetLink);
 
     return responses.ok(res, 'If email exists, reset link will be sent');
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * POST /api/auth/verify-otp
+ * Verify OTP for password reset flow
+ */
+export async function verifyOTP(req: AuthRequest, res: Response, next: NextFunction) {
+  try {
+    const { email, otp } = req.body;
+
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      return responses.notFound(res, 'User not found');
+    }
+
+    if (!user.resetOtpCode || !user.resetOtpExpiry) {
+      return responses.badRequest(res, 'No reset request found');
+    }
+
+    if (!isOTPValid(user.resetOtpCode, otp, user.resetOtpExpiry)) {
+      return responses.badRequest(res, 'Invalid or expired OTP');
+    }
+
+    return responses.ok(res, 'OTP verified successfully');
   } catch (error) {
     next(error);
   }

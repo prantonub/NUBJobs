@@ -27,7 +27,6 @@ export async function calculateMatchScore(
       return 0;
     }
 
-    // Build prompt for Claude
     const prompt = `
 You are an AI recruiter. Evaluate how well a student matches a job posting based on the following criteria and provide a match score from 0-100.
 
@@ -42,8 +41,8 @@ Location: ${job.location || 'Remote'}
 STUDENT:
 Skills: ${student.skills?.join(', ') || 'Not provided'}
 CGPA: ${student.cgpa || 'Not provided'}
-Experience: ${student.experience ? JSON.stringify(student.experience) : 'None'}
-Projects: ${student.projects ? JSON.stringify(student.projects) : 'None'}
+Experience: Not provided
+Projects: Not provided
 
 Respond with ONLY a JSON object in this format:
 {
@@ -69,10 +68,10 @@ Respond with ONLY a JSON object in this format:
       return Math.min(100, Math.max(0, parseInt(parsed.score) || 0));
     }
 
-    return 50; // Default fallback
+    return 50;
   } catch (error) {
     console.error('Error calculating match score:', error);
-    return 50; // Neutral fallback
+    return 50;
   }
 }
 
@@ -174,7 +173,7 @@ STUDENT:
 Name: ${student.user?.name}
 Skills: ${student.skills?.join(', ')}
 CGPA: ${student.cgpa}
-Experience: ${student.experience ? JSON.stringify(student.experience) : 'Limited'}
+Experience: Limited
 
 JOB:
 Title: ${job.title}
@@ -233,8 +232,8 @@ Based on a student's profile, provide career guidance.
 STUDENT PROFILE:
 Skills: ${student.skills?.join(', ')}
 CGPA: ${student.cgpa}
-Experience: ${student.experience ? JSON.stringify(student.experience) : 'Limited'}
-Projects: ${student.projects ? JSON.stringify(student.projects) : 'None'}
+Experience: Limited
+Projects: Not provided
 
 Respond with ONLY a JSON object:
 {

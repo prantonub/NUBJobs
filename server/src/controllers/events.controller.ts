@@ -3,7 +3,7 @@ import prisma from '../lib/prisma';
 import { responses } from '../utils/response.utils';
 
 export interface AuthRequest extends Request {
-  userId?: string;
+  userId?: string | string[];
   email?: string;
   role?: string;
 }
@@ -46,15 +46,18 @@ export async function listEvents(req: AuthRequest, res: Response, next: NextFunc
     // Calculate eligibility for authenticated users
     let eventsWithEligibility = events;
     if (req.userId) {
+      const userId = req.userId;
+      const userIdStr = Array.isArray(userId) ? userId[0] : userId;
+
       const student = await prisma.studentProfile.findUnique({
-        where: { userId: req.userId },
+        where: { userId: userIdStr },
         select: { cgpa: true },
       });
 
       if (student) {
         eventsWithEligibility = events.map((event) => ({
           ...event,
-          isEligible: !event.minCgpa || (student.cgpa && student.cgpa >= event.minCgpa),
+          isEligible: !event.minCgpa || (!!student.cgpa && student.cgpa >= event.minCgpa),
         }));
       }
     }
@@ -80,11 +83,12 @@ export async function listEvents(req: AuthRequest, res: Response, next: NextFunc
 export async function getEventDetail(req: AuthRequest, res: Response, next: NextFunction) {
   try {
     const { id } = req.params;
+    const idStr = Array.isArray(id) ? id[0] : id;
 
     const event = await prisma.campusEvent.findUnique({
-      where: { id },
+      where: { id: idStr },
       include: {
-        organizer: { select: { name: true, email: true, photoUrl: true } },
+        organizer: { select: { name: true, email: true } },
         _count: { select: { rsvps: true } },
       },
     });
@@ -98,21 +102,24 @@ export async function getEventDetail(req: AuthRequest, res: Response, next: Next
     let hasRsvped = false;
 
     if (req.userId) {
+      const userId = req.userId;
+      const userIdStr = Array.isArray(userId) ? userId[0] : userId;
+
       const student = await prisma.studentProfile.findUnique({
-        where: { userId: req.userId },
-        select: { cgpa: true },
+        where: { userId: userIdStr },
+        select: { cgpa: true, id: true },
       });
 
       if (student) {
-        isEligible = !event.minCgpa || (student.cgpa && student.cgpa >= event.minCgpa);
+        isEligible = !event.minCgpa || (!!student.cgpa && student.cgpa >= event.minCgpa);
+
+        // Check if user has RSVP'd
+        const rsvp = await prisma.eventRsvp.findUnique({
+          where: { eventId_studentId: { eventId: idStr, studentId: student.id } },
+        });
+
+        hasRsvped = !!rsvp;
       }
-
-      // Check if user has RSVP'd
-      const rsvp = await prisma.eventRsvp.findUnique({
-        where: { eventId_studentId: { eventId: id, studentId: (await prisma.studentProfile.findUnique({ where: { userId: req.userId } }))?.id || '' } },
-      });
-
-      hasRsvped = !!rsvp;
     }
 
     return responses.ok(res, 'Event detail', {
@@ -132,7 +139,9 @@ export async function getEventDetail(req: AuthRequest, res: Response, next: Next
 export async function createEvent(req: AuthRequest, res: Response, next: NextFunction) {
   try {
     const userId = req.userId;
-    if (!userId || !['ADMIN', 'MODERATOR'].includes(req.role || '')) {
+    const userIdStr = Array.isArray(userId) ? userId[0] : userId;
+
+    if (!userIdStr || !['ADMIN', 'MODERATOR'].includes(req.role || '')) {
       return responses.forbidden(res, 'Only admins can create events');
     }
 
@@ -153,7 +162,7 @@ export async function createEvent(req: AuthRequest, res: Response, next: NextFun
 
     const event = await prisma.campusEvent.create({
       data: {
-        organizerId: userId,
+        organizerId: userIdStr,
         title,
         description,
         eventDate: new Date(eventDate),
@@ -180,25 +189,27 @@ export async function updateEvent(req: AuthRequest, res: Response, next: NextFun
   try {
     const { id } = req.params;
     const userId = req.userId;
+    const userIdStr = Array.isArray(userId) ? userId[0] : userId;
+    const idStr = Array.isArray(id) ? id[0] : id;
 
-    if (!userId) {
+    if (!userIdStr) {
       return responses.unauthorized(res);
     }
 
     const event = await prisma.campusEvent.findUnique({
-      where: { id },
+      where: { id: idStr },
     });
 
     if (!event) {
       return responses.notFound(res, 'Event not found');
     }
 
-    if (event.organizerId !== userId) {
+    if (event.organizerId !== userIdStr) {
       return responses.forbidden(res, 'Not event organizer');
     }
 
     const updated = await prisma.campusEvent.update({
-      where: { id },
+      where: { id: idStr },
       data: {
         title: req.body.title || event.title,
         description: req.body.description || event.description,
@@ -225,24 +236,26 @@ export async function deleteEvent(req: AuthRequest, res: Response, next: NextFun
   try {
     const { id } = req.params;
     const userId = req.userId;
+    const userIdStr = Array.isArray(userId) ? userId[0] : userId;
+    const idStr = Array.isArray(id) ? id[0] : id;
 
-    if (!userId) {
+    if (!userIdStr) {
       return responses.unauthorized(res);
     }
 
     const event = await prisma.campusEvent.findUnique({
-      where: { id },
+      where: { id: idStr },
     });
 
     if (!event) {
       return responses.notFound(res, 'Event not found');
     }
 
-    if (event.organizerId !== userId) {
+    if (event.organizerId !== userIdStr) {
       return responses.forbidden(res);
     }
 
-    await prisma.campusEvent.delete({ where: { id } });
+    await prisma.campusEvent.delete({ where: { id: idStr } });
     return responses.ok(res, 'Event deleted');
   } catch (error) {
     next(error);
@@ -257,13 +270,15 @@ export async function toggleEventRsvp(req: AuthRequest, res: Response, next: Nex
   try {
     const { id } = req.params;
     const userId = req.userId;
+    const userIdStr = Array.isArray(userId) ? userId[0] : userId;
+    const idStr = Array.isArray(id) ? id[0] : id;
 
-    if (!userId) {
+    if (!userIdStr) {
       return responses.unauthorized(res);
     }
 
     const student = await prisma.studentProfile.findUnique({
-      where: { userId },
+      where: { userId: userIdStr },
       select: { id: true, cgpa: true },
     });
 
@@ -272,7 +287,7 @@ export async function toggleEventRsvp(req: AuthRequest, res: Response, next: Nex
     }
 
     const event = await prisma.campusEvent.findUnique({
-      where: { id },
+      where: { id: idStr },
     });
 
     if (!event) {
@@ -287,7 +302,7 @@ export async function toggleEventRsvp(req: AuthRequest, res: Response, next: Nex
     // Check capacity
     if (event.capacity) {
       const rsvpCount = await prisma.eventRsvp.count({
-        where: { eventId: id },
+        where: { eventId: idStr },
       });
       if (rsvpCount >= event.capacity) {
         return responses.badRequest(res, 'Event is full');
@@ -296,7 +311,7 @@ export async function toggleEventRsvp(req: AuthRequest, res: Response, next: Nex
 
     const existing = await prisma.eventRsvp.findUnique({
       where: {
-        eventId_studentId: { eventId: id, studentId: student.id },
+        eventId_studentId: { eventId: idStr, studentId: student.id },
       },
     });
 
@@ -304,7 +319,7 @@ export async function toggleEventRsvp(req: AuthRequest, res: Response, next: Nex
       // Cancel RSVP
       await prisma.eventRsvp.delete({
         where: {
-          eventId_studentId: { eventId: id, studentId: student.id },
+          eventId_studentId: { eventId: idStr, studentId: student.id },
         },
       });
       return responses.ok(res, 'RSVP cancelled');
@@ -312,18 +327,19 @@ export async function toggleEventRsvp(req: AuthRequest, res: Response, next: Nex
       // Create RSVP
       const rsvp = await prisma.eventRsvp.create({
         data: {
-          eventId: id,
+          eventId: idStr,
           studentId: student.id,
+          userId: userIdStr,
         },
       });
 
       // Create notification
       await prisma.notification.create({
         data: {
-          userId,
+          userId: userIdStr,
           type: 'EVENT_REMINDER',
           message: `You're registered for ${event.title}`,
-          link: `/events/${id}`,
+          link: `/events/${idStr}`,
         },
       });
 
@@ -342,21 +358,23 @@ export async function getEventRsvps(req: AuthRequest, res: Response, next: NextF
   try {
     const { id } = req.params;
     const userId = req.userId;
+    const userIdStr = Array.isArray(userId) ? userId[0] : userId;
     const { page = 1, limit = 50 } = req.query;
+    const idStr = Array.isArray(id) ? id[0] : id;
 
-    if (!userId) {
+    if (!userIdStr) {
       return responses.unauthorized(res);
     }
 
     const event = await prisma.campusEvent.findUnique({
-      where: { id },
+      where: { id: idStr },
     });
 
     if (!event) {
       return responses.notFound(res, 'Event not found');
     }
 
-    if (event.organizerId !== userId) {
+    if (event.organizerId !== userIdStr) {
       return responses.forbidden(res);
     }
 
@@ -366,7 +384,7 @@ export async function getEventRsvps(req: AuthRequest, res: Response, next: NextF
 
     const [rsvps, total] = await Promise.all([
       prisma.eventRsvp.findMany({
-        where: { eventId: id },
+        where: { eventId: idStr },
         include: {
           student: {
             select: {
@@ -380,7 +398,7 @@ export async function getEventRsvps(req: AuthRequest, res: Response, next: NextF
         skip,
         take: pageSize,
       }),
-      prisma.eventRsvp.count({ where: { eventId: id } }),
+      prisma.eventRsvp.count({ where: { eventId: idStr } }),
     ]);
 
     return responses.ok(res, 'Event RSVPs', {
@@ -405,20 +423,22 @@ export async function notifyEligibleStudents(req: AuthRequest, res: Response, ne
   try {
     const { id } = req.params;
     const userId = req.userId;
+    const userIdStr = Array.isArray(userId) ? userId[0] : userId;
+    const idStr = Array.isArray(id) ? id[0] : id;
 
-    if (!userId) {
+    if (!userIdStr) {
       return responses.unauthorized(res);
     }
 
     const event = await prisma.campusEvent.findUnique({
-      where: { id },
+      where: { id: idStr },
     });
 
     if (!event) {
       return responses.notFound(res, 'Event not found');
     }
 
-    if (event.organizerId !== userId) {
+    if (event.organizerId !== userIdStr) {
       return responses.forbidden(res);
     }
 
@@ -438,7 +458,7 @@ export async function notifyEligibleStudents(req: AuthRequest, res: Response, ne
       userId: student.user.id,
       type: 'EVENT_NOTIFICATION' as const,
       message: `New event: ${event.title} on ${event.eventDate.toLocaleDateString()}`,
-      link: `/events/${id}`,
+      link: `/events/${idStr}`,
       isRead: false,
       createdAt: new Date(),
     }));

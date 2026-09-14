@@ -201,6 +201,7 @@ export async function getEmployerApplications(req: AuthRequest, res: Response, n
 export async function getApplicationDetail(req: AuthRequest, res: Response, next: NextFunction) {
   try {
     const { id } = req.params;
+    const idStr = Array.isArray(id) ? id[0] : id;
     const userId = req.userId;
 
     if (!userId) {
@@ -216,7 +217,7 @@ export async function getApplicationDetail(req: AuthRequest, res: Response, next
     }
 
     const application = await prisma.application.findUnique({
-      where: { id },
+      where: { id: idStr },
       include: {
         job: { include: { employer: true } },
         student: {
@@ -255,6 +256,7 @@ export async function getApplicationDetail(req: AuthRequest, res: Response, next
 export async function updateApplicationStatus(req: AuthRequest, res: Response, next: NextFunction) {
   try {
     const { id } = req.params;
+    const idStr = Array.isArray(id) ? id[0] : id;
     const { status, notes } = req.body;
     const userId = req.userId;
 
@@ -271,7 +273,7 @@ export async function updateApplicationStatus(req: AuthRequest, res: Response, n
     }
 
     const application = await prisma.application.findUnique({
-      where: { id },
+      where: { id: idStr },
       include: { job: true, student: true },
     });
 
@@ -284,7 +286,7 @@ export async function updateApplicationStatus(req: AuthRequest, res: Response, n
     }
 
     const updated = await prisma.application.update({
-      where: { id },
+      where: { id: idStr },
       data: {
         status,
         notes: notes || application.notes,
@@ -320,6 +322,7 @@ export async function updateApplicationStatus(req: AuthRequest, res: Response, n
 export async function scheduleInterview(req: AuthRequest, res: Response, next: NextFunction) {
   try {
     const { id } = req.params;
+    const idStr = Array.isArray(id) ? id[0] : id;
     const { date, time, link, notes } = req.body;
     const userId = req.userId;
 
@@ -336,7 +339,7 @@ export async function scheduleInterview(req: AuthRequest, res: Response, next: N
     }
 
     const application = await prisma.application.findUnique({
-      where: { id },
+      where: { id: idStr },
       include: { job: true, student: true },
     });
 
@@ -351,7 +354,7 @@ export async function scheduleInterview(req: AuthRequest, res: Response, next: N
     const interviewDate = new Date(`${date}T${time}`);
 
     const updated = await prisma.application.update({
-      where: { id },
+      where: { id: idStr },
       data: {
         status: 'INTERVIEWED',
         interviewDate,
@@ -364,9 +367,9 @@ export async function scheduleInterview(req: AuthRequest, res: Response, next: N
     await prisma.notification.create({
       data: {
         userId: application.student.userId,
-        type: 'INTERVIEW_SCHEDULED',
+        type: 'APPLICATION_STATUS_UPDATE',
         message: `Interview scheduled for ${application.job.title}`,
-        link: `/applications/${id}`,
+        link: `/applications/${idStr}`,
       },
     });
 

@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { verifyAccessToken } from '../utils/jwt.utils';
-import { responses } from '../utils/response.utils';
+import { responses, sendValidationError, sendError } from '../utils/response.utils';
 import { ZodSchema } from 'zod';
 
 export interface AuthRequest extends Request {
@@ -78,11 +78,11 @@ export function validate(schema: ZodSchema) {
       const result = schema.safeParse(req.body);
       if (!result.success) {
         const errors: Record<string, string> = {};
-        result.error.errors.forEach((err) => {
+        result.error.issues.forEach((err) => {
           const path = err.path.join('.');
           errors[path] = err.message;
         });
-        return responses.sendValidationError(res, errors);
+        return sendValidationError(res, errors);
       }
       req.body = result.data;
       next();
@@ -114,7 +114,7 @@ export function rateLimit(maxRequests: number = 5, windowMs: number = 15 * 60 * 
     } else {
       const resetIn = Math.ceil((record.resetTime - now) / 1000);
       res.set('Retry-After', String(resetIn));
-      responses.sendError(
+      sendError(
         res,
         429,
         'Too many requests',

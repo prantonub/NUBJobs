@@ -15,7 +15,6 @@ import {
 import { toast } from "sonner";
 
 import api from "@/lib/axios";
-import { useAuth } from "@/hooks/useAuth";
 import { cn, getErrorMessage } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -86,13 +85,6 @@ const registerSchema = z
     }
 
     if (val.role === "STUDENT") {
-      if (!val.email.toLowerCase().endsWith("@nub.edu.bd")) {
-        ctx.addIssue({
-          code: "custom",
-          path: ["email"],
-          message: "Use your NUB email (ending in @nub.edu.bd)",
-        });
-      }
       if (!val.nubId || val.nubId.trim().length < 3) {
         ctx.addIssue({
           code: "custom",
@@ -164,7 +156,6 @@ const ROLE_OPTIONS = [
 function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { login } = useAuth();
   const [serverError, setServerError] = React.useState<string | null>(null);
 
   const initialRole =
@@ -221,17 +212,12 @@ function RegisterForm() {
             };
 
       const res = await api.post<AuthResponse>("/auth/register", payload);
-      const token =
-        res.data?.token ?? res.data?.accessToken ?? res.data?.data?.token;
+      const message =
+        (res.data as { message?: string } | undefined)?.message ||
+        "Verification code sent to your email.";
 
-      if (token) {
-        login(token);
-        toast.success("Account created — welcome to NUBJobs!");
-        router.push("/dashboard");
-      } else {
-        toast.success("Account created! Please sign in.");
-        router.push("/login");
-      }
+      toast.success(message);
+      router.push(`/verify-otp?email=${encodeURIComponent(values.email)}&mode=register`);
     } catch (error) {
       const message = getErrorMessage(error, "Could not create your account.");
       setServerError(message);

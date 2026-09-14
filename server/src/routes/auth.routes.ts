@@ -3,6 +3,7 @@ import { z } from 'zod';
 import {
   register,
   verifyEmail,
+  verifyOTP,
   login,
   refresh,
   forgotPassword,
@@ -52,13 +53,16 @@ const resendOTPSchema = z.object({
 });
 
 // Rate limit auth routes
-router.post('/register', rateLimit(5, 15 * 60 * 1000), validate(registerSchema), register);
-router.post('/verify-email', rateLimit(5, 15 * 60 * 1000), validate(verifyEmailSchema), verifyEmail);
-router.post('/login', rateLimit(5, 15 * 60 * 1000), validate(loginSchema), login);
-router.post('/refresh', rateLimit(10, 15 * 60 * 1000), validate(refreshSchema), refresh);
-router.post('/forgot-password', rateLimit(3, 15 * 60 * 1000), validate(forgotPasswordSchema), forgotPassword);
-router.post('/reset-password', rateLimit(5, 15 * 60 * 1000), validate(resetPasswordSchema), resetPassword);
-router.post('/resend-otp', rateLimit(3, 15 * 60 * 1000), validate(resendOTPSchema), resendOTP);
+// Increased thresholds to avoid blocking normal user flows during development and
+// repeated client retries while still limiting abuse.
+router.post('/register', rateLimit(20, 15 * 60 * 1000), validate(registerSchema), register);
+router.post('/verify-email', rateLimit(20, 15 * 60 * 1000), validate(verifyEmailSchema), verifyEmail);
+router.post('/verify-otp', rateLimit(20, 15 * 60 * 1000), validate(verifyEmailSchema), verifyOTP);
+router.post('/login', rateLimit(20, 15 * 60 * 1000), validate(loginSchema), login);
+router.post('/refresh', rateLimit(50, 15 * 60 * 1000), validate(refreshSchema), refresh);
+router.post('/forgot-password', rateLimit(10, 15 * 60 * 1000), validate(forgotPasswordSchema), forgotPassword);
+router.post('/reset-password', rateLimit(20, 15 * 60 * 1000), validate(resetPasswordSchema), resetPassword);
+router.post('/resend-otp', rateLimit(10, 15 * 60 * 1000), validate(resendOTPSchema), resendOTP);
 
 // Protected routes
 router.post('/logout', authenticate, logout);

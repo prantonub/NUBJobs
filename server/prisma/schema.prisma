@@ -1,3 +1,5 @@
+
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,24 +9,206 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ============================================
+// USER & AUTHENTICATION ()
+// ============================================
+
+model User {
+  id                String    @id @default(cuid())
+  email             String    @unique
+  name              String
+  password          String
+  role              Role      @default(STUDENT)
+  isEmailVerified   Boolean   @default(false)
+  
+  // OTP for email verification
+  otpCode           String?
+  otpExpiry         DateTime?
+  
+  // OTP for password reset
+  resetOtpCode      String?
+  resetOtpExpiry    DateTime?
+  
+  // Profile relationships
+  studentProfile    StudentProfile?
+  employerProfile   EmployerProfile?
+  
+  // Messages & Notifications
+  sentMessages      Message[]         @relation("MessageSender")
+  notifications     Notification[]
+  eventRsvps        EventRsvp[]
+  
+  // Events organized
+  organizedEvents   CampusEvent[]
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}
+
 enum Role {
   STUDENT
   EMPLOYER
   ADMIN
+  MODERATOR
+}
+
+// ============================================
+// STUDENT PROFILE 
+// ============================================
+
+model StudentProfile {
+  id                String    @id @default(cuid())
+  userId            String    @unique
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Personal Info
+  photoUrl          String?
+  phone             String?
+  location          String?
+  bio               String?
+  department        String?
+  nubId             String?   @unique
+  
+  // Academic Info
+  cgpa              Float?
+  skills            String[]  @default([])
+  
+  // URLs
+  linkedinUrl       String?
+  githubUrl         String?
+  portfolioUrl      String?
+  
+  // Resume
+  resumeUrl         String?
+  
+  // Relationships
+  applications      Application[]
+  savedJobs         SavedJob[]
+  eventRsvps        EventRsvp[]
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}
+
+// ============================================
+// EMPLOYER PROFILE 
+// ============================================
+
+model EmployerProfile {
+  id                    String    @id @default(cuid())
+  userId                String    @unique
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Company Info
+  companyName           String
+  about                 String?
+  logoUrl               String?
+  website               String?
+  linkedinUrl           String?
+  
+  // Verification ()
+  isVerified            Boolean   @default(false)
+  verificationDocument  String?
+  verificationRequest   String?
+  
+  // Jobs
+  jobs                  Job[]
+  publishedAt           DateTime?
+  
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+}
+
+// ============================================
+// JOBS 
+// ============================================
+
+model Job {
+  id                String    @id @default(cuid())
+  
+  // Basic Info
+  title             String
+  description       String    @db.Text
+  category          String?
+  type              JobType   @default(FULL_TIME)
+  location          String?
+  
+  // Salary
+  salaryMin         Int?
+  salaryMax         Int?
+  
+  // Requirements
+  minCgpa           Float?
+  skills            String[]  @default([])
+  targetUniversity  String    @default("ALL") // ALL, NUB, OTHER
+  deadline          DateTime?
+  
+  // Status ()
+  status            JobStatus @default(ACTIVE) // DRAFT, PENDING, ACTIVE, CLOSED
+  publishedAt       DateTime?
+  
+  // Analytics ()
+  views             Int       @default(0)
+  applicantCount    Int       @default(0)
+  
+  // Relationships
+  employerId        String
+  employer          EmployerProfile @relation(fields: [employerId], references: [id], onDelete: Cascade)
+  applications      Application[]
+  savedJobs         SavedJob[]
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 }
 
 enum JobType {
   FULL_TIME
   PART_TIME
   INTERNSHIP
-  REMOTE
-  HYBRID
+  CONTRACT
 }
 
 enum JobStatus {
+  DRAFT
   PENDING
   ACTIVE
   CLOSED
+}
+
+// ============================================
+// APPLICATIONS ()
+// ============================================
+
+model Application {
+  id                String    @id @default(cuid())
+  
+  // Relationships
+  jobId             String
+  job               Job       @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  
+  studentId         String
+  student           StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  
+  // Application Details
+  coverLetter       String?   @db.Text
+  matchScore        Int       @default(0) // 0-100
+  
+  // Status ()
+  status            ApplicationStatus @default(APPLIED)
+  notes             String?   @db.Text // Employer notes
+  
+  // Interview (PROM)
+  interviewDate     DateTime?
+  interviewLink     String?
+  
+  // Messages & Chat ()
+  messages          Message[]
+  
+  // Unique constraint: One application per student per job
+  @@unique([jobId, studentId])
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 }
 
 enum ApplicationStatus {
@@ -34,181 +218,160 @@ enum ApplicationStatus {
   INTERVIEWED
   HIRED
   REJECTED
+  WITHDRAWN
 }
 
-model User {
-  id            String   @id @default(uuid())
-  name          String
-  email         String   @unique
-  passwordHash  String
-  role          Role     @default(STUDENT)
-  isVerified    Boolean  @default(false)
-  isBanned      Boolean  @default(false)
-  otp           String?
-  otpExpiry     DateTime?
-  refreshToken  String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  studentProfile  StudentProfile?
-  employerProfile EmployerProfile?
-  notifications   Notification[]
-  sentMessages    Message[] @relation("SentMessages")
-  receivedMessages Message[] @relation("ReceivedMessages")
-}
-
-model StudentProfile {
-  id           String   @id @default(uuid())
-  userId       String   @unique
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  nubId        String?
-  department   String?
-  cgpa         Float?
-  bio          String?
-  phone        String?
-  location     String?
-  skills       String[]
-  resumeUrl    String?
-  photoUrl     String?
-  linkedinUrl  String?
-  githubUrl    String?
-  portfolioUrl String?
-  education    Json?
-  experience   Json?
-  projects     Json?
-  certifications Json?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  applications Application[]
-  savedJobs    SavedJob[]
-  eventRsvps   EventRsvp[]
-}
-
-model EmployerProfile {
-  id          String   @id @default(uuid())
-  userId      String   @unique
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  companyName String
-  industry    String?
-  website     String?
-  logoUrl     String?
-  about       String?
-  size        String?
-  founded     String?
-  linkedinUrl String?
-  isVerified  Boolean  @default(false)
-  documents   String[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  jobs         Job[]
-  campusEvents CampusEvent[]
-}
-
-model Job {
-  id               String    @id @default(uuid())
-  employerId       String
-  employer         EmployerProfile @relation(fields: [employerId], references: [id], onDelete: Cascade)
-  title            String
-  description      String
-  category         String
-  type             JobType
-  salaryMin        Int?
-  salaryMax        Int?
-  location         String?
-  skills           String[]
-  minCgpa          Float?
-  targetUniversity String?
-  status           JobStatus @default(PENDING)
-  deadline         DateTime?
-  views            Int       @default(0)
-  applicantCount   Int       @default(0)
-  isFeatured       Boolean   @default(false)
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-
-  applications Application[]
-  savedBy      SavedJob[]
-}
-
-model Application {
-  id          String            @id @default(uuid())
-  jobId       String
-  job         Job               @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  studentId   String
-  student     StudentProfile    @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  status      ApplicationStatus @default(APPLIED)
-  coverLetter String?
-  resumeUrl   String?
-  matchScore  Int?
-  notes       String?
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
-
-  messages Message[]
-
-  @@unique([jobId, studentId])
-}
+// ============================================
+// SAVED JOBS ()
+// ============================================
 
 model SavedJob {
-  id        String         @id @default(uuid())
-  studentId String
-  student   StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  jobId     String
-  job       Job            @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  createdAt DateTime       @default(now())
-
+  id                String    @id @default(cuid())
+  
+  studentId         String
+  student           StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  
+  jobId             String
+  job               Job       @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  
   @@unique([studentId, jobId])
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 }
 
-model Message {
-  id            String      @id @default(uuid())
-  senderId      String
-  sender        User        @relation("SentMessages", fields: [senderId], references: [id])
-  receiverId    String
-  receiver      User        @relation("ReceivedMessages", fields: [receiverId], references: [id])
-  applicationId String
-  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
-  content       String
-  isRead        Boolean     @default(false)
-  createdAt     DateTime    @default(now())
-}
+// ============================================
+// NOTIFICATIONS 
+// ============================================
 
 model Notification {
-  id        String   @id @default(uuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type      String
-  message   String
-  link      String?
-  isRead    Boolean  @default(false)
-  createdAt DateTime @default(now())
+  id                String    @id @default(cuid())
+  
+  userId            String
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  type              NotificationType
+  message           String
+  link              String?
+  isRead            Boolean   @default(false)
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 }
+
+enum NotificationType {
+  NEW_APPLICATION
+  APPLICATION_STATUS_UPDATE
+  NEW_MESSAGE
+  EVENT_REMINDER
+  EVENT_NOTIFICATION
+  JOB_ALERT
+}
+
+// ============================================
+// MESSAGES ()
+// ============================================
+
+model Message {
+  id                String    @id @default(cuid())
+  
+  // Conversation (Application-based)
+  applicationId     String
+  application       Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  
+  // Sender
+  senderId          String
+  sender            User      @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  
+  // Content
+  content           String    @db.Text
+  
+  // Read Status ()
+  isRead            Boolean   @default(false)
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}
+
+// ============================================
+// CAMPUS EVENTS ()
+// ============================================
 
 model CampusEvent {
-  id          String          @id @default(uuid())
-  employerId  String
-  employer    EmployerProfile @relation(fields: [employerId], references: [id], onDelete: Cascade)
-  title       String
-  description String?
-  eventDate   DateTime
-  venue       String?
-  minCgpa     Float?
-  status      String          @default("UPCOMING")
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
-
-  rsvps EventRsvp[]
+  id                String    @id @default(cuid())
+  
+  title             String
+  description       String    @db.Text
+  eventDate         DateTime
+  location          String
+  
+  // Capacity & Eligibility
+  capacity          Int?      // Max attendees
+  minCgpa           Float?    // Minimum CGPA requirement
+  
+  imageUrl          String?
+  registrationLink  String?
+  
+  // Organizer
+  organizerId       String
+  organizer         User      @relation(fields: [organizerId], references: [id], onDelete: Cascade)
+  
+  // RSVPs
+  rsvps             EventRsvp[]
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 }
+
+// ============================================
+// EVENT RSVPs ()
+// ============================================
 
 model EventRsvp {
-  id        String         @id @default(uuid())
-  eventId   String
-  event     CampusEvent    @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  studentId String
-  student   StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  createdAt DateTime       @default(now())
-
+  id                String    @id @default(cuid())
+  
+  eventId           String
+  event             CampusEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  
+  studentId         String
+  student           StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  
+  userId            String
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Unique constraint: One RSVP per student per event
   @@unique([eventId, studentId])
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 }
+
+// ============================================
+// INDEXES FOR PERFORMANCE
+// ============================================
+
+// User indexes
+/// @@index([email])
+/// @@index([role])
+
+// Job indexes
+/// @@index([status])
+/// @@index([employerId])
+/// @@index([type])
+
+// Application indexes
+/// @@index([studentId])
+/// @@index([jobId])
+/// @@index([status])
+
+// Notification indexes
+/// @@index([userId])
+/// @@index([isRead])
+
+// Message indexes
+/// @@index([applicationId])
+/// @@index([senderId])
+
+// Event indexes
+/// @@index([organizerId])
+/// @@index([eventDate])

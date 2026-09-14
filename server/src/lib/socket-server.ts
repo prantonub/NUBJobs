@@ -1,7 +1,7 @@
 import { createServer } from 'http';
 import { Server, Socket } from 'socket.io';
 import jwt from 'jsonwebtoken';
-import prisma from './lib/prisma';
+import prisma from './prisma';
 
 // Track online users
 const onlineUsers = new Map<string, string>(); // userId -> socketId
@@ -132,7 +132,17 @@ export function initializeSocket(app: any) {
             isRead: false,
           },
           include: {
-            sender: { select: { id: true, name: true, photoUrl: true } },
+            sender: {
+              select: {
+                id: true,
+                name: true,
+                studentProfile: {
+                  select: {
+                    photoUrl: true,
+                  },
+                },
+              },
+            },
           },
         });
 
@@ -144,7 +154,7 @@ export function initializeSocket(app: any) {
           sender: {
             id: message.sender.id,
             name: message.sender.name,
-            photoUrl: message.sender.photoUrl,
+            photoUrl: message.sender.studentProfile?.photoUrl || null,
           },
           content: message.content,
           isRead: message.isRead,

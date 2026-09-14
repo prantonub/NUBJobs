@@ -3,142 +3,103 @@ import prisma from '../lib/prisma';
 import { responses } from '../utils/response.utils';
 
 export interface AuthRequest extends Request {
-  userId?: string;
+  userId?: string | string[];
   email?: string;
   role?: string;
 }
 
 /**
  * GET /api/messages/conversations
- * Get all conversations for current user
+ * Get list of conversations
  */
 export async function getConversations(req: AuthRequest, res: Response, next: NextFunction) {
   try {
     const userId = req.userId;
-    const { page = 1, limit = 20 } = req.query;
+    const userIdStr = Array.isArray(userId) ? userId[0] : userId;
 
-    if (!userId) {
+    if (!userIdStr) {
       return responses.unauthorized(res);
     }
+
+    const { page = 1, limit = 20 } = req.query;
 
     const pageNum = Math.max(1, parseInt(page as string) || 1);
     const pageSize = Math.max(1, Math.min(50, parseInt(limit as string) || 20));
     const skip = (pageNum - 1) * pageSize;
 
-    // Get applications where user is involved
-    const applications = await prisma.application.findMany({
-      where: {
-        OR: [
-          { student: { userId } },
-          { job: { employer: { userId } } },
-        ],
-      },
+    // Get student profile to find applications
+    const student = await prisma.studentProfile.findUnique({
+      where: { userId: userIdStr },
+      select: { id: true },
+    });
+
+    const where: any = {};
+
+    if (student) {
+      // Student: conversations from their applications
+      where.application = {
+        studentId: student.id,
+      };
+    } else {
+      // Employer: conversations from their job applications
+      const employer = await prisma.employerProfile.findUnique({
+        where: { userId: userIdStr },
+        select: { id: true },
+      });
+
+      if (employer) {
+        where.application = {
+          job: {
+            employerId: employer.id,
+          },
+        };
+      }
+    }
+
+    // Get conversations with last message
+    const conversations = await prisma.application.findMany({
+      where,
       include: {
-        student: { select: { user: { select: { id: true, name: true, email: true } } } },
-        job: { include: { employer: { select: { userId: true, companyName: true } } } },
         messages: {
           orderBy: { createdAt: 'desc' },
           take: 1,
         },
+        student: {
+          include: {
+            user: { select: { id: true, name: true, email: true } },
+          },
+        },
+        job: {
+          include: {
+            employer: { select: { userId: true, companyName: true } },
+          },
+        },
       },
-      orderBy: { messages: { _count: 'desc' } },
+      orderBy: { updatedAt: 'desc' },
       skip,
       take: pageSize,
     });
 
-    const conversations = applications.map((app) => {
-      const isStudent = app.student.userId === userId;
-      const otherParty = isStudent
-        ? {
-            name: app.job.employer.companyName,
-            avatar: app.job.employer.logoUrl,
-            email: '',
-          }
-        : {
-            name: app.student.user.name,
-            avatar: app.student.photoUrl,
-            email: app.student.user.email,
-          };
+    const total = await prisma.application.count({ where });
 
-      return {
-        id: app.id,
-        jobTitle: app.job.title,
-        lastMessage: app.messages[0]?.content || 'No messages yet',
-        lastMessageTime: app.messages[0]?.createdAt || app.createdAt,
-        unreadCount: app.messages.filter((m) => !m.isRead && m.senderId !== userId).length,
-        otherParty,
-      };
-    });
-
-    return responses.ok(res, 'Conversations', conversations);
-  } catch (error) {
-    next(error);
-  }
-}
-
-/**
- * GET /api/messages/conversation/:applicationId
- * Get messages for an application (conversation)
- */
-export async function getConversation(req: AuthRequest, res: Response, next: NextFunction) {
-  try {
-    const { applicationId } = req.params;
-    const userId = req.userId;
-    const { page = 1, limit = 50 } = req.query;
-
-    if (!userId) {
-      return responses.unauthorized(res);
-    }
-
-    const application = await prisma.application.findUnique({
-      where: { id: applicationId },
-      include: {
-        student: { select: { userId: true } },
-        job: { include: { employer: { select: { userId: true } } } },
+    const formattedConversations = conversations.map((conv) => ({
+      id: conv.id,
+      otherParty: {
+        name: student ? conv.job.employer.companyName : conv.student.user.name,
+        email: student
+          ? conv.job.employer.userId
+          : conv.student.user.email,
+        avatar: null,
       },
-    });
+      lastMessage:
+        conv.messages.length > 0
+          ? conv.messages[0].content.substring(0, 50)
+          : 'No messages',
+      unreadCount: 0,
+    }));
 
-    if (!application) {
-      return responses.notFound(res, 'Conversation not found');
-    }
-
-    // Check access
-    const isStudent = application.student.userId === userId;
-    const isEmployer = application.job.employer.userId === userId;
-
-    if (!isStudent && !isEmployer) {
-      return responses.forbidden(res);
-    }
-
-    const pageNum = Math.max(1, parseInt(page as string) || 1);
-    const pageSize = Math.max(1, Math.min(100, parseInt(limit as string) || 50));
-    const skip = (pageNum - 1) * pageSize;
-
-    const [messages, total] = await Promise.all([
-      prisma.message.findMany({
-        where: { applicationId },
-        include: {
-          sender: { select: { id: true, name: true, photoUrl: true } },
-        },
-        orderBy: { createdAt: 'desc' },
-        skip,
-        take: pageSize,
-      }),
-      prisma.message.count({ where: { applicationId } }),
-    ]);
-
-    // Mark messages as read
-    await prisma.message.updateMany({
-      where: {
-        applicationId,
-        senderId: { not: userId },
-        isRead: false,
-      },
-      data: { isRead: true },
-    });
-
-    return responses.ok(res, 'Conversation messages', {
-      data: messages.reverse(),
+    return responses.ok(res, 'Conversations retrieved', {
+      data: formattedConversations,
       pagination: {
         total,
         page: pageNum,
@@ -152,27 +113,29 @@ export async function getConversation(req: AuthRequest, res: Response, next: Nex
 }
 
 /**
- * POST /api/messages/send
- * Send a message in an application
+ * GET /api/messages/:applicationId
+ * Get messages for a conversation
  */
-export async function sendMessage(req: AuthRequest, res: Response, next: NextFunction) {
+export async function getConversation(req: AuthRequest, res: Response, next: NextFunction) {
   try {
     const userId = req.userId;
-    const { applicationId, content } = req.body;
+    const userIdStr = Array.isArray(userId) ? userId[0] : userId;
+    const { applicationId } = req.params;
+    const appIdStr = Array.isArray(applicationId) ? applicationId[0] : applicationId;
 
-    if (!userId) {
+    if (!userIdStr) {
       return responses.unauthorized(res);
     }
 
-    if (!content || !applicationId) {
-      return responses.badRequest(res, 'Missing required fields');
-    }
-
     const application = await prisma.application.findUnique({
-      where: { id: applicationId },
+      where: { id: appIdStr },
       include: {
         student: { select: { userId: true } },
-        job: { include: { employer: { select: { userId: true } } } },
+        job: {
+          include: {
+            employer: { select: { userId: true } },
+          },
+        },
       },
     });
 
@@ -181,8 +144,71 @@ export async function sendMessage(req: AuthRequest, res: Response, next: NextFun
     }
 
     // Check access
-    const isStudent = application.student.userId === userId;
-    const isEmployer = application.job.employer.userId === userId;
+    const isStudent = application.student.userId === userIdStr;
+    const isEmployer = application.job.employer.userId === userIdStr;
+
+    if (!isStudent && !isEmployer) {
+      return responses.forbidden(res);
+    }
+
+    // Get messages
+    const messages = await prisma.message.findMany({
+      where: { applicationId: appIdStr },
+      include: {
+        sender: { select: { id: true, name: true, email: true } },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    // Auto-mark messages as read for current user
+    await prisma.message.updateMany({
+      where: { applicationId: appIdStr, senderId: { not: userIdStr } },
+      data: { isRead: true },
+    });
+
+    return responses.ok(res, 'Messages retrieved', messages);
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * POST /api/messages
+ * Send message
+ */
+export async function sendMessage(req: AuthRequest, res: Response, next: NextFunction) {
+  try {
+    const userId = req.userId;
+    const userIdStr = Array.isArray(userId) ? userId[0] : userId;
+    const { applicationId, content } = req.body;
+
+    if (!userIdStr) {
+      return responses.unauthorized(res);
+    }
+
+    if (!applicationId || !content) {
+      return responses.badRequest(res, 'Application ID and content required');
+    }
+
+    const application = await prisma.application.findUnique({
+      where: { id: applicationId },
+      include: {
+        student: { select: { userId: true } },
+        job: {
+          include: {
+            employer: { select: { userId: true } },
+          },
+        },
+      },
+    });
+
+    if (!application) {
+      return responses.notFound(res, 'Application not found');
+    }
+
+    // Check access
+    const isStudent = application.student.userId === userIdStr;
+    const isEmployer = application.job.employer.userId === userIdStr;
 
     if (!isStudent && !isEmployer) {
       return responses.forbidden(res);
@@ -191,16 +217,14 @@ export async function sendMessage(req: AuthRequest, res: Response, next: NextFun
     const message = await prisma.message.create({
       data: {
         applicationId,
-        senderId: userId,
+        senderId: userIdStr,
         content,
+        isRead: false,
       },
       include: {
-        sender: { select: { id: true, name: true, photoUrl: true } },
+        sender: { select: { id: true, name: true, email: true } },
       },
     });
-
-    // TODO: Emit via Socket.io for real-time update
-    // TODO: Create notification for other party
 
     return responses.created(res, 'Message sent', message);
   } catch (error) {
@@ -209,20 +233,22 @@ export async function sendMessage(req: AuthRequest, res: Response, next: NextFun
 }
 
 /**
- * PATCH /api/messages/:id/read
+ * PUT /api/messages/:id/read
  * Mark message as read
  */
 export async function markMessageRead(req: AuthRequest, res: Response, next: NextFunction) {
   try {
-    const { id } = req.params;
     const userId = req.userId;
+    const userIdStr = Array.isArray(userId) ? userId[0] : userId;
+    const { id } = req.params;
+    const idStr = Array.isArray(id) ? id[0] : id;
 
-    if (!userId) {
+    if (!userIdStr) {
       return responses.unauthorized(res);
     }
 
     const message = await prisma.message.findUnique({
-      where: { id },
+      where: { id: idStr },
     });
 
     if (!message) {
@@ -230,7 +256,7 @@ export async function markMessageRead(req: AuthRequest, res: Response, next: Nex
     }
 
     const updated = await prisma.message.update({
-      where: { id },
+      where: { id: idStr },
       data: { isRead: true },
     });
 
@@ -242,31 +268,32 @@ export async function markMessageRead(req: AuthRequest, res: Response, next: Nex
 
 /**
  * DELETE /api/messages/:id
- * Delete a message
+ * Delete message
  */
 export async function deleteMessage(req: AuthRequest, res: Response, next: NextFunction) {
   try {
-    const { id } = req.params;
     const userId = req.userId;
+    const userIdStr = Array.isArray(userId) ? userId[0] : userId;
+    const { id } = req.params;
+    const idStr = Array.isArray(id) ? id[0] : id;
 
-    if (!userId) {
+    if (!userIdStr) {
       return responses.unauthorized(res);
     }
 
     const message = await prisma.message.findUnique({
-      where: { id },
+      where: { id: idStr },
     });
 
     if (!message) {
       return responses.notFound(res, 'Message not found');
     }
 
-    if (message.senderId !== userId) {
+    if (message.senderId !== userIdStr) {
       return responses.forbidden(res);
     }
 
-    await prisma.message.delete({ where: { id } });
-
+    await prisma.message.delete({ where: { id: idStr } });
     return responses.ok(res, 'Message deleted');
   } catch (error) {
     next(error);

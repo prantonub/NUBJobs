@@ -25,6 +25,8 @@ function VerifyOtpForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const email = searchParams.get("email") ?? "";
+  const mode = searchParams.get("mode") ?? "reset";
+  const isRegisterFlow = mode === "register";
   const [serverError, setServerError] = React.useState<string | null>(null);
   const [resending, setResending] = React.useState(false);
 
@@ -40,6 +42,13 @@ function VerifyOtpForm() {
   const onSubmit = async (values: OtpValues) => {
     setServerError(null);
     try {
+      if (isRegisterFlow) {
+        await api.post("/auth/verify-email", { email, otp: values.otp });
+        toast.success("Email verified successfully!");
+        router.push("/login");
+        return;
+      }
+
       await api.post("/auth/verify-otp", { email, otp: values.otp });
       toast.success("Code verified!");
       const params = new URLSearchParams({ email, otp: values.otp });
@@ -53,13 +62,22 @@ function VerifyOtpForm() {
 
   const handleResend = async () => {
     if (!email) {
-      toast.error("Missing email — please restart the reset process.");
+      toast.error(
+        isRegisterFlow
+          ? "Missing email — please restart registration."
+          : "Missing email — please restart the reset process."
+      );
       return;
     }
     setResending(true);
     try {
-      await api.post("/auth/forgot-password", { email });
-      toast.success("A new code is on its way.");
+      if (isRegisterFlow) {
+        await api.post("/auth/resend-otp", { email });
+        toast.success("A new verification code is on its way.");
+      } else {
+        await api.post("/auth/forgot-password", { email });
+        toast.success("A new code is on its way.");
+      }
     } catch (error) {
       toast.error(getErrorMessage(error, "Could not resend the code."));
     } finally {
@@ -74,14 +92,14 @@ function VerifyOtpForm() {
           <ShieldCheckIcon className="size-6" />
         </div>
         <h1 className="font-heading text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-          Enter verification code
+          {isRegisterFlow ? "Verify your email" : "Enter verification code"}
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
           We sent a 6-digit code to{" "}
           <span className="font-medium text-foreground">
             {email || "your email"}
           </span>
-          . Enter it below to continue.
+          . Enter it below to {isRegisterFlow ? "complete registration" : "continue"}.
         </p>
       </div>
 
@@ -123,6 +141,8 @@ function VerifyOtpForm() {
                 <Loader2Icon className="size-4 animate-spin" />
                 Verifying…
               </>
+            ) : isRegisterFlow ? (
+              "Verify email"
             ) : (
               "Verify code"
             )}
@@ -130,17 +150,19 @@ function VerifyOtpForm() {
         </FieldGroup>
       </form>
 
-      <p className="mt-6 text-center text-sm text-muted-foreground lg:text-left">
-        Didn&apos;t get a code?{" "}
-        <button
-          type="button"
-          onClick={handleResend}
-          disabled={resending}
-          className="font-medium text-brand-600 hover:underline disabled:opacity-50"
-        >
-          {resending ? "Resending…" : "Resend"}
-        </button>
-      </p>
+      {!isRegisterFlow ? (
+        <p className="mt-6 text-center text-sm text-muted-foreground lg:text-left">
+          Didn&apos;t get a code?{" "}
+          <button
+            type="button"
+            onClick={handleResend}
+            disabled={resending}
+            className="font-medium text-brand-600 hover:underline disabled:opacity-50"
+          >
+            {resending ? "Resending…" : "Resend"}
+          </button>
+        </p>
+      ) : null}
 
       <Link
         href="/login"

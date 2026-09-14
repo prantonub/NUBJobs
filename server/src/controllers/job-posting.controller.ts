@@ -77,6 +77,7 @@ export async function createJob(req: AuthRequest, res: Response, next: NextFunct
 export async function updateJob(req: AuthRequest, res: Response, next: NextFunction) {
   try {
     const { id } = req.params;
+    const idStr = Array.isArray(id) ? id[0] : id;
     const userId = req.userId;
 
     if (!userId) {
@@ -92,7 +93,7 @@ export async function updateJob(req: AuthRequest, res: Response, next: NextFunct
     }
 
     const job = await prisma.job.findUnique({
-      where: { id },
+      where: { id: idStr },
       include: { employer: true },
     });
 
@@ -109,7 +110,7 @@ export async function updateJob(req: AuthRequest, res: Response, next: NextFunct
     }
 
     const updated = await prisma.job.update({
-      where: { id },
+      where: { id: idStr },
       data: req.body,
     });
 
@@ -126,6 +127,7 @@ export async function updateJob(req: AuthRequest, res: Response, next: NextFunct
 export async function publishJob(req: AuthRequest, res: Response, next: NextFunction) {
   try {
     const { id } = req.params;
+    const idStr = Array.isArray(id) ? id[0] : id;
     const userId = req.userId;
 
     if (!userId) {
@@ -141,7 +143,7 @@ export async function publishJob(req: AuthRequest, res: Response, next: NextFunc
     }
 
     const job = await prisma.job.findUnique({
-      where: { id },
+      where: { id: idStr },
       include: { employer: true },
     });
 
@@ -159,7 +161,7 @@ export async function publishJob(req: AuthRequest, res: Response, next: NextFunc
     }
 
     const published = await prisma.job.update({
-      where: { id },
+      where: { id: idStr },
       data: {
         status: 'ACTIVE',
         publishedAt: new Date(),
@@ -184,6 +186,7 @@ export async function publishJob(req: AuthRequest, res: Response, next: NextFunc
 export async function closeJob(req: AuthRequest, res: Response, next: NextFunction) {
   try {
     const { id } = req.params;
+    const idStr = Array.isArray(id) ? id[0] : id;
     const userId = req.userId;
 
     if (!userId) {
@@ -199,7 +202,7 @@ export async function closeJob(req: AuthRequest, res: Response, next: NextFuncti
     }
 
     const job = await prisma.job.findUnique({
-      where: { id },
+      where: { id: idStr },
       include: { employer: true },
     });
 
@@ -212,7 +215,7 @@ export async function closeJob(req: AuthRequest, res: Response, next: NextFuncti
     }
 
     const closed = await prisma.job.update({
-      where: { id },
+      where: { id: idStr },
       data: { status: 'CLOSED' },
     });
 
@@ -229,6 +232,7 @@ export async function closeJob(req: AuthRequest, res: Response, next: NextFuncti
 export async function previewJob(req: AuthRequest, res: Response, next: NextFunction) {
   try {
     const { id } = req.params;
+    const idStr = Array.isArray(id) ? id[0] : id;
     const userId = req.userId;
 
     if (!userId) {
@@ -244,7 +248,7 @@ export async function previewJob(req: AuthRequest, res: Response, next: NextFunc
     }
 
     const job = await prisma.job.findUnique({
-      where: { id },
+      where: { id: idStr },
       include: {
         employer: {
           select: {
@@ -281,6 +285,7 @@ export async function previewJob(req: AuthRequest, res: Response, next: NextFunc
 export async function deleteJob(req: AuthRequest, res: Response, next: NextFunction) {
   try {
     const { id } = req.params;
+    const idStr = Array.isArray(id) ? id[0] : id;
     const userId = req.userId;
 
     if (!userId) {
@@ -296,7 +301,7 @@ export async function deleteJob(req: AuthRequest, res: Response, next: NextFunct
     }
 
     const job = await prisma.job.findUnique({
-      where: { id },
+      where: { id: idStr },
       include: { employer: true },
     });
 
@@ -312,7 +317,7 @@ export async function deleteJob(req: AuthRequest, res: Response, next: NextFunct
       return responses.badRequest(res, 'Only draft jobs can be deleted');
     }
 
-    await prisma.job.delete({ where: { id } });
+    await prisma.job.delete({ where: { id: idStr } });
 
     return responses.ok(res, 'Job deleted successfully');
   } catch (error) {

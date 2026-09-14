@@ -8,10 +8,10 @@ import {
   evaluateMockAnswer,
   improveJobDescription,
 } from '../services/ai-service-advanced';
-import * as pdf from 'pdf-parse';
+import { PDFParse } from 'pdf-parse';
 
 export interface AuthRequest extends Request {
-  userId?: string;
+  userId?: string | string[];
   email?: string;
   role?: string;
 }
@@ -23,7 +23,9 @@ export interface AuthRequest extends Request {
 export async function analyzeResumeFile(req: AuthRequest, res: Response, next: NextFunction) {
   try {
     const userId = req.userId;
-    if (!userId) {
+    const userIdStr = Array.isArray(userId) ? userId[0] : userId;
+
+    if (!userIdStr) {
       return responses.unauthorized(res);
     }
 
@@ -34,7 +36,8 @@ export async function analyzeResumeFile(req: AuthRequest, res: Response, next: N
     // Extract PDF text
     let resumeText = '';
     try {
-      const data = await pdf(req.file.buffer);
+      const parser = new PDFParse({ data: req.file.buffer });
+      const data = await parser.getText();
       resumeText = data.text;
     } catch {
       return responses.badRequest(res, 'Failed to parse PDF');
@@ -42,7 +45,7 @@ export async function analyzeResumeFile(req: AuthRequest, res: Response, next: N
 
     // Get student profile
     const student = await prisma.studentProfile.findUnique({
-      where: { userId },
+      where: { userId: userIdStr },
       select: { skills: true },
     });
 
@@ -55,7 +58,7 @@ export async function analyzeResumeFile(req: AuthRequest, res: Response, next: N
 
     // Store analysis in database
     await prisma.studentProfile.update({
-      where: { userId },
+      where: { userId: userIdStr },
       data: {
         skills: Array.from(new Set([...(student.skills || []), ...analysis.extractedSkills])),
       },
@@ -78,15 +81,16 @@ export async function generateCoverLetterHandler(
 ) {
   try {
     const userId = req.userId;
+    const userIdStr = Array.isArray(userId) ? userId[0] : userId;
     const { jobId } = req.body;
 
-    if (!userId) {
+    if (!userIdStr) {
       return responses.unauthorized(res);
     }
 
     // Get student profile
     const student = await prisma.studentProfile.findUnique({
-      where: { userId },
+      where: { userId: userIdStr },
       include: { user: { select: { name: true } } },
     });
 
@@ -132,14 +136,16 @@ export async function getMockInterviewQuestions(
   try {
     const { jobId } = req.params;
     const userId = req.userId;
+    const userIdStr = Array.isArray(userId) ? userId[0] : userId;
+    const jobIdStr = Array.isArray(jobId) ? jobId[0] : jobId;
 
-    if (!userId) {
+    if (!userIdStr) {
       return responses.unauthorized(res);
     }
 
     // Get job details
     const job = await prisma.job.findUnique({
-      where: { id: jobId },
+      where: { id: jobIdStr },
     });
 
     if (!job) {
@@ -148,7 +154,7 @@ export async function getMockInterviewQuestions(
 
     // Get student skills
     const student = await prisma.studentProfile.findUnique({
-      where: { userId },
+      where: { userId: userIdStr },
       select: { skills: true },
     });
 
@@ -172,9 +178,10 @@ export async function getMockInterviewQuestions(
 export async function evaluateAnswerHandler(req: AuthRequest, res: Response, next: NextFunction) {
   try {
     const userId = req.userId;
+    const userIdStr = Array.isArray(userId) ? userId[0] : userId;
     const { question, answer, jobContext } = req.body;
 
-    if (!userId) {
+    if (!userIdStr) {
       return responses.unauthorized(res);
     }
 
@@ -203,13 +210,15 @@ export async function improveJobDescriptionHandler(
   try {
     const { jobId } = req.params;
     const userId = req.userId;
+    const userIdStr = Array.isArray(userId) ? userId[0] : userId;
+    const jobIdStr = Array.isArray(jobId) ? jobId[0] : jobId;
 
-    if (!userId || req.role !== 'EMPLOYER') {
+    if (!userIdStr || req.role !== 'EMPLOYER') {
       return responses.forbidden(res);
     }
 
     const job = await prisma.job.findUnique({
-      where: { id: jobId },
+      where: { id: jobIdStr },
       include: { employer: true },
     });
 
@@ -217,7 +226,7 @@ export async function improveJobDescriptionHandler(
       return responses.notFound(res, 'Job not found');
     }
 
-    if (job.employer.userId !== userId) {
+    if (job.employer.userId !== userIdStr) {
       return responses.forbidden(res);
     }
 

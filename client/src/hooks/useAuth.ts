@@ -19,8 +19,11 @@ export interface AuthResponse {
  * Get current user
  */
 export const useCurrentUser = () => {
+  const hasToken = typeof window !== 'undefined' && !!localStorage.getItem('accessToken');
+
   return useQuery({
     queryKey: ['currentUser'],
+    enabled: hasToken,
     queryFn: async () => {
       try {
         const { data } = await api.get('/auth/me');

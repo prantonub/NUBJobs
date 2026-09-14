@@ -60,7 +60,18 @@ export async function sendOTPEmail(email: string, otp: string, name: string): Pr
       html: htmlContent,
     });
 
-    return !result.error;
+    if (result && result.error) {
+      console.error('Resend OTP send failed:', result.error);
+      return false;
+    }
+
+    return true;
+    if (result && result.error) {
+      console.error('Resend OTP send failed:', result.error);
+      return false;
+    }
+
+    return true;
   } catch (error) {
     console.error('Error sending OTP email:', error);
     return false;

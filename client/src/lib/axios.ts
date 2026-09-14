@@ -103,7 +103,10 @@ api.interceptors.response.use(
     } catch (refreshError) {
       flushQueue(refreshError, null);
       clearAuthToken();
-      if (typeof window !== "undefined") {
+      if (
+        typeof window !== "undefined" &&
+        window.location.pathname !== "/login"
+      ) {
         window.location.assign("/login");
       }
       return Promise.reject(refreshError);

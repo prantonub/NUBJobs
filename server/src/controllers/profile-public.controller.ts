@@ -3,27 +3,48 @@ import prisma from '../lib/prisma';
 import { responses } from '../utils/response.utils';
 
 export interface AuthRequest extends Request {
-  userId?: string;
+  userId?: string | string[];
   email?: string;
   role?: string;
 }
 
 /**
- * GET /api/profile/:userId
- * Get public profile (student or employer)
+ * GET /api/profile/public/:userId
+ * Get public profile (role-aware)
  */
 export async function getPublicProfile(req: AuthRequest, res: Response, next: NextFunction) {
   try {
-    const { userId } = req.params;
+    const { userId: paramUserId } = req.params;
+    
+    // Convert to string if array
+    const userIdStr = Array.isArray(paramUserId) ? paramUserId[0] : paramUserId;
 
     const user = await prisma.user.findUnique({
-      where: { id: userId },
+      where: { id: userIdStr },
       select: {
         id: true,
         name: true,
         email: true,
         role: true,
-        createdAt: true,
+        studentProfile: {
+          select: {
+            cgpa: true,
+            skills: true,
+            bio: true,
+            photoUrl: true,
+            linkedinUrl: true,
+            githubUrl: true,
+            portfolioUrl: true,
+          },
+        },
+        employerProfile: {
+          select: {
+            companyName: true,
+            about: true,
+            logoUrl: true,
+            website: true,
+          },
+        },
       },
     });
 
@@ -31,122 +52,104 @@ export async function getPublicProfile(req: AuthRequest, res: Response, next: Ne
       return responses.notFound(res, 'User not found');
     }
 
-    if (user.role === 'STUDENT') {
-      const studentProfile = await prisma.studentProfile.findUnique({
-        where: { userId },
-        select: {
-          photoUrl: true,
-          cgpa: true,
-          phone: true,
-          location: true,
-          bio: true,
-          skills: true,
-          linkedinUrl: true,
-          githubUrl: true,
-          portfolioUrl: true,
-          department: true,
-          nubId: true,
-        },
-      });
-
-      return responses.ok(res, 'Student profile', {
-        user,
-        profile: studentProfile,
-      });
-    } else if (user.role === 'EMPLOYER') {
-      const employerProfile = await prisma.employerProfile.findUnique({
-        where: { userId },
-        select: {
-          companyName: true,
-          logoUrl: true,
-          about: true,
-          website: true,
-          linkedinUrl: true,
-          isVerified: true,
-        },
-      });
-
-      return responses.ok(res, 'Employer profile', {
-        user,
-        profile: employerProfile,
-      });
-    } else {
-      return responses.ok(res, 'User profile', { user });
-    }
+    return responses.ok(res, 'Public profile retrieved', user);
   } catch (error) {
     next(error);
   }
 }
 
 /**
- * PUT /api/profile
+ * PUT /api/profile/student
  * Update student profile
  */
-export async function updateStudentProfile(
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction
-) {
+export async function updateStudentProfile(req: AuthRequest, res: Response, next: NextFunction) {
   try {
     const userId = req.userId;
+    
+    // Convert to string if array
+    const userIdStr = Array.isArray(userId) ? userId[0] : userId;
 
-    if (!userId) {
+    if (!userIdStr) {
       return responses.unauthorized(res);
-    }
-
-    const student = await prisma.studentProfile.findUnique({
-      where: { userId },
-    });
-
-    if (!student) {
-      return responses.notFound(res, 'Student profile not found');
     }
 
     const {
       phone,
       location,
       bio,
+      department,
+      cgpa,
       skills,
       linkedinUrl,
       githubUrl,
       portfolioUrl,
-      nubId,
-      cgpa,
-      department,
     } = req.body;
 
     const updated = await prisma.studentProfile.update({
-      where: { id: student.id },
+      where: { userId: userIdStr },
       data: {
-        ...(phone && { phone }),
-        ...(location && { location }),
-        ...(bio && { bio }),
-        ...(skills && { skills }),
-        ...(linkedinUrl && { linkedinUrl }),
-        ...(githubUrl && { githubUrl }),
-        ...(portfolioUrl && { portfolioUrl }),
-        ...(nubId && { nubId }),
-        ...(cgpa !== undefined && { cgpa: cgpa ? parseFloat(cgpa) : null }),
-        ...(department && { department }),
+        phone: phone || undefined,
+        location: location || undefined,
+        bio: bio || undefined,
+        department: department || undefined,
+        cgpa: cgpa ? parseFloat(cgpa) : undefined,
+        skills: skills || undefined,
+        linkedinUrl: linkedinUrl || undefined,
+        githubUrl: githubUrl || undefined,
+        portfolioUrl: portfolioUrl || undefined,
       },
-      include: { user: { select: { name: true, email: true } } },
     });
 
-    return responses.ok(res, 'Profile updated', updated);
+    return responses.ok(res, 'Student profile updated', updated);
   } catch (error) {
     next(error);
   }
 }
 
 /**
- * POST /api/profile/upload-resume
- * Upload resume (with Cloudinary integration)
+ * PUT /api/profile/employer
+ * Update employer profile
+ */
+export async function updateEmployerProfile(req: AuthRequest, res: Response, next: NextFunction) {
+  try {
+    const userId = req.userId;
+    
+    // Convert to string if array
+    const userIdStr = Array.isArray(userId) ? userId[0] : userId;
+
+    if (!userIdStr) {
+      return responses.unauthorized(res);
+    }
+
+    const { about, website, linkedinUrl } = req.body;
+
+    const updated = await prisma.employerProfile.update({
+      where: { userId: userIdStr },
+      data: {
+        about: about || undefined,
+        website: website || undefined,
+        linkedinUrl: linkedinUrl || undefined,
+      },
+    });
+
+    return responses.ok(res, 'Employer profile updated', updated);
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * POST /api/profile/student/resume
+ * Upload resume (multipart/form-data)
  */
 export async function uploadResume(req: AuthRequest, res: Response, next: NextFunction) {
   try {
     const userId = req.userId;
+    
+    // Convert to string if array
+    const userIdStr = Array.isArray(userId) ? userId[0] : userId;
 
-    if (!userId) {
+    if (!userIdStr) {
       return responses.unauthorized(res);
     }
 
@@ -154,40 +157,33 @@ export async function uploadResume(req: AuthRequest, res: Response, next: NextFu
       return responses.badRequest(res, 'No file uploaded');
     }
 
-    const student = await prisma.studentProfile.findUnique({
-      where: { userId },
-    });
-
-    if (!student) {
-      return responses.notFound(res, 'Student profile not found');
-    }
-
-    // In production, upload to Cloudinary
-    // For now, use base64
-    const resumeUrl = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
+    // In production, upload to cloud storage (S3, etc.)
+    // For now, save as base64 or URL
+    const resumeUrl = `/uploads/resumes/${userIdStr}/${req.file.originalname}`;
 
     const updated = await prisma.studentProfile.update({
-      where: { id: student.id },
+      where: { userId: userIdStr },
       data: { resumeUrl },
     });
 
-    return responses.ok(res, 'Resume uploaded', {
-      resumeUrl: updated.resumeUrl,
-    });
+    return responses.ok(res, 'Resume uploaded', { resumeUrl });
   } catch (error) {
     next(error);
   }
 }
 
 /**
- * POST /api/profile/upload-photo
- * Upload profile photo (with Cloudinary integration)
+ * POST /api/profile/student/photo
+ * Upload profile photo (multipart/form-data)
  */
 export async function uploadPhoto(req: AuthRequest, res: Response, next: NextFunction) {
   try {
     const userId = req.userId;
+    
+    // Convert to string if array
+    const userIdStr = Array.isArray(userId) ? userId[0] : userId;
 
-    if (!userId) {
+    if (!userIdStr) {
       return responses.unauthorized(res);
     }
 
@@ -195,101 +191,80 @@ export async function uploadPhoto(req: AuthRequest, res: Response, next: NextFun
       return responses.badRequest(res, 'No file uploaded');
     }
 
-    const student = await prisma.studentProfile.findUnique({
-      where: { userId },
-    });
-
-    if (!student) {
-      return responses.notFound(res, 'Student profile not found');
-    }
-
-    // Validate file is image
+    // Validate file type
     if (!req.file.mimetype.startsWith('image/')) {
       return responses.badRequest(res, 'File must be an image');
     }
 
-    // In production, upload to Cloudinary
-    // For now, use base64
-    const photoUrl = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
+    // In production, upload to cloud storage (S3, etc.)
+    const photoUrl = `/uploads/photos/${userIdStr}/${req.file.originalname}`;
 
     const updated = await prisma.studentProfile.update({
-      where: { id: student.id },
+      where: { userId: userIdStr },
       data: { photoUrl },
     });
 
-    return responses.ok(res, 'Photo uploaded', {
-      photoUrl: updated.photoUrl,
-    });
+    return responses.ok(res, 'Photo uploaded', { photoUrl });
   } catch (error) {
     next(error);
   }
 }
 
 /**
- * DELETE /api/profile/resume
+ * DELETE /api/profile/student/resume
  * Delete resume
  */
 export async function deleteResume(req: AuthRequest, res: Response, next: NextFunction) {
   try {
     const userId = req.userId;
+    
+    // Convert to string if array
+    const userIdStr = Array.isArray(userId) ? userId[0] : userId;
 
-    if (!userId) {
+    if (!userIdStr) {
       return responses.unauthorized(res);
     }
 
-    const student = await prisma.studentProfile.findUnique({
-      where: { userId },
-    });
-
-    if (!student) {
-      return responses.notFound(res, 'Student profile not found');
-    }
-
-    await prisma.studentProfile.update({
-      where: { id: student.id },
+    const updated = await prisma.studentProfile.update({
+      where: { userId: userIdStr },
       data: { resumeUrl: null },
     });
 
-    return responses.ok(res, 'Resume deleted');
+    return responses.ok(res, 'Resume deleted', updated);
   } catch (error) {
     next(error);
   }
 }
 
 /**
- * DELETE /api/profile/photo
+ * DELETE /api/profile/student/photo
  * Delete profile photo
  */
 export async function deletePhoto(req: AuthRequest, res: Response, next: NextFunction) {
   try {
     const userId = req.userId;
+    
+    // Convert to string if array
+    const userIdStr = Array.isArray(userId) ? userId[0] : userId;
 
-    if (!userId) {
+    if (!userIdStr) {
       return responses.unauthorized(res);
     }
 
-    const student = await prisma.studentProfile.findUnique({
-      where: { userId },
-    });
-
-    if (!student) {
-      return responses.notFound(res, 'Student profile not found');
-    }
-
-    await prisma.studentProfile.update({
-      where: { id: student.id },
+    const updated = await prisma.studentProfile.update({
+      where: { userId: userIdStr },
       data: { photoUrl: null },
     });
 
-    return responses.ok(res, 'Photo deleted');
+    return responses.ok(res, 'Photo deleted', updated);
   } catch (error) {
     next(error);
   }
 }
 
 /**
- * GET /api/profile/:userId/public
- * Get public profile view (limited info)
+ * GET /api/profile/public/student/:studentId
+ * Get public student profile
  */
 export async function getPublicStudentProfile(
   req: AuthRequest,
@@ -297,30 +272,28 @@ export async function getPublicStudentProfile(
   next: NextFunction
 ) {
   try {
-    const { userId } = req.params;
+    const { studentId } = req.params;
+    
+    // Convert to string if array
+    const studentIdStr = Array.isArray(studentId) ? studentId[0] : studentId;
 
-    const student = await prisma.studentProfile.findUnique({
-      where: { userId },
-      select: {
-        id: true,
-        photoUrl: true,
-        bio: true,
-        skills: true,
-        linkedinUrl: true,
-        githubUrl: true,
-        portfolioUrl: true,
-        cgpa: true,
+    const profile = await prisma.studentProfile.findUnique({
+      where: { id: studentIdStr },
+      include: {
         user: {
-          select: { name: true, email: true },
+          select: {
+            name: true,
+            email: true,
+          },
         },
       },
     });
 
-    if (!student) {
+    if (!profile) {
       return responses.notFound(res, 'Student not found');
     }
 
-    return responses.ok(res, 'Public profile', student);
+    return responses.ok(res, 'Public student profile', profile);
   } catch (error) {
     next(error);
   }
