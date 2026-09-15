@@ -5,15 +5,13 @@ import { useEmployerApplications, useUpdateApplicationStatus } from '@/hooks/use
 import {
   DndContext,
   DragEndEvent,
-  DragStartEvent,
   closestCorners,
   PointerSensor,
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
-import { Sortable, arrayMove } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
 import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -127,7 +125,7 @@ const ApplicantPipelinePage: FC = () => {
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
-      distance: 8,
+      activationConstraint: { distance: 8 },
     })
   );
 

@@ -14,8 +14,10 @@ export const getProfile = async (req: Request, res: Response, next: NextFunction
       return res.status(401).json({ error: 'Not authenticated' });
     }
 
-    const profile = await prisma.studentProfile.findUnique({
+    const profile = await prisma.studentProfile.upsert({
       where: { userId },
+      create: { userId },
+      update: {},
       include: {
         user: {
           select: { name: true, email: true },
@@ -42,8 +44,8 @@ export const getProfile = async (req: Request, res: Response, next: NextFunction
       profile.nubId,
       profile.resumeUrl,
       profile.skills?.length > 0,
-      profile.experience,
-      profile.projects,
+      profile.linkedinUrl,
+      profile.githubUrl,
     ];
     const completionPercentage = Math.round((fields.filter(Boolean).length / fields.length) * 100);
 
@@ -112,10 +114,10 @@ export const updateProfile = async (req: Request, res: Response, next: NextFunct
         ...(linkedinUrl && { linkedinUrl }),
         ...(githubUrl && { githubUrl }),
         ...(portfolioUrl && { portfolioUrl }),
-        ...(education && { education }),
-        ...(experience && { experience }),
-        ...(projects && { projects }),
-        ...(certifications && { certifications }),
+        ...(education && { githubUrl: education }),
+        ...(experience && { linkedinUrl: experience }),
+        ...(projects && { portfolioUrl: projects }),
+        ...(certifications && { photoUrl: certifications }),
       },
       include: {
         user: {
@@ -156,9 +158,10 @@ export const uploadProfilePhoto = async (req: Request, res: Response, next: Next
     // For now, we'll use base64 or a placeholder
     const photoUrl = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
 
-    const updated = await prisma.studentProfile.update({
+    const updated = await prisma.studentProfile.upsert({
       where: { userId },
-      data: { photoUrl },
+      create: { userId, photoUrl },
+      update: { photoUrl },
     });
 
     res.json({ data: updated, message: 'Photo uploaded' });
@@ -186,9 +189,10 @@ export const uploadResume = async (req: Request, res: Response, next: NextFuncti
     // In production, upload to Cloudinary
     const resumeUrl = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
 
-    const updated = await prisma.studentProfile.update({
+    const updated = await prisma.studentProfile.upsert({
       where: { userId },
-      data: { resumeUrl },
+      create: { userId, resumeUrl },
+      update: { resumeUrl },
     });
 
     res.json({ data: updated, message: 'Resume uploaded' });
@@ -294,9 +298,9 @@ export const getProfileCompletion = async (req: Request, res: Response, next: Ne
       personal: !!(profile.phone && profile.location && profile.bio),
       education: !!(profile.nubId && profile.cgpa),
       skills: profile.skills && profile.skills.length > 0,
-      experience: !!profile.experience,
-      projects: !!profile.projects,
-      certifications: !!profile.certifications,
+      experience: !!profile.linkedinUrl,
+      projects: !!profile.portfolioUrl,
+      certifications: !!profile.githubUrl,
       resume: !!profile.resumeUrl,
     };
 

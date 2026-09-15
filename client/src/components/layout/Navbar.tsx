@@ -75,6 +75,8 @@ export function Navbar({ className }: NavbarProps) {
   const { user, isAuthenticated, isLoading, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = React.useState(false);
 
+  if (pathname.startsWith("/admin")) return null;
+
   return (
     <header
       className={cn(

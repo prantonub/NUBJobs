@@ -2,25 +2,26 @@ import { Request, Response, NextFunction } from 'express';
 import prisma from '../lib/prisma';
 import { calculateMatchScore } from '../services/ai.service';
 
+const getParamString = (value: string | string[] | undefined) =>
+  Array.isArray(value) ? value[0] ?? '' : value ?? '';
+
 /**
  * GET /api/jobs
  * List all jobs with optional filtering, sorting, and pagination
  */
 export const listJobs = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const {
-      jobType,
-      category,
-      location,
-      salaryMin,
-      salaryMax,
-      minCgpa,
-      postedDays,
-      nubOnly,
-      sort = 'newest',
-      page = 1,
-      limit = 10,
-    } = req.query;
+    const jobType = getParamString(req.query.jobType as string | string[] | undefined);
+    const category = getParamString(req.query.category as string | string[] | undefined);
+    const location = getParamString(req.query.location as string | string[] | undefined);
+    const salaryMin = getParamString(req.query.salaryMin as string | string[] | undefined);
+    const salaryMax = getParamString(req.query.salaryMax as string | string[] | undefined);
+    const minCgpa = getParamString(req.query.minCgpa as string | string[] | undefined);
+    const postedDays = getParamString(req.query.postedDays as string | string[] | undefined);
+    const nubOnly = getParamString(req.query.nubOnly as string | string[] | undefined);
+    const sort = getParamString(req.query.sort as string | string[] | undefined) || 'newest';
+    const page = getParamString(req.query.page as string | string[] | undefined) || '1';
+    const limit = getParamString(req.query.limit as string | string[] | undefined) || '10';
 
     // Build filter object
     const where: any = { status: 'ACTIVE' };
@@ -28,9 +29,9 @@ export const listJobs = async (req: Request, res: Response, next: NextFunction) 
     if (jobType) where.type = jobType;
     if (category) where.category = { contains: category, mode: 'insensitive' };
     if (location) where.location = { contains: location, mode: 'insensitive' };
-    if (salaryMin) where.salaryMin = { gte: parseInt(salaryMin as string) };
-    if (salaryMax) where.salaryMax = { lte: parseInt(salaryMax as string) };
-    if (minCgpa) where.minCgpa = { lte: parseFloat(minCgpa as string) };
+    if (salaryMin) where.salaryMin = { gte: parseInt(salaryMin) };
+    if (salaryMax) where.salaryMax = { lte: parseInt(salaryMax) };
+    if (minCgpa) where.minCgpa = { lte: parseFloat(minCgpa) };
     if (nubOnly === 'true') where.targetUniversity = 'NUB';
 
     if (postedDays) {
@@ -92,7 +93,10 @@ export const listJobs = async (req: Request, res: Response, next: NextFunction) 
  */
 export const getJobDetail = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { id } = req.params;
+    const id = getParamString(req.params.id);
+    if (!id) {
+      return res.status(400).json({ error: 'Job id is required' });
+    }
 
     const job = await prisma.job.findUnique({
       where: { id },
@@ -136,8 +140,12 @@ export const getJobDetail = async (req: Request, res: Response, next: NextFuncti
  */
 export const getMatchScore = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { id } = req.params;
+    const id = getParamString(req.params.id);
     const userId = (req as any).userId;
+
+    if (!id) {
+      return res.status(400).json({ error: 'Job id is required' });
+    }
 
     if (!userId) {
       return res.status(401).json({ error: 'Not authenticated' });
@@ -165,8 +173,12 @@ export const getMatchScore = async (req: Request, res: Response, next: NextFunct
  */
 export const saveJob = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { id } = req.params;
+    const id = getParamString(req.params.id);
     const userId = (req as any).userId;
+
+    if (!id) {
+      return res.status(400).json({ error: 'Job id is required' });
+    }
 
     if (!userId) {
       return res.status(401).json({ error: 'Not authenticated' });
@@ -216,8 +228,12 @@ export const saveJob = async (req: Request, res: Response, next: NextFunction) =
  */
 export const unsaveJob = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { id } = req.params;
+    const id = getParamString(req.params.id);
     const userId = (req as any).userId;
+
+    if (!id) {
+      return res.status(400).json({ error: 'Job id is required' });
+    }
 
     if (!userId) {
       return res.status(401).json({ error: 'Not authenticated' });
@@ -250,8 +266,12 @@ export const unsaveJob = async (req: Request, res: Response, next: NextFunction)
  */
 export const checkJobSaved = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { id } = req.params;
+    const id = getParamString(req.params.id);
     const userId = (req as any).userId;
+
+    if (!id) {
+      return res.status(400).json({ error: 'Job id is required' });
+    }
 
     if (!userId) {
       return res.json({ data: { saved: false } });

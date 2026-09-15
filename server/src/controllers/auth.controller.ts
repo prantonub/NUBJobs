@@ -17,7 +17,7 @@ export interface AuthRequest extends Request {
  */
 export async function register(req: AuthRequest, res: Response, next: NextFunction) {
   try {
-    const { name, password, role } = req.body;
+    const { name, password, role, nubId, department, companyName, industry } = req.body;
     const email = String(req.body.email || '').trim().toLowerCase();
 
     if (!/^[^\s@]+@gmail\.com$/i.test(email)) {
@@ -44,6 +44,23 @@ export async function register(req: AuthRequest, res: Response, next: NextFuncti
         isEmailVerified: false,
         otpCode: otp,
         otpExpiry,
+        ...(role === 'STUDENT'
+          ? {
+              studentProfile: {
+                create: {
+                  nubId: nubId || undefined,
+                  department: department || undefined,
+                },
+              },
+            }
+          : {
+              employerProfile: {
+                create: {
+                  companyName: companyName || name,
+                  about: industry ? `Industry: ${industry}` : undefined,
+                },
+              },
+            }),
       },
     });
 

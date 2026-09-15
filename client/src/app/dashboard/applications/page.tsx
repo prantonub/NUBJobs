@@ -46,18 +46,22 @@ const ApplicationsPage: FC = () => {
 
         {/* Status Filter Tabs */}
         <div className="flex flex-wrap gap-2 mb-6">
-          {statuses.map((s) => (
-            <Button
-              key={s}
-              variant={status === (s === 'all' ? '') : s ? 'default' : 'outline'}
-              onClick={() => {
-                setStatus(s === 'all' ? '' : s);
-                setPage(1);
-              }}
-            >
-              {s === 'all' ? 'All' : s.replace(/_/g, ' ')}
-            </Button>
-          ))}
+          {statuses.map((s) => {
+            const isSelected = status === (s === 'all' ? '' : s);
+
+            return (
+              <Button
+                key={s}
+                variant={isSelected ? 'default' : 'outline'}
+                onClick={() => {
+                  setStatus(s === 'all' ? '' : s);
+                  setPage(1);
+                }}
+              >
+                {s === 'all' ? 'All' : s.replace(/_/g, ' ')}
+              </Button>
+            );
+          })}
         </div>
 
         {/* Applications Table */}

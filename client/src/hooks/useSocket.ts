@@ -5,8 +5,6 @@ import { useAuth } from './useAuth';
 import {
   connectSocket,
   disconnectSocket,
-  getSocket,
-  isSocketConnected,
   joinConversation,
   sendMessage,
   sendTypingStart,
@@ -18,9 +16,8 @@ import {
   onMessagesMarkedRead,
   onUserOnline,
   onUserOffline,
-  onMessageNotification,
   removeAllListeners,
-} from '@/lib/socket';
+} from '@/lib/socket-client';
 
 export interface SocketMessage {
   id: string;

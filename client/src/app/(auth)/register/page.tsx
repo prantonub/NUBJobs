@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, Controller, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
@@ -167,7 +167,6 @@ function RegisterForm() {
     register,
     handleSubmit,
     control,
-    watch,
     setValue,
     formState: { errors, isSubmitting },
   } = useForm<RegisterValues>({
@@ -186,7 +185,7 @@ function RegisterForm() {
     },
   });
 
-  const role = watch("role");
+  const role = useWatch({ control, name: "role" });
   const isStudent = role === "STUDENT";
 
   const onSubmit = async (values: RegisterValues) => {
@@ -226,9 +225,8 @@ function RegisterForm() {
   };
 
   const handleGoogle = () => {
-    window.location.href = `${
-      process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000/api"
-    }/auth/google`;
+    const googleUrl = `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000/api"}/auth/google`;
+    window.location.assign(googleUrl);
   };
 
   return (
@@ -316,13 +314,13 @@ function RegisterForm() {
 
           <Field data-invalid={!!errors.email}>
             <FieldLabel htmlFor="email">
-              {isStudent ? "NUB email" : "Work email"}
+              Email address
             </FieldLabel>
             <Input
               id="email"
               type="email"
               autoComplete="email"
-              placeholder={isStudent ? "you@nub.edu.bd" : "you@company.com"}
+              placeholder="you@gmail.com"
               aria-invalid={!!errors.email}
               {...register("email")}
             />
@@ -350,7 +348,7 @@ function RegisterForm() {
                   <Field data-invalid={!!errors.department}>
                     <FieldLabel htmlFor="department">Department</FieldLabel>
                     <Select
-                      value={field.value || undefined}
+                      value={field.value ?? ""}
                       onValueChange={field.onChange}
                     >
                       <SelectTrigger
@@ -395,7 +393,7 @@ function RegisterForm() {
                   <Field data-invalid={!!errors.industry}>
                     <FieldLabel htmlFor="industry">Industry</FieldLabel>
                     <Select
-                      value={field.value || undefined}
+                      value={field.value ?? ""}
                       onValueChange={field.onChange}
                     >
                       <SelectTrigger

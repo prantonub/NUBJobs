@@ -19,7 +19,7 @@ export interface AuthResponse {
  * Get current user
  */
 export const useCurrentUser = () => {
-  const hasToken = typeof window !== 'undefined' && !!localStorage.getItem('accessToken');
+  const hasToken = typeof window !== 'undefined' && !!localStorage.getItem('token');
 
   return useQuery({
     queryKey: ['currentUser'],
@@ -66,7 +66,7 @@ export const useVerifyEmail = () => {
     onSuccess: (response) => {
       // Store tokens
       if (response.accessToken && response.refreshToken) {
-        localStorage.setItem('accessToken', response.accessToken);
+        localStorage.setItem('token', response.accessToken);
         localStorage.setItem('refreshToken', response.refreshToken);
         // Update axios default header
         api.defaults.headers.common['Authorization'] = `Bearer ${response.accessToken}`;
@@ -88,7 +88,7 @@ export const useLogin = () => {
     },
     onSuccess: (response) => {
       if (response.accessToken && response.refreshToken) {
-        localStorage.setItem('accessToken', response.accessToken);
+        localStorage.setItem('token', response.accessToken);
         localStorage.setItem('refreshToken', response.refreshToken);
         api.defaults.headers.common['Authorization'] = `Bearer ${response.accessToken}`;
         queryClient.invalidateQueries({ queryKey: ['currentUser'] });
@@ -110,7 +110,7 @@ export const useRefreshToken = () => {
       return data.data.accessToken;
     },
     onSuccess: (accessToken) => {
-      localStorage.setItem('accessToken', accessToken);
+      localStorage.setItem('token', accessToken);
       api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
     },
   });
@@ -154,7 +154,7 @@ export const useLogout = () => {
       await api.post('/auth/logout');
     },
     onSuccess: () => {
-      localStorage.removeItem('accessToken');
+      localStorage.removeItem('token');
       localStorage.removeItem('refreshToken');
       delete api.defaults.headers.common['Authorization'];
       queryClient.clear();
@@ -187,7 +187,7 @@ export const useAuth = () => {
 
   useEffect(() => {
     // Load tokens from localStorage and set axios header
-    const accessToken = localStorage.getItem('accessToken');
+    const accessToken = localStorage.getItem('token');
     if (accessToken) {
       api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
     }

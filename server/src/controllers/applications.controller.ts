@@ -2,6 +2,9 @@ import { Request, Response, NextFunction } from 'express';
 import prisma from '../lib/prisma';
 import { calculateMatchScore } from '../services/ai.service';
 
+const getParamString = (value: string | string[] | undefined) =>
+  Array.isArray(value) ? value[0] ?? '' : value ?? '';
+
 /**
  * GET /api/applications
  * Get all applications for current student with optional status filter
@@ -9,7 +12,9 @@ import { calculateMatchScore } from '../services/ai.service';
 export const getApplications = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = (req as any).userId;
-    const { status, page = 1, limit = 10 } = req.query;
+    const status = getParamString(req.query.status as string | string[] | undefined);
+    const page = getParamString(req.query.page as string | string[] | undefined) || '1';
+    const limit = getParamString(req.query.limit as string | string[] | undefined) || '10';
 
     if (!userId) {
       return res.status(401).json({ error: 'Not authenticated' });
@@ -82,8 +87,12 @@ export const getApplications = async (req: Request, res: Response, next: NextFun
  */
 export const getApplicationDetail = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { id } = req.params;
+    const id = getParamString(req.params.id);
     const userId = (req as any).userId;
+
+    if (!id) {
+      return res.status(400).json({ error: 'Application id is required' });
+    }
 
     const application = await prisma.application.findUnique({
       where: { id },
@@ -107,9 +116,6 @@ export const getApplicationDetail = async (req: Request, res: Response, next: Ne
           include: {
             sender: {
               select: { id: true, name: true, email: true },
-            },
-            receiver: {
-              select: { id: true, name: true },
             },
           },
         },
@@ -240,9 +246,13 @@ export const createApplication = async (req: Request, res: Response, next: NextF
  */
 export const updateApplication = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { id } = req.params;
+    const id = getParamString(req.params.id);
     const userId = (req as any).userId;
     const { status, notes, coverLetter } = req.body;
+
+    if (!id) {
+      return res.status(400).json({ error: 'Application id is required' });
+    }
 
     const application = await prisma.application.findUnique({
       where: { id },
@@ -308,8 +318,12 @@ export const updateApplication = async (req: Request, res: Response, next: NextF
  */
 export const withdrawApplication = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { id } = req.params;
+    const id = getParamString(req.params.id);
     const userId = (req as any).userId;
+
+    if (!id) {
+      return res.status(400).json({ error: 'Application id is required' });
+    }
 
     const application = await prisma.application.findUnique({
       where: { id },
@@ -347,7 +361,11 @@ export const withdrawApplication = async (req: Request, res: Response, next: Nex
  */
 export const getApplicationMatchScore = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { id } = req.params;
+    const id = getParamString(req.params.id);
+
+    if (!id) {
+      return res.status(400).json({ error: 'Application id is required' });
+    }
 
     const application = await prisma.application.findUnique({
       where: { id },

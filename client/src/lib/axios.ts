@@ -2,6 +2,7 @@ import axios, { AxiosError, type InternalAxiosRequestConfig } from "axios";
 
 /** localStorage key holding the JWT access token. Shared with useAuth. */
 export const TOKEN_KEY = "token";
+export const REFRESH_TOKEN_KEY = "refreshToken";
 /** Window event fired when the token changes so useAuth() instances re-sync. */
 export const AUTH_EVENT = "nubjobs:auth-change";
 
@@ -12,15 +13,27 @@ export function getAuthToken(): string | null {
   return window.localStorage.getItem(TOKEN_KEY);
 }
 
+export function getRefreshToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return window.localStorage.getItem(REFRESH_TOKEN_KEY);
+}
+
 export function setAuthToken(token: string): void {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(TOKEN_KEY, token);
   window.dispatchEvent(new Event(AUTH_EVENT));
 }
 
+export function setRefreshToken(token: string): void {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(REFRESH_TOKEN_KEY, token);
+  window.dispatchEvent(new Event(AUTH_EVENT));
+}
+
 export function clearAuthToken(): void {
   if (typeof window === "undefined") return;
   window.localStorage.removeItem(TOKEN_KEY);
+  window.localStorage.removeItem(REFRESH_TOKEN_KEY);
   window.dispatchEvent(new Event(AUTH_EVENT));
 }
 
@@ -92,7 +105,10 @@ api.interceptors.response.use(
     isRefreshing = true;
 
     try {
-      const { data } = await api.post(REFRESH_URL);
+      const refreshToken = getRefreshToken();
+      if (!refreshToken) throw new Error("No refresh token available");
+
+      const { data } = await api.post(REFRESH_URL, { refreshToken });
       const newToken: string | undefined = data?.accessToken ?? data?.token;
       if (!newToken) throw new Error("No access token in refresh response");
 
@@ -103,10 +119,8 @@ api.interceptors.response.use(
     } catch (refreshError) {
       flushQueue(refreshError, null);
       clearAuthToken();
-      if (
-        typeof window !== "undefined" &&
-        window.location.pathname !== "/login"
-      ) {
+      const pathname = typeof window !== "undefined" ? window.location.pathname : "";
+      if (pathname !== "/login" && !pathname.startsWith("/admin")) {
         window.location.assign("/login");
       }
       return Promise.reject(refreshError);

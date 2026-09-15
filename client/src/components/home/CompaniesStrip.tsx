@@ -1,26 +1,48 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowRightIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { CompanyLogo } from "@/components/ui/CompanyLogo";
 import { Reveal, Stagger, StaggerItem } from "@/components/motion-primitives";
+import api from "@/lib/axios";
 
-const COMPANIES = [
-  "Brain Station 23",
-  "Pathao",
-  "Shohoz",
-  "Sheba.xyz",
-  "Tiger IT",
-  "BRAC Bank",
-  "bKash",
-  "Grameenphone",
-] as const;
-
-/**
- * Trust strip of hiring-partner logos followed by an employer CTA banner.
- * Logos use the shared CompanyLogo fallback (initials) since these are samples.
- */
 export function CompaniesStrip() {
+  const [companies, setCompanies] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadCompanies() {
+      try {
+        const { data } = await api.get("/jobs", { params: { limit: 40 } });
+        const names: string[] = Array.isArray(data?.data)
+          ? data.data
+              .map((job: any) => job.employer?.companyName)
+              .filter((name: string | undefined): name is string => !!name)
+          : [];
+
+        if (mounted) {
+          setCompanies(Array.from(new Set(names)).slice(0, 8));
+        }
+      } catch {
+        if (mounted) setCompanies([]);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+
+    loadCompanies();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const visibleCompanies = useMemo(() => companies, [companies]);
+
   return (
     <section className="border-t border-border bg-muted/40">
       <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
@@ -31,19 +53,28 @@ export function CompaniesStrip() {
         </Reveal>
 
         <Stagger className="mt-8 flex flex-wrap items-center justify-center gap-4 sm:gap-6">
-          {COMPANIES.map((company) => (
-            <StaggerItem key={company}>
-              <div className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3">
-                <CompanyLogo name={company} size="sm" />
-                <span className="text-sm font-medium text-foreground">
-                  {company}
-                </span>
-              </div>
-            </StaggerItem>
-          ))}
+          {loading
+            ? Array.from({ length: 6 }).map((_, index) => (
+                <StaggerItem key={`company-loader-${index}`}>
+                  <div className="h-12 w-36 animate-pulse rounded-xl border border-border bg-card" />
+                </StaggerItem>
+              ))
+            : visibleCompanies.length > 0
+              ? visibleCompanies.map((company) => (
+                  <StaggerItem key={company}>
+                    <div className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3">
+                      <CompanyLogo name={company} size="sm" />
+                      <span className="text-sm font-medium text-foreground">{company}</span>
+                    </div>
+                  </StaggerItem>
+                ))
+              : (
+                  <p className="text-sm text-muted-foreground">
+                    Waiting for approved companies to appear from the database.
+                  </p>
+                )}
         </Stagger>
 
-        {/* Employer CTA banner */}
         <Reveal className="mt-14">
           <div className="relative isolate overflow-hidden rounded-3xl bg-gradient-to-br from-brand-600 via-brand-700 to-navy px-6 py-12 text-center text-white sm:px-12 sm:py-16">
             <div

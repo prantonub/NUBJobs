@@ -8,7 +8,6 @@ import {
   BriefcaseIcon,
   ChevronRightIcon,
   FileTextIcon,
-  GraduationCapIcon,
   LayoutDashboardIcon,
   LogOutIcon,
   MenuIcon,
@@ -18,7 +17,6 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { cn, getInitials } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Sheet,
@@ -59,8 +57,8 @@ const DEFAULT_NAV: DashboardNavItem[] = [
   { href: "/settings", label: "Settings", icon: <SettingsIcon /> },
 ];
 
-function isActive(pathname: string, href: string) {
-  return href === "/dashboard" ? pathname === href : pathname.startsWith(href);
+function isActive(pathname: string, href: string, activeHref: string) {
+  return href === activeHref;
 }
 
 function SidebarNav({
@@ -72,24 +70,39 @@ function SidebarNav({
   pathname: string;
   onNavigate?: () => void;
 }) {
+  const normalizedPath = pathname.replace(/\/+$/, "") || "/";
+  const activeHref = nav.reduce<string>((best, item) => {
+    const target = item.href.replace(/\/+$/, "") || "/";
+    const isMatch =
+      normalizedPath === target || normalizedPath.startsWith(`${target}/`);
+
+    if (!isMatch) return best;
+    if (!best || target.length > best.length) return target;
+    return best;
+  }, "");
+
   return (
     <nav className="flex flex-1 flex-col gap-1 p-3">
-      {nav.map((item) => (
-        <Link
-          key={item.href}
-          href={item.href}
-          onClick={onNavigate}
-          className={cn(
-            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors [&_svg]:size-4 [&_svg]:shrink-0",
-            isActive(pathname, item.href)
-              ? "bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-100"
-              : "text-muted-foreground hover:bg-muted hover:text-foreground"
-          )}
-        >
-          {item.icon}
-          {item.label}
-        </Link>
-      ))}
+      {nav.map((item) => {
+        const target = item.href.replace(/\/+$/, "") || "/";
+
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            onClick={onNavigate}
+            className={cn(
+              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors [&_svg]:size-4 [&_svg]:shrink-0",
+              isActive(pathname, item.href, activeHref)
+                ? "bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-100"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground"
+            )}
+          >
+            {item.icon}
+            {item.label}
+          </Link>
+        );
+      })}
     </nav>
   );
 }
@@ -108,17 +121,6 @@ export function DashboardLayout({
   const pathname = usePathname() ?? "";
   const { user, logout } = useAuth();
   const [open, setOpen] = React.useState(false);
-
-  const brand = (
-    <Link href="/" className="flex items-center gap-2 px-4 py-4">
-      <span className="flex size-9 items-center justify-center rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 text-white">
-        <GraduationCapIcon className="size-5" />
-      </span>
-      <span className="font-heading text-lg font-bold tracking-tight text-foreground">
-        NUB<span className="text-brand-600">Jobs</span>
-      </span>
-    </Link>
-  );
 
   const userBlock = (
     <div className="mt-auto border-t border-border p-3">
@@ -153,8 +155,7 @@ export function DashboardLayout({
   return (
     <div className="flex min-h-screen bg-muted/30">
       <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-border bg-background md:flex">
-        {brand}
-        <Separator />
+        <div className="h-4 shrink-0" />
         <SidebarNav nav={nav} pathname={pathname} />
         {userBlock}
       </aside>
@@ -177,8 +178,7 @@ export function DashboardLayout({
                 <SheetTitle className="sr-only">Navigation</SheetTitle>
               </SheetHeader>
               <div className="flex h-full flex-col">
-                {brand}
-                <Separator />
+                <div className="h-4 shrink-0" />
                 <SidebarNav
                   nav={nav}
                   pathname={pathname}

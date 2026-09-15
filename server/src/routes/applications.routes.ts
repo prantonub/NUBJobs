@@ -8,12 +8,12 @@ import {
   getApplicationMatchScore,
   getApplicationStats,
 } from '../controllers/applications.controller';
-import { authMiddleware } from '../middleware/auth';
+import { authenticate } from '../middleware/auth.middleware';
 
 const router = Router();
 
 // All application routes require authentication
-router.use(authMiddleware);
+router.use(authenticate);
 
 router.get('/', getApplications);
 router.get('/stats', getApplicationStats);

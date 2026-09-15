@@ -9,13 +9,16 @@ import {
   getEligibleJobsCount,
   getProfileCompletion,
 } from '../controllers/profile.controller';
-import { authMiddleware } from '../middleware/auth';
+import { authenticate } from '../middleware/auth.middleware';
 
 const router = Router();
-const upload = multer({ storage: multer.memoryStorage() });
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
+});
 
 // All profile routes require authentication
-router.use(authMiddleware);
+router.use(authenticate);
 
 router.get('/', getProfile);
 router.get('/completion', getProfileCompletion);

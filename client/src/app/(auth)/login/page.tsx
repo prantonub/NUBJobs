@@ -9,8 +9,8 @@ import { z } from "zod";
 import { AlertCircleIcon, Loader2Icon } from "lucide-react";
 import { toast } from "sonner";
 
-import api from "@/lib/axios";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuthContext } from "@/contexts/AuthContext";
+import { authApi } from "@/lib/api/auth.api";
 import { getErrorMessage } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,7 +41,7 @@ interface AuthResponse {
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login } = useAuth();
+  const { login } = useAuthContext();
   const [serverError, setServerError] = React.useState<string | null>(null);
 
   const {
@@ -57,15 +57,9 @@ export default function LoginPage() {
   const onSubmit = async (values: LoginValues) => {
     setServerError(null);
     try {
-      const res = await api.post<AuthResponse>("/auth/login", {
-        email: values.email,
-        password: values.password,
-      });
-      const token =
-        res.data?.token ?? res.data?.accessToken ?? res.data?.data?.token;
-      if (token) login(token);
+      const user = await login(values.email, values.password);
       toast.success("Welcome back!");
-      router.push("/dashboard");
+      router.push(user?.role === "ADMIN" ? "/admin" : "/dashboard");
     } catch (error) {
       const message = getErrorMessage(error, "Invalid email or password.");
       setServerError(message);
@@ -74,9 +68,8 @@ export default function LoginPage() {
   };
 
   const handleGoogle = () => {
-    window.location.href = `${
-      process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000/api"
-    }/auth/google`;
+    const googleUrl = `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000/api"}/auth/google`;
+    window.location.assign(googleUrl);
   };
 
   return (

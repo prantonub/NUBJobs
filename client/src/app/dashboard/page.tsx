@@ -5,11 +5,12 @@ import Link from 'next/link';
 import { useApplicationStats } from '@/hooks/useApplications';
 import { useProfile, useProfileCompletion } from '@/hooks/useProfile';
 import { useRecommendedJobs } from '@/hooks/useJobs';
+import { useSavedJobs } from '@/hooks/useJobs-enhanced';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Briefcase, Heart, TrendingUp, CheckCircle } from 'lucide-react';
+import { Briefcase, Heart, TrendingUp, CheckCircle, FileText } from 'lucide-react';
 import JobCard from '@/components/jobs/JobCard';
 
 const DashboardPage: FC = () => {
@@ -17,6 +18,8 @@ const DashboardPage: FC = () => {
   const { data: profile } = useProfile();
   const { data: completion } = useProfileCompletion();
   const { data: recommendedJobs } = useRecommendedJobs();
+  const { data: savedJobs } = useSavedJobs();
+  const savedJobCount = Array.isArray(savedJobs) ? savedJobs.length : savedJobs?.data?.length ?? 0;
 
   const statCards = [
     {
@@ -33,7 +36,7 @@ const DashboardPage: FC = () => {
     },
     {
       label: 'Saved Jobs',
-      value: 0,
+      value: savedJobCount,
       icon: Heart,
       color: 'bg-red-500',
     },
@@ -98,7 +101,7 @@ const DashboardPage: FC = () => {
             <Card className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold">Recent Applications</h2>
-                <Link href="/applications">
+                <Link href="/dashboard/applications">
                   <Button variant="outline" size="sm">
                     View All
                   </Button>
@@ -133,7 +136,23 @@ const DashboardPage: FC = () => {
           {/* Profile Stats */}
           <div>
             <Card className="p-6">
-              <h3 className="font-semibold mb-4">Your Profile</h3>
+              <div className="mb-4 flex items-center gap-3">
+                {profile?.photoUrl ? (
+                  <img
+                    src={profile.photoUrl}
+                    alt={profile.user?.name || 'Profile photo'}
+                    className="h-14 w-14 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-14 w-14 items-center justify-center rounded-full bg-blue-100 text-lg font-semibold text-blue-700">
+                    {profile?.user?.name?.charAt(0)?.toUpperCase() || '?'}
+                  </div>
+                )}
+                <div>
+                  <h3 className="font-semibold">Your Profile</h3>
+                  <p className="text-sm text-gray-500">{profile?.user?.email || ''}</p>
+                </div>
+              </div>
               <div className="space-y-3">
                 <div>
                   <p className="text-sm text-gray-600">Name</p>
@@ -161,6 +180,24 @@ const DashboardPage: FC = () => {
                       </Badge>
                     )}
                   </div>
+                </div>
+                <div className="flex items-center justify-between border-t pt-3">
+                  <span className="text-sm text-gray-600">Resume</span>
+                  {profile?.resumeUrl ? (
+                    <a
+                      href={profile.resumeUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:underline"
+                    >
+                      <FileText className="h-4 w-4" />
+                      View resume
+                    </a>
+                  ) : (
+                    <Link href="/profile" className="text-sm font-medium text-blue-600 hover:underline">
+                      Upload resume
+                    </Link>
+                  )}
                 </div>
               </div>
             </Card>

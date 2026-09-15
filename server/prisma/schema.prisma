@@ -20,7 +20,8 @@ model User {
   password          String
   role              Role      @default(STUDENT)
   isEmailVerified   Boolean   @default(false)
-  
+  isBanned          Boolean   @default(false)
+
   // OTP for email verification
   otpCode           String?
   otpExpiry         DateTime?
@@ -145,6 +146,7 @@ model Job {
   
   // Status ()
   status            JobStatus @default(ACTIVE) // DRAFT, PENDING, ACTIVE, CLOSED
+  featured          Boolean   @default(false)
   publishedAt       DateTime?
   
   // Analytics ()
