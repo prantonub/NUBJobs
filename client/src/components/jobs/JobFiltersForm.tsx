@@ -7,18 +7,59 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
+import { useJobCategories } from '@/hooks/useJobs';
 
 interface JobFiltersFormProps {
-  onFiltersChange?: (filters: Record<string, any>) => void;
+  onFiltersChange?: (filters: Record<string, string>) => void;
 }
+
+/** Job types must match the `JobType` enum used by the API. */
+const JOB_TYPE_OPTIONS = [
+  { value: 'FULL_TIME', label: 'Full Time' },
+  { value: 'PART_TIME', label: 'Part Time' },
+  { value: 'INTERNSHIP', label: 'Internship' },
+  { value: 'CONTRACT', label: 'Contract' },
+  { value: 'REMOTE', label: 'Remote' },
+  { value: 'HYBRID', label: 'Hybrid' },
+] as const;
+
+/** Used until the live category list arrives (or if the API is unreachable). */
+const FALLBACK_CATEGORIES = [
+  'Software Engineering',
+  'Marketing',
+  'Finance',
+  'Design',
+  'Data Science',
+  'Business Development',
+];
+
+const slugify = (value: string) =>
+  value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
 const JobFiltersForm: FC<JobFiltersFormProps> = ({ onFiltersChange }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { data: apiCategories } = useJobCategories();
+
+  const activeCategory = searchParams.get('category') ?? '';
+
+  const categories =
+    apiCategories && apiCategories.length > 0
+      ? apiCategories.map((category) => ({
+          label: category.label,
+          value: category.value,
+          slug: category.slug,
+          count: category.count,
+        }))
+      : FALLBACK_CATEGORIES.map((label) => ({
+          label,
+          value: label,
+          slug: slugify(label),
+          count: undefined as number | undefined,
+        }));
 
   const handleFilterChange = useCallback(
-    (key: string, value: any) => {
+    (key: string, value: unknown) => {
       const params = new URLSearchParams(searchParams);
       if (value === '' || value === null || value === undefined) {
         params.delete(key);
@@ -26,13 +67,11 @@ const JobFiltersForm: FC<JobFiltersFormProps> = ({ onFiltersChange }) => {
         params.set(key, String(value));
       }
       params.set('page', '1'); // Reset to first page
+      onFiltersChange?.(Object.fromEntries(params.entries()));
       router.push(`?${params.toString()}`);
     },
-    [router, searchParams]
+    [router, searchParams, onFiltersChange]
   );
-
-  const jobTypes = ['FULL_TIME', 'PART_TIME', 'INTERNSHIP', 'REMOTE', 'HYBRID'];
-  const categories = ['Engineering', 'Design', 'Marketing', 'Sales', 'HR', 'Finance'];
 
   return (
     <Card className="p-4 space-y-6">
@@ -40,17 +79,17 @@ const JobFiltersForm: FC<JobFiltersFormProps> = ({ onFiltersChange }) => {
       <div>
         <h3 className="font-semibold mb-3">Job Type</h3>
         <div className="space-y-2">
-          {jobTypes.map((type) => (
-            <div key={type} className="flex items-center space-x-2">
+          {JOB_TYPE_OPTIONS.map(({ value, label }) => (
+            <div key={value} className="flex items-center space-x-2">
               <Checkbox
-                id={`type-${type}`}
-                checked={searchParams.get('jobType') === type}
+                id={`type-${value}`}
+                checked={searchParams.get('jobType') === value}
                 onCheckedChange={(checked) =>
-                  handleFilterChange('jobType', checked ? type : '')
+                  handleFilterChange('jobType', checked ? value : '')
                 }
               />
-              <Label htmlFor={`type-${type}`} className="cursor-pointer">
-                {type.replace(/_/g, ' ')}
+              <Label htmlFor={`type-${value}`} className="cursor-pointer">
+                {label}
               </Label>
             </div>
           ))}
@@ -62,16 +101,19 @@ const JobFiltersForm: FC<JobFiltersFormProps> = ({ onFiltersChange }) => {
         <h3 className="font-semibold mb-3">Category</h3>
         <div className="space-y-2">
           {categories.map((category) => (
-            <div key={category} className="flex items-center space-x-2">
+            <div key={category.slug} className="flex items-center space-x-2">
               <Checkbox
-                id={`category-${category}`}
-                checked={searchParams.get('category') === category}
+                id={`category-${category.slug}`}
+                checked={slugify(activeCategory) === category.slug}
                 onCheckedChange={(checked) =>
-                  handleFilterChange('category', checked ? category : '')
+                  handleFilterChange('category', checked ? category.value : '')
                 }
               />
-              <Label htmlFor={`category-${category}`} className="cursor-pointer">
-                {category}
+              <Label htmlFor={`category-${category.slug}`} className="cursor-pointer">
+                {category.label}
+                {typeof category.count === 'number' && (
+                  <span className="ml-1 text-xs text-muted-foreground">({category.count})</span>
+                )}
               </Label>
             </div>
           ))}

@@ -168,6 +168,8 @@ enum JobType {
   PART_TIME
   INTERNSHIP
   CONTRACT
+  REMOTE
+  HYBRID
 }
 
 enum JobStatus {

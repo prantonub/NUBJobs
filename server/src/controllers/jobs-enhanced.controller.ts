@@ -8,65 +8,84 @@ export interface AuthRequest extends Request {
   role?: string;
 }
 
+/** Mirrors the Prisma `JobType` enum — anything else must not reach Prisma. */
+const JOB_TYPES = ['FULL_TIME', 'PART_TIME', 'INTERNSHIP', 'CONTRACT', 'REMOTE', 'HYBRID'];
+type JobTypeValue = (typeof JOB_TYPES)[number];
+
 /**
  * GET /api/jobs
- * List jobs with advanced filtering and pagination
+ * List jobs with advanced filtering and pagination.
+ *
+ * Response shape matches the client hooks: `{ data: Job[], pagination }`.
  */
 export async function listJobs(req: AuthRequest, res: Response, next: NextFunction) {
   try {
-    const {
-      search = '',
-      category = '',
-      type = '',
-      location = '',
-      salaryMin = 0,
-      salaryMax = 999999,
-      sort = 'newest',
-      page = 1,
-      limit = 10,
-    } = req.query;
-
-    const pageNum = Math.max(1, parseInt(page as string) || 1);
-    const pageSize = Math.max(1, Math.min(50, parseInt(limit as string) || 10));
-    const skip = (pageNum - 1) * pageSize;
-
-    const where: any = {
-      status: 'ACTIVE',
+    const readParam = (value: unknown) => {
+      if (Array.isArray(value)) return String(value[0] ?? '');
+      return value === undefined || value === null ? '' : String(value);
     };
 
-    if (search) {
-      where.OR = [{ title: { contains: search as string, mode: 'insensitive' } }];
-    }
+    const keyword = (readParam(req.query.q) || readParam(req.query.search)).trim();
+    const category = readParam(req.query.category);
+    const rawType = readParam(req.query.jobType) || readParam(req.query.type);
+    const location = readParam(req.query.location);
+    const salaryMin = readParam(req.query.salaryMin);
+    const salaryMax = readParam(req.query.salaryMax);
+    const minCgpa = readParam(req.query.minCgpa);
+    const postedDays = readParam(req.query.postedDays);
+    const nubOnly = readParam(req.query.nubOnly);
+    const sort = readParam(req.query.sort) || 'newest';
 
+    const pageNum = Math.max(1, parseInt(readParam(req.query.page)) || 1);
+    const pageSize = Math.max(1, Math.min(50, parseInt(readParam(req.query.limit)) || 10));
+    const skip = (pageNum - 1) * pageSize;
+
+    const where: any = { status: 'ACTIVE' };
+
+    // "software-engineering" (category cards) and "Software Engineering" (DB)
+    // must both match, so slugs are normalised into a readable term.
     if (category) {
-      where.category = category;
+      const normalized = category.replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim();
+      where.category = { contains: normalized, mode: 'insensitive' };
     }
 
-    if (type) {
-      where.type = type;
+    // Only enum values are forwarded, otherwise Prisma throws a 500.
+    const typeValue = rawType.trim().toUpperCase().replace(/[\s-]+/g, '_');
+    if (JOB_TYPES.includes(typeValue as JobTypeValue)) where.type = typeValue;
+    if (location) where.location = { contains: location, mode: 'insensitive' };
+    if (salaryMin) where.salaryMin = { gte: parseInt(salaryMin) };
+    if (salaryMax) where.salaryMax = { lte: parseInt(salaryMax) };
+    if (minCgpa) where.minCgpa = { lte: parseFloat(minCgpa) };
+    if (nubOnly === 'true') where.targetUniversity = 'NUB';
+
+    if (keyword) {
+      where.OR = [
+        { title: { contains: keyword, mode: 'insensitive' } },
+        { description: { contains: keyword, mode: 'insensitive' } },
+        { category: { contains: keyword, mode: 'insensitive' } },
+        { location: { contains: keyword, mode: 'insensitive' } },
+        { employer: { companyName: { contains: keyword, mode: 'insensitive' } } },
+      ];
     }
 
-    if (location) {
-      where.location = { contains: location as string, mode: 'insensitive' };
-    }
-
-    if (salaryMin || salaryMax) {
-      where.salaryMin = { gte: parseInt(salaryMin as string) };
-      where.salaryMax = { lte: parseInt(salaryMax as string) };
+    if (postedDays) {
+      const since = new Date();
+      since.setDate(since.getDate() - parseInt(postedDays));
+      where.createdAt = { gte: since };
     }
 
     let orderBy: any = { createdAt: 'desc' };
-    if (sort === 'salary') {
-      orderBy = { salaryMax: 'desc' };
-    } else if (sort === 'views') {
-      orderBy = { views: 'desc' };
-    }
+    if (sort === 'salary' || sort === 'salary-high') orderBy = { salaryMax: 'desc' };
+    else if (sort === 'salary-low') orderBy = { salaryMin: 'asc' };
+    else if (sort === 'views') orderBy = { views: 'desc' };
+    else if (sort === 'applicants') orderBy = { applicantCount: 'desc' };
+    else if (sort === 'featured') orderBy = [{ featured: 'desc' }, { createdAt: 'desc' }];
 
     const [jobs, total] = await Promise.all([
       prisma.job.findMany({
         where,
         include: {
-          employer: { select: { companyName: true, logoUrl: true } },
+          employer: { select: { companyName: true, logoUrl: true, isVerified: true } },
         },
         orderBy,
         skip,
@@ -75,7 +94,7 @@ export async function listJobs(req: AuthRequest, res: Response, next: NextFuncti
       prisma.job.count({ where }),
     ]);
 
-    return responses.ok(res, 'Jobs retrieved', {
+    return res.json({
       data: jobs,
       pagination: {
         total,
@@ -84,6 +103,38 @@ export async function listJobs(req: AuthRequest, res: Response, next: NextFuncti
         pages: Math.ceil(total / pageSize),
       },
     });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * GET /api/jobs/categories
+ * Distinct categories with live job counts, used by the listing filters,
+ * the home page category grid and the hero search.
+ */
+export async function getJobCategories(req: AuthRequest, res: Response, next: NextFunction) {
+  try {
+    const grouped = await prisma.job.groupBy({
+      by: ['category'],
+      where: { status: 'ACTIVE', category: { not: null } },
+      _count: { _all: true },
+    });
+
+    const categories = grouped
+      .filter((row) => Boolean(row.category && row.category.trim()))
+      .map((row) => {
+        const label = (row.category as string).trim();
+        return {
+          label,
+          value: label,
+          slug: label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),
+          count: row._count._all,
+        };
+      })
+      .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
+
+    return res.json({ data: categories });
   } catch (error) {
     next(error);
   }

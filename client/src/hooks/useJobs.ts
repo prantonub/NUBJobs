@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/axios';
 
 export interface JobFilters {
+  q?: string;
   jobType?: string;
   category?: string;
   location?: string;
@@ -13,6 +14,13 @@ export interface JobFilters {
   sort?: string;
   page?: number;
   limit?: number;
+}
+
+export interface JobCategory {
+  label: string;
+  value: string;
+  slug: string;
+  count: number;
 }
 
 export const useJobs = (filters: JobFilters = {}) => {
@@ -107,5 +115,21 @@ export const useRecommendedJobs = () => {
       const { data } = await api.get('/jobs/recommended');
       return data.data;
     },
+  });
+};
+
+/**
+ * Live job categories (with open-job counts) coming from the API, so the
+ * filters and the home page always match what is actually in the database.
+ */
+export const useJobCategories = () => {
+  return useQuery<JobCategory[]>({
+    queryKey: ['jobCategories'],
+    queryFn: async () => {
+      const { data } = await api.get('/jobs/categories');
+      const rows = Array.isArray(data?.data) ? data.data : [];
+      return rows as JobCategory[];
+    },
+    staleTime: 5 * 60 * 1000,
   });
 };

@@ -30,6 +30,10 @@ interface JobCardProps {
 }
 
 const JobCard: FC<JobCardProps> = ({ job, view = 'grid' }) => {
+  const skills = Array.isArray(job.skills) ? job.skills : [];
+  const companyName = job.employer?.companyName || 'NUB Employer';
+  const logoUrl = job.employer?.logoUrl;
+
   const salaryDisplay =
     job.salaryMin && job.salaryMax
       ? `৳${job.salaryMin.toLocaleString()}-${job.salaryMax.toLocaleString()}`
@@ -41,6 +45,7 @@ const JobCard: FC<JobCardProps> = ({ job, view = 'grid' }) => {
   const daysAgo = Math.floor((Date.now() - postedDate.getTime()) / (1000 * 60 * 60 * 24));
   const dateDisplay =
     daysAgo === 0 ? 'Today' : daysAgo === 1 ? 'Yesterday' : `${daysAgo} days ago`;
+  const typeLabel = (job.type ?? 'FULL_TIME').replace(/_/g, ' ');
 
   if (view === 'list') {
     return (
@@ -52,7 +57,7 @@ const JobCard: FC<JobCardProps> = ({ job, view = 'grid' }) => {
                 {job.title}
               </h3>
             </Link>
-            <p className="text-sm text-gray-600 mt-1">{job.employer.companyName}</p>
+            <p className="text-sm text-gray-600 mt-1">{companyName}</p>
             <p className="text-sm text-gray-500 line-clamp-2 mt-2">{job.description}</p>
 
             <div className="flex flex-wrap gap-2 mt-3">
@@ -64,17 +69,17 @@ const JobCard: FC<JobCardProps> = ({ job, view = 'grid' }) => {
                 <DollarSign className="w-4 h-4" />
                 {salaryDisplay}
               </div>
-              <Badge variant="outline">{job.type}</Badge>
+              <Badge variant="outline">{typeLabel}</Badge>
             </div>
 
             <div className="flex flex-wrap gap-1 mt-3">
-              {job.skills.slice(0, 3).map((skill) => (
+              {skills.slice(0, 3).map((skill) => (
                 <Badge key={skill} variant="secondary">
                   {skill}
                 </Badge>
               ))}
-              {job.skills.length > 3 && (
-                <Badge variant="outline">+{job.skills.length - 3}</Badge>
+              {skills.length > 3 && (
+                <Badge variant="outline">+{skills.length - 3}</Badge>
               )}
             </div>
           </div>
@@ -96,16 +101,16 @@ const JobCard: FC<JobCardProps> = ({ job, view = 'grid' }) => {
   return (
     <Link href={`/jobs/${job.id}`}>
       <Card className="p-4 hover:shadow-lg transition-shadow cursor-pointer h-full flex flex-col">
-        {job.employer.logoUrl && (
+        {logoUrl && (
           <img
-            src={job.employer.logoUrl}
-            alt={job.employer.companyName}
+            src={logoUrl}
+            alt={companyName}
             className="w-12 h-12 rounded object-cover mb-3"
           />
         )}
 
         <h3 className="text-lg font-semibold line-clamp-2 mb-1">{job.title}</h3>
-        <p className="text-sm text-gray-600 mb-3">{job.employer.companyName}</p>
+        <p className="text-sm text-gray-600 mb-3">{companyName}</p>
         <p className="text-sm text-gray-500 line-clamp-2 mb-3 flex-1">{job.description}</p>
 
         <div className="space-y-2 mb-3">
@@ -120,7 +125,7 @@ const JobCard: FC<JobCardProps> = ({ job, view = 'grid' }) => {
         </div>
 
         <div className="flex flex-wrap gap-1 mb-3">
-          {job.skills.slice(0, 2).map((skill) => (
+          {skills.slice(0, 2).map((skill) => (
             <Badge key={skill} variant="secondary" className="text-xs">
               {skill}
             </Badge>

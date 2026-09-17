@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Reveal } from "@/components/motion-primitives";
+import { useJobCategories } from "@/hooks/useJobs";
 
 export const JOB_LOCATIONS = [
   "Dhaka",
@@ -25,6 +26,7 @@ export const JOB_LOCATIONS = [
   "Remote",
 ] as const;
 
+/** Fallback used until the live category list is available. */
 export const JOB_CATEGORIES = [
   { value: "software-engineering", label: "Software Engineering" },
   { value: "marketing", label: "Marketing" },
@@ -43,6 +45,12 @@ export function HeroSection() {
   const [title, setTitle] = React.useState("");
   const [location, setLocation] = React.useState("");
   const [category, setCategory] = React.useState("");
+  const { data: apiCategories } = useJobCategories();
+
+  const categoryOptions =
+    apiCategories && apiCategories.length > 0
+      ? apiCategories.map((item) => ({ value: item.value, label: item.label }))
+      : JOB_CATEGORIES.map((item) => ({ value: item.value, label: item.label }));
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -136,7 +144,7 @@ export function HeroSection() {
                   <SelectValue placeholder="Category" />
                 </SelectTrigger>
                 <SelectContent>
-                  {JOB_CATEGORIES.map((cat) => (
+                  {categoryOptions.map((cat) => (
                     <SelectItem key={cat.value} value={cat.value}>
                       {cat.label}
                     </SelectItem>

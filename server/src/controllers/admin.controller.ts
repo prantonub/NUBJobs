@@ -16,6 +16,18 @@ const getMonthLabel = (date: Date) => {
 
 const readSingleParam = (value: string | string[] | undefined) => Array.isArray(value) ? value[0] : value;
 
+const JOB_TYPES = ['FULL_TIME', 'PART_TIME', 'INTERNSHIP', 'CONTRACT', 'REMOTE', 'HYBRID'] as const;
+type JobTypeValue = (typeof JOB_TYPES)[number];
+
+/** Keep only values that exist in the Prisma `JobType` enum, default FULL_TIME. */
+const normalizeJobType = (raw: unknown): JobTypeValue => {
+  const value = String(raw ?? '').trim().toUpperCase().replace(/[\s-]+/g, '_');
+  return (JOB_TYPES as readonly string[]).includes(value)
+    ? (value as JobTypeValue)
+    : 'FULL_TIME';
+};
+
+
 export async function getAdminStats(req: AdminRequest, res: Response, next: NextFunction) {
   try {
     const [
@@ -374,6 +386,10 @@ export async function createAdminJob(req: AdminRequest, res: Response, next: Nex
       return responses.badRequest(res, 'Title and description are required');
     }
 
+    // Admin-created jobs are visible on the public job page unless explicitly
+    // saved as a draft or sent for review.
+    const isPublicJob = status === 'ACTIVE' || status === 'APPROVED';
+
     let targetEmployerId = employerId;
     if (!targetEmployerId) {
       const fallbackEmployer = await prisma.employerProfile.findFirst({
@@ -393,7 +409,7 @@ export async function createAdminJob(req: AdminRequest, res: Response, next: Nex
         title,
         description,
         category: category || null,
-        type,
+        type: normalizeJobType(type),
         location: location || null,
         salaryMin: salaryMin ?? null,
         salaryMax: salaryMax ?? null,
@@ -401,7 +417,8 @@ export async function createAdminJob(req: AdminRequest, res: Response, next: Nex
         skills: Array.isArray(skills) ? skills : [],
         deadline: deadline ? new Date(deadline) : null,
         targetUniversity,
-        status: status === 'DRAFT' ? 'DRAFT' : status === 'ACTIVE' ? 'ACTIVE' : 'PENDING',
+        status: isPublicJob ? 'ACTIVE' : 'PENDING',
+        publishedAt: isPublicJob ? new Date() : null,
       },
       include: {
         employer: { include: { user: { select: { name: true, email: true } } } },
@@ -447,6 +464,7 @@ export async function updateJobStatus(req: AdminRequest, res: Response, next: Ne
       where: { id },
       data: {
         status: status === 'APPROVED' ? 'ACTIVE' : 'CLOSED',
+        ...(status === 'APPROVED' ? { publishedAt: new Date() } : {}),
       },
     });
 

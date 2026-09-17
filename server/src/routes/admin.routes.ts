@@ -53,7 +53,7 @@ const createAdminJobSchema = z.object({
   skills: z.array(z.string()).optional(),
   deadline: z.string().optional(),
   targetUniversity: z.enum(['NUB', 'ALL']).optional(),
-  status: z.enum(['DRAFT', 'PENDING', 'ACTIVE']).optional(),
+  status: z.enum(['DRAFT', 'PENDING', 'ACTIVE', 'APPROVED']).optional(),
 });
 
 const createAdminCompanySchema = z.object({

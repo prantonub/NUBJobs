@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import {
   listJobs,
+  getJobCategories,
   getJobDetail,
   getMatchScore,
   saveJob,
@@ -15,6 +16,7 @@ const router = Router();
 
 // Public routes
 router.get('/', listJobs);
+router.get('/categories', getJobCategories);
 router.get('/saved', authenticate, getSavedJobs);
 router.get('/recommended', authenticate, getRecommendedJobs);
 router.get('/:id', getJobDetail);

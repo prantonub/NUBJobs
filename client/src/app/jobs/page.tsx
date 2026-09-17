@@ -1,12 +1,13 @@
 'use client';
 
 import { FC, Suspense, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useJobs } from '@/hooks/useJobs';
 import JobCard from '@/components/jobs/JobCard';
 import JobCardSkeleton from '@/components/jobs/JobCardSkeleton';
 import JobFiltersForm from '@/components/jobs/JobFiltersForm';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -14,14 +15,29 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { LayoutGrid, List } from 'lucide-react';
+import { LayoutGrid, List, Search } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 
+type JobListItem = React.ComponentProps<typeof JobCard>['job'];
+
 const JobsPageContent: FC = () => {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
+  const urlKeyword = searchParams.get('q') ?? '';
+  const [keyword, setKeyword] = useState(urlKeyword);
+  const [syncedKeyword, setSyncedKeyword] = useState(urlKeyword);
+
+  // Adjust the search box while rendering when the URL changes (hero search,
+  // footer links, back button) — the recommended alternative to an effect.
+  if (urlKeyword !== syncedKeyword) {
+    setSyncedKeyword(urlKeyword);
+    setKeyword(urlKeyword);
+  }
+
   const filters = {
+    q: searchParams.get('q') || undefined,
     jobType: searchParams.get('jobType') || undefined,
     category: searchParams.get('category') || undefined,
     location: searchParams.get('location') || undefined,
@@ -39,18 +55,54 @@ const JobsPageContent: FC = () => {
 
   const { data, isLoading, error } = useJobs(filters);
 
-  if (error) {
-    return (
-      <div className="text-center py-8">
-        <p className="text-red-600">Error loading jobs. Please try again.</p>
-      </div>
-    );
-  }
+  const updateQuery = (updates: Record<string, string | null>) => {
+    const params = new URLSearchParams(searchParams);
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value === null || value === '') params.delete(key);
+      else params.set(key, value);
+    });
+    router.push(`?${params.toString()}`, { scroll: false });
+  };
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    updateQuery({ q: keyword.trim() || null, page: '1' });
+  };
+
+  const activeCategory = searchParams.get('category');
+  const activeKeyword = searchParams.get('q');
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4">
-        <h1 className="text-3xl font-bold mb-8">Job Listings</h1>
+        <h1 className="text-3xl font-bold mb-2">Job Listings</h1>
+        <p className="text-gray-600 mb-6">
+          All open jobs and internships across every category.
+        </p>
+
+        {/* Keyword search */}
+        <form onSubmit={handleSearch} className="mb-6 flex gap-2">
+          <div className="relative flex-1 max-w-xl">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
+            <Input
+              value={keyword}
+              onChange={(e) => setKeyword(e.target.value)}
+              placeholder="Search by job title, company or keyword"
+              aria-label="Search jobs"
+              className="pl-9 bg-white"
+            />
+          </div>
+          <Button type="submit">Search</Button>
+          {(activeKeyword || activeCategory) && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => updateQuery({ q: null, category: null, page: '1' })}
+            >
+              Clear
+            </Button>
+          )}
+        </form>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Sidebar */}
@@ -65,18 +117,18 @@ const JobsPageContent: FC = () => {
               <div>
                 <p className="text-gray-600">
                   {data?.pagination?.total || 0} jobs found
+                  {activeCategory && (
+                    <span className="ml-2 text-sm text-gray-500">
+                      in “{activeCategory}”
+                    </span>
+                  )}
                 </p>
               </div>
 
               <div className="flex gap-3">
                 <Select
                   value={filters.sort}
-                  onValueChange={(value) => {
-                    const params = new URLSearchParams(searchParams);
-                    params.set('sort', value);
-                    params.set('page', '1');
-                    window.location.href = `?${params.toString()}`;
-                  }}
+                  onValueChange={(value) => updateQuery({ sort: value, page: '1' })}
                 >
                   <SelectTrigger className="w-40">
                     <SelectValue placeholder="Sort by" />
@@ -110,7 +162,11 @@ const JobsPageContent: FC = () => {
             </div>
 
             {/* Job Cards */}
-            {isLoading ? (
+            {error ? (
+              <Card className="p-8 text-center">
+                <p className="text-red-600">Error loading jobs. Please try again.</p>
+              </Card>
+            ) : isLoading ? (
               <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 gap-4' : ''}>
                 {Array.from({ length: 6 }).map((_, i) => (
                   <JobCardSkeleton key={i} />
@@ -118,13 +174,27 @@ const JobsPageContent: FC = () => {
               </div>
             ) : data?.data?.length ? (
               <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 gap-4' : ''}>
-                {data.data.map((job: any) => (
+                {data.data.map((job: JobListItem) => (
                   <JobCard key={job.id} job={job} view={viewMode} />
                 ))}
               </div>
             ) : (
               <Card className="p-8 text-center">
-                <p className="text-gray-600">No jobs found. Try adjusting your filters.</p>
+                <p className="text-gray-600">
+                  No jobs found. Try adjusting your filters.
+                </p>
+                <p className="mt-2 text-sm text-gray-500">
+                  New job posts appear here as soon as an admin or employer publishes them.
+                </p>
+                {(activeCategory || activeKeyword) && (
+                  <Button
+                    variant="outline"
+                    className="mt-4"
+                    onClick={() => updateQuery({ q: null, category: null, page: '1' })}
+                  >
+                    Clear search & filters
+                  </Button>
+                )}
               </Card>
             )}
 
@@ -138,11 +208,7 @@ const JobsPageContent: FC = () => {
                     <Button
                       key={page}
                       variant={isActive ? 'default' : 'outline'}
-                      onClick={() => {
-                        const params = new URLSearchParams(searchParams);
-                        params.set('page', String(page));
-                        window.location.href = `?${params.toString()}`;
-                      }}
+                      onClick={() => updateQuery({ page: String(page) })}
                     >
                       {page}
                     </Button>

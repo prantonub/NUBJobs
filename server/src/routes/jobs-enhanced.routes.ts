@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import {
   listJobs,
+  getJobCategories,
   getJobDetail,
   createJob,
   updateJob,
@@ -16,11 +17,20 @@ import { authenticate, optionalAuth, requireRole, validate } from '../middleware
 const router = Router();
 
 // Validation schemas
+const jobTypeEnum = z.enum([
+  'FULL_TIME',
+  'PART_TIME',
+  'INTERNSHIP',
+  'CONTRACT',
+  'REMOTE',
+  'HYBRID',
+]);
+
 const createJobSchema = z.object({
   title: z.string().min(5).max(100),
   description: z.string().min(50),
   category: z.string().optional(),
-  type: z.enum(['FULL_TIME', 'PART_TIME', 'INTERNSHIP', 'CONTRACT']),
+  type: jobTypeEnum,
   location: z.string().optional(),
   salaryMin: z.number().optional(),
   salaryMax: z.number().optional(),
@@ -34,7 +44,7 @@ const updateJobSchema = z.object({
   title: z.string().min(5).max(100).optional(),
   description: z.string().min(50).optional(),
   category: z.string().optional(),
-  type: z.enum(['FULL_TIME', 'PART_TIME', 'INTERNSHIP', 'CONTRACT']).optional(),
+  type: jobTypeEnum.optional(),
   location: z.string().optional(),
   salaryMin: z.number().optional(),
   salaryMax: z.number().optional(),
@@ -45,13 +55,18 @@ const updateJobSchema = z.object({
 });
 
 // Public routes
+// NOTE: specific paths must be registered before '/:id', otherwise Express
+// matches '/:id' first and '/categories' / '/recommended' / '/saved' 404.
 router.get('/', optionalAuth, listJobs);
-router.get('/:id', optionalAuth, getJobDetail);
-router.get('/recommended', authenticate, getRecommendedJobs);
+router.get('/categories', getJobCategories);
 
 // Student routes
-router.post('/:id/save', authenticate, toggleSaveJob);
 router.get('/saved', authenticate, getSavedJobs);
+router.get('/recommended', authenticate, getRecommendedJobs);
+router.post('/:id/save', authenticate, toggleSaveJob);
+
+// Single job (keep last so it cannot shadow the routes above)
+router.get('/:id', optionalAuth, getJobDetail);
 
 // Employer routes
 router.post('/', authenticate, requireRole('EMPLOYER'), validate(createJobSchema), createJob);

@@ -5,13 +5,33 @@ import { calculateMatchScore } from '../services/ai.service';
 const getParamString = (value: string | string[] | undefined) =>
   Array.isArray(value) ? value[0] ?? '' : value ?? '';
 
+const JOB_TYPES = ['FULL_TIME', 'PART_TIME', 'INTERNSHIP', 'CONTRACT', 'REMOTE', 'HYBRID'];
+
+/**
+ * Category filters arrive from several places (home category cards send slugs
+ * such as "software-engineering", the hero search sends the category value,
+ * and the sidebar sends the raw category name). Normalise them into a human
+ * readable term so the `contains` match below finds jobs in every case.
+ */
+const normalizeCategory = (raw: string) =>
+  raw.replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim();
+
+/** Only pass values that exist in the Prisma `JobType` enum to avoid a 500. */
+const normalizeJobType = (raw: string) => {
+  const value = raw.trim().toUpperCase().replace(/[\s-]+/g, '_');
+  return JOB_TYPES.includes(value) ? value : '';
+};
+
 /**
  * GET /api/jobs
  * List all jobs with optional filtering, sorting, and pagination
  */
 export const listJobs = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const jobType = getParamString(req.query.jobType as string | string[] | undefined);
+    const q = getParamString(req.query.q as string | string[] | undefined);
+    const search = getParamString(req.query.search as string | string[] | undefined);
+    const jobType = getParamString(req.query.jobType as string | string[] | undefined) ||
+      getParamString(req.query.type as string | string[] | undefined);
     const category = getParamString(req.query.category as string | string[] | undefined);
     const location = getParamString(req.query.location as string | string[] | undefined);
     const salaryMin = getParamString(req.query.salaryMin as string | string[] | undefined);
@@ -22,17 +42,30 @@ export const listJobs = async (req: Request, res: Response, next: NextFunction) 
     const sort = getParamString(req.query.sort as string | string[] | undefined) || 'newest';
     const page = getParamString(req.query.page as string | string[] | undefined) || '1';
     const limit = getParamString(req.query.limit as string | string[] | undefined) || '10';
+    const keyword = (q || search).trim();
 
     // Build filter object
     const where: any = { status: 'ACTIVE' };
 
-    if (jobType) where.type = jobType;
-    if (category) where.category = { contains: category, mode: 'insensitive' };
+    // Jobs are public as soon as they are ACTIVE, no matter the publishedAt value.
+    const typeFilter = normalizeJobType(jobType);
+    if (typeFilter) where.type = typeFilter;
+    if (category) where.category = { contains: normalizeCategory(category), mode: 'insensitive' };
     if (location) where.location = { contains: location, mode: 'insensitive' };
     if (salaryMin) where.salaryMin = { gte: parseInt(salaryMin) };
     if (salaryMax) where.salaryMax = { lte: parseInt(salaryMax) };
     if (minCgpa) where.minCgpa = { lte: parseFloat(minCgpa) };
     if (nubOnly === 'true') where.targetUniversity = 'NUB';
+
+    if (keyword) {
+      where.OR = [
+        { title: { contains: keyword, mode: 'insensitive' } },
+        { description: { contains: keyword, mode: 'insensitive' } },
+        { category: { contains: keyword, mode: 'insensitive' } },
+        { location: { contains: keyword, mode: 'insensitive' } },
+        { employer: { companyName: { contains: keyword, mode: 'insensitive' } } },
+      ];
+    }
 
     if (postedDays) {
       const days = parseInt(postedDays as string);
@@ -82,6 +115,38 @@ export const listJobs = async (req: Request, res: Response, next: NextFunction) 
         pages: Math.ceil(total / pageSize),
       },
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /api/jobs/categories
+ * Distinct categories (with live job counts) used by the listing filters,
+ * the home page category grid, and the hero search.
+ */
+export const getJobCategories = async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const grouped = await prisma.job.groupBy({
+      by: ['category'],
+      where: { status: 'ACTIVE', category: { not: null } },
+      _count: { _all: true },
+    });
+
+    const categories = grouped
+      .filter((row) => Boolean(row.category && row.category.trim()))
+      .map((row) => {
+        const label = (row.category as string).trim();
+        return {
+          label,
+          value: label,
+          slug: label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),
+          count: row._count._all,
+        };
+      })
+      .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
+
+    res.json({ data: categories });
   } catch (error) {
     next(error);
   }
