@@ -7,6 +7,37 @@ import prisma from './prisma';
 const onlineUsers = new Map<string, string>(); // userId -> socketId
 
 /**
+ * Module-level handle to the Socket.io server.
+ *
+ * HTTP controllers need to push events (new application, status change) to a
+ * specific user, and they only ever see `req`/`res` — not the socket server. A
+ * module-level reference (set in `initializeSocket`) is the standard way to
+ * bridge that gap without threading `io` through every controller.
+ */
+let ioInstance: Server | null = null;
+
+/** Per-user room so a user receives events on every open tab/device. */
+export const userRoom = (userId: string) => `user_${userId}`;
+
+/** Room that both participants of an application (conversation) join. */
+export const conversationRoom = (applicationId: string) => `conversation_${applicationId}`;
+
+/** The live Socket.io server, or `null` before/without `initializeSocket`. */
+export function getIO(): Server | null {
+  return ioInstance;
+}
+
+/**
+ * Push an event to every open socket of one user.
+ * Safe to call when Socket.io is not running (e.g. unit tests, scripts).
+ */
+export function emitToUser(userId: string, event: string, payload: unknown): boolean {
+  if (!ioInstance || !userId) return false;
+  ioInstance.to(userRoom(userId)).emit(event, payload);
+  return true;
+}
+
+/**
  * Initialize Socket.io server
  */
 export function initializeSocket(app: any) {
@@ -19,6 +50,8 @@ export function initializeSocket(app: any) {
       credentials: true,
     },
   });
+
+  ioInstance = io;
 
   // Middleware: JWT authentication
   io.use(async (socket, next) => {
@@ -43,6 +76,10 @@ export function initializeSocket(app: any) {
   io.on('connection', (socket: Socket) => {
     const userId = socket.data.userId;
     onlineUsers.set(userId, socket.id);
+
+    // Join a personal room so HTTP controllers can target this user with
+    // `emitToUser(userId, ...)` even when they don't know the socket id.
+    socket.join(userRoom(userId));
 
     console.log(`User connected: ${userId} (${socket.id})`);
 

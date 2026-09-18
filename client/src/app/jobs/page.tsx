@@ -50,7 +50,10 @@ const JobsPageContent: FC = () => {
     nubOnly: searchParams.get('nubOnly') === 'true',
     sort: searchParams.get('sort') || 'newest',
     page: searchParams.get('page') ? parseInt(searchParams.get('page')!) : 1,
-    limit: 10,
+    // 12 = 4 full rows of the 3-column card grid. A non-multiple (e.g. 10)
+    // leaves a lone card on the last row of every page and the page reads as
+    // "9 jobs" — matching the grid avoids the odd-looking orphan row.
+    limit: 12,
   };
 
   const { data, isLoading, error } = useJobs(filters);
@@ -71,6 +74,12 @@ const JobsPageContent: FC = () => {
 
   const activeCategory = searchParams.get('category');
   const activeKeyword = searchParams.get('q');
+
+  /** 1 card on mobile, 2 on tablet, 3 on desktop. */
+  const cardsContainerClass =
+    viewMode === 'grid'
+      ? 'grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3'
+      : 'space-y-4';
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -116,7 +125,15 @@ const JobsPageContent: FC = () => {
             <div className="flex justify-between items-center mb-6">
               <div>
                 <p className="text-gray-600">
-                  {data?.pagination?.total || 0} jobs found
+                  {data?.pagination
+                    ? `Showing ${Math.min(
+                        (data.pagination.page - 1) * data.pagination.limit + 1,
+                        data.pagination.total
+                      )}–${Math.min(
+                        data.pagination.page * data.pagination.limit,
+                        data.pagination.total
+                      )} of ${data.pagination.total} jobs`
+                    : 'Loading jobs…'}
                   {activeCategory && (
                     <span className="ml-2 text-sm text-gray-500">
                       in “{activeCategory}”
@@ -144,18 +161,24 @@ const JobsPageContent: FC = () => {
 
                 <div className="flex gap-1 border rounded-md p-1">
                   <Button
+                    type="button"
                     size="sm"
                     variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                    aria-label="Grid view"
+                    aria-pressed={viewMode === 'grid'}
                     onClick={() => setViewMode('grid')}
                   >
-                    <LayoutGrid className="w-4 h-4" />
+                    <LayoutGrid className="w-4 h-4" aria-hidden="true" />
                   </Button>
                   <Button
+                    type="button"
                     size="sm"
                     variant={viewMode === 'list' ? 'default' : 'ghost'}
+                    aria-label="List view"
+                    aria-pressed={viewMode === 'list'}
                     onClick={() => setViewMode('list')}
                   >
-                    <List className="w-4 h-4" />
+                    <List className="w-4 h-4" aria-hidden="true" />
                   </Button>
                 </div>
               </div>
@@ -167,13 +190,13 @@ const JobsPageContent: FC = () => {
                 <p className="text-red-600">Error loading jobs. Please try again.</p>
               </Card>
             ) : isLoading ? (
-              <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 gap-4' : ''}>
+              <div className={cardsContainerClass}>
                 {Array.from({ length: 6 }).map((_, i) => (
                   <JobCardSkeleton key={i} />
                 ))}
               </div>
             ) : data?.data?.length ? (
-              <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 gap-4' : ''}>
+              <div className={cardsContainerClass}>
                 {data.data.map((job: JobListItem) => (
                   <JobCard key={job.id} job={job} view={viewMode} />
                 ))}

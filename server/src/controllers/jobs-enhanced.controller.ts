@@ -422,7 +422,9 @@ export async function getSavedJobs(req: AuthRequest, res: Response, next: NextFu
       include: {
         job: {
           include: {
-            employer: { select: { companyName: true } },
+            // Same public employer fields as the job list so cards can render the
+            // company name, company logo and verified badge.
+            employer: { select: { companyName: true, logoUrl: true, isVerified: true } },
           },
         },
       },
@@ -459,7 +461,8 @@ export async function getRecommendedJobs(req: AuthRequest, res: Response, next: 
     // Find jobs matching student skills
     const jobs = await prisma.job.findMany({
       where: { status: 'ACTIVE' },
-      include: { employer: { select: { companyName: true } } },
+      // Public employer fields needed by the job cards (company name + logo + badge).
+      include: { employer: { select: { companyName: true, logoUrl: true, isVerified: true } } },
       take: 10,
     });
 

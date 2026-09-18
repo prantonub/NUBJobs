@@ -17,6 +17,7 @@ import {
   createAdminCompany,
   deleteAdminCompany,
   updateEmployerVerification,
+  rejectEmployerVerification,
 } from '../controllers/admin.controller';
 import { authenticate, requireRole, validate } from '../middleware/auth.middleware';
 
@@ -88,5 +89,10 @@ router.get('/employers', listEmployers);
 router.post('/companies', validate(createAdminCompanySchema), createAdminCompany);
 router.delete('/companies/:id', deleteAdminCompany);
 router.patch('/employers/:id/verify', validate(verifyEmployerSchema), updateEmployerVerification);
+router.patch(
+  '/employers/:id/reject',
+  validate(z.object({ reason: z.string().optional() })),
+  rejectEmployerVerification
+);
 
 export default router;

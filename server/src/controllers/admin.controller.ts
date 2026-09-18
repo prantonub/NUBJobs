@@ -1,3 +1,5 @@
+import { emitToUser } from '../lib/socket-server';
+
 import { Request, Response, NextFunction } from 'express';
 import prisma from '../lib/prisma';
 import { responses } from '../utils/response.utils';
@@ -460,12 +462,40 @@ export async function updateJobStatus(req: AdminRequest, res: Response, next: Ne
       return responses.badRequest(res, 'Job id is required');
     }
 
+    const existing = await prisma.job.findUnique({
+      where: { id },
+      include: { employer: { select: { userId: true, companyName: true } } },
+    });
+    if (!existing) {
+      return responses.notFound(res, 'Job not found');
+    }
+
     const job = await prisma.job.update({
       where: { id },
       data: {
         status: status === 'APPROVED' ? 'ACTIVE' : 'CLOSED',
         ...(status === 'APPROVED' ? { publishedAt: new Date() } : {}),
       },
+    });
+
+    // Tell the employer their posting was reviewed (notification + real-time).
+    await prisma.notification.create({
+      data: {
+        userId: existing.employer.userId,
+        type: 'JOB_ALERT',
+        message:
+          status === 'APPROVED'
+            ? `Your job "${existing.title}" is now live`
+            : `Your job "${existing.title}" was rejected${reason ? `: ${reason}` : ''}`,
+        link: `/employer/jobs/${existing.id}`,
+      },
+    });
+
+    emitToUser(existing.employer.userId, status === 'APPROVED' ? 'job_approved' : 'job_rejected', {
+      jobId: existing.id,
+      jobTitle: existing.title,
+      companyName: existing.employer.companyName,
+      reason: status === 'APPROVED' ? null : reason ?? null,
     });
 
     return responses.ok(res, `Job ${status === 'APPROVED' ? 'approved' : 'rejected'}`, {
@@ -598,19 +628,100 @@ export async function updateEmployerVerification(req: AdminRequest, res: Respons
       return responses.badRequest(res, 'Employer id is required');
     }
 
+    const existing = await prisma.employerProfile.findUnique({
+      where: { id },
+      include: { user: { select: { id: true, email: true, name: true } } },
+    });
+    if (!existing) {
+      return responses.notFound(res, 'Employer not found');
+    }
+
     const employer = await prisma.employerProfile.update({
       where: { id },
       data: {
         isVerified: Boolean(approved),
+        verifiedAt: approved ? new Date() : null,
+        // A decision clears the pending request so the employer can resubmit.
+        verificationRequest: null,
       },
       include: {
         user: true,
       },
     });
 
+    // Notify the employer (notification + real-time)
+    await prisma.notification.create({
+      data: {
+        userId: existing.user.id,
+        type: 'JOB_ALERT',
+        message: approved
+          ? `Your company "${existing.companyName}" is now verified`
+          : `Your company verification was not approved${note ? `: ${note}` : ''}`,
+        link: '/employer/company',
+      },
+    });
+    emitToUser(
+      existing.user.id,
+      approved ? 'company_verified' : 'company_verification_rejected',
+      { companyName: existing.companyName, note: note ?? null }
+    );
+
     return responses.ok(res, approved ? 'Employer verified' : 'Employer verification rejected', {
       employer,
       note,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * PATCH /api/admin/employers/:id/reject
+ * Explicit reject-verification endpoint (spec). Same side effects as
+ * updateEmployerVerification with approved=false, but takes a `reason`.
+ */
+export async function rejectEmployerVerification(req: AdminRequest, res: Response, next: NextFunction) {
+  try {
+    const id = readSingleParam(req.params.id) ?? '';
+    const { reason } = req.body;
+
+    if (!id) {
+      return responses.badRequest(res, 'Employer id is required');
+    }
+
+    const existing = await prisma.employerProfile.findUnique({
+      where: { id },
+      include: { user: { select: { id: true } } },
+    });
+    if (!existing) {
+      return responses.notFound(res, 'Employer not found');
+    }
+
+    const employer = await prisma.employerProfile.update({
+      where: { id },
+      data: {
+        isVerified: false,
+        verifiedAt: null,
+        verificationRequest: null,
+      },
+    });
+
+    await prisma.notification.create({
+      data: {
+        userId: existing.user.id,
+        type: 'JOB_ALERT',
+        message: `Your company verification was rejected${reason ? `: ${reason}` : ''}`,
+        link: '/employer/company',
+      },
+    });
+    emitToUser(existing.user.id, 'company_verification_rejected', {
+      companyName: existing.companyName,
+      reason: reason ?? null,
+    });
+
+    return responses.ok(res, 'Employer verification rejected', {
+      employer,
+      reason,
     });
   } catch (error) {
     next(error);

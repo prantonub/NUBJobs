@@ -1,5 +1,27 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import type { QueryClient } from '@tanstack/react-query';
 import api from '@/lib/axios';
+
+/**
+ * Job lists and job detail pages embed the employer's public identity
+ * (`companyName`, `logoUrl`, `isVerified`) and are cached client-side
+ * (`staleTime` of 5 minutes in the job hooks). After the company name or logo
+ * changes we must drop those caches, otherwise job cards keep rendering the old
+ * company name and logo until they expire.
+ */
+function invalidatePublicCompanyIdentity(queryClient: QueryClient) {
+  for (const queryKey of [
+    ['jobs'],
+    ['job'],
+    ['recommendedJobs'],
+    ['savedJobs'],
+    ['myJobs'],
+    ['employerJobs'],
+    ['jobCategories'],
+  ]) {
+    queryClient.invalidateQueries({ queryKey });
+  }
+}
 
 export const useEmployerStats = () => {
   return useQuery({
@@ -198,6 +220,7 @@ export const useUpdateCompanyProfile = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['companyProfile'] });
+      invalidatePublicCompanyIdentity(queryClient);
     },
   });
 };
@@ -215,6 +238,7 @@ export const useUploadLogo = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['companyProfile'] });
+      invalidatePublicCompanyIdentity(queryClient);
     },
   });
 };
@@ -252,5 +276,30 @@ export const useVerificationStatus = () => {
       const { data } = await api.get('/company/verification-status');
       return data.data;
     },
+  });
+};
+
+export const useDeleteLogo = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const { data } = await api.delete('/company/logo');
+      return data.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['companyProfile'] });
+      invalidatePublicCompanyIdentity(queryClient);
+    },
+  });
+};
+
+export const useCompanyStats = () => {
+  return useQuery({
+    queryKey: ['companyStats'],
+    queryFn: async () => {
+      const { data } = await api.get('/company/stats');
+      return data.data;
+    },
+    staleTime: 60 * 1000,
   });
 };

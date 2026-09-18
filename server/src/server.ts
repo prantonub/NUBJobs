@@ -19,6 +19,7 @@ import companyProfileRoutes from './routes/company-profile.routes';
 import eventsRoutes from './routes/events.routes';
 import aiRoutes from './routes/ai-features.routes';
 import adminRoutes from './routes/admin.routes';
+import companiesRoutes from './routes/companies.routes';
 
 const app: Express = express();
 const port = process.env.PORT || 5000;
@@ -54,6 +55,7 @@ app.use(`${apiPrefix}/company`, companyProfileRoutes);
 app.use(`${apiPrefix}/events`, eventsRoutes);
 app.use(`${apiPrefix}/ai`, aiRoutes);
 app.use(`${apiPrefix}/admin`, adminRoutes);
+app.use(`${apiPrefix}/companies`, companiesRoutes);
 
 // 404 handler
 app.use((req, res) => {

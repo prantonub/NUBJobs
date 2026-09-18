@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import prisma from '../lib/prisma';
 import { responses } from '../utils/response.utils';
 import { sendApplicationStatusEmail } from '../services/email.service';
+import { emitToUser } from '../lib/socket-server';
 
 export interface AuthRequest extends Request {
   userId?: string;
@@ -26,10 +27,10 @@ export async function createApplication(req: AuthRequest, res: Response, next: N
       return responses.badRequest(res, 'Job ID required');
     }
 
-    // Get student profile
+    // Get student profile (skills + CGPA feed the match score below)
     const student = await prisma.studentProfile.findUnique({
       where: { userId },
-      select: { id: true, cgpa: true },
+      select: { id: true, cgpa: true, skills: true },
     });
 
     if (!student) {
@@ -48,6 +49,15 @@ export async function createApplication(req: AuthRequest, res: Response, next: N
 
     if (!job) {
       return responses.notFound(res, 'Job not found');
+    }
+
+    // Validation 0: banned students cannot apply
+    const account = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { isBanned: true },
+    });
+    if (account?.isBanned) {
+      return responses.forbidden(res, 'Your account is banned. You cannot apply for jobs.');
     }
 
     // Validation 1: Job must be ACTIVE
@@ -79,11 +89,28 @@ export async function createApplication(req: AuthRequest, res: Response, next: N
     // (Implementation depends on StudentProfile.university field)
 
     // Validation 6: Calculate match score
+    // Score = skills overlap (70%) + CGPA headroom (30%). Requires a non-empty
+    // student skills list, otherwise every job would score 0/100 uniformly.
     let matchScore = 0;
-    if (job.skills && job.skills.length > 0) {
-      const studentSkills = new Set(student.cgpa ? [student.cgpa.toString()] : []);
-      const matchedSkills = job.skills.filter((skill) => studentSkills.has(skill));
-      matchScore = Math.round((matchedSkills.length / job.skills.length) * 100);
+    const studentSkills = (student.skills ?? []).map((s) => s.trim().toLowerCase());
+    const jobSkills = (job.skills ?? []).map((s) => s.trim().toLowerCase());
+
+    if (jobSkills.length > 0) {
+      let score = 0;
+
+      if (studentSkills.length > 0) {
+        const studentSet = new Set(studentSkills);
+        const matchedSkills = jobSkills.filter((skill) => studentSet.has(skill));
+        score += (matchedSkills.length / jobSkills.length) * 70;
+      }
+
+      if (job.minCgpa && student.cgpa) {
+        // Meeting the bar exactly earns 30; every 0.25 above adds 5, capped at 30.
+        const cgpaBonus = Math.min(30, Math.max(0, (student.cgpa - job.minCgpa) / 0.25) * 5 + 25);
+        score += student.cgpa >= job.minCgpa ? cgpaBonus : 0;
+      }
+
+      matchScore = Math.round(score);
     }
 
     // Create application
@@ -122,9 +149,19 @@ export async function createApplication(req: AuthRequest, res: Response, next: N
       data: {
         userId: job.employer.userId,
         type: 'NEW_APPLICATION',
-        message: `New application for ${job.title}`,
+        message: `${application.student.user.name} applied for ${job.title} (match ${matchScore}%)`,
         link: `/employer/applications/${application.id}`,
       },
+    });
+
+    // Real-time ping to the employer: the kanban pipeline and notification bell
+    // listen for this event and invalidate their React Query caches.
+    emitToUser(job.employer.userId, 'new_application', {
+      applicationId: application.id,
+      jobId: job.id,
+      jobTitle: job.title,
+      studentName: application.student.user.name,
+      matchScore,
     });
 
     return responses.created(res, 'Application submitted', application);
@@ -286,10 +323,38 @@ export async function updateApplicationStatus(
       return responses.forbidden(res);
     }
 
+    // Kanban pipeline rules: forward steps and terminal rejects only, no jumps
+    // backwards into earlier stages.
+    const PIPELINE: Record<string, string[]> = {
+      APPLIED: ['REVIEWED', 'SHORTLISTED', 'REJECTED'],
+      REVIEWED: ['SHORTLISTED', 'INTERVIEWED', 'REJECTED'],
+      SHORTLISTED: ['INTERVIEWED', 'HIRED', 'REJECTED'],
+      INTERVIEWED: ['HIRED', 'REJECTED'],
+      HIRED: [],
+      REJECTED: [],
+      WITHDRAWN: [],
+    };
+
+    if (application.status === status) {
+      return responses.badRequest(res, `Application is already ${status}`);
+    }
+
+    if (!PIPELINE[application.status]?.includes(status)) {
+      return responses.badRequest(
+        res,
+        `Invalid transition: ${application.status} → ${status}. Allowed: ${
+          PIPELINE[application.status]?.join(', ') || 'none (terminal state)'
+        }`
+      );
+    }
+
     // Update application
     const updated = await prisma.application.update({
       where: { id: idStr },
-      data: { status },
+      data: {
+        status,
+        ...(req.body.notes !== undefined ? { notes: req.body.notes } : {}),
+      },
       include: {
         job: { select: { title: true } },
         student: { include: { user: { select: { email: true, name: true } } } },
@@ -313,6 +378,16 @@ export async function updateApplicationStatus(
         message: `Your application for ${application.job.title} status changed to ${status}`,
         link: `/applications/${application.id}`,
       },
+    });
+
+    // Real-time ping to the student: the dashboard and notification bell listen
+    // for this event and invalidate their React Query caches.
+    emitToUser(application.student.userId, 'application_status_changed', {
+      applicationId: application.id,
+      jobId: application.jobId,
+      jobTitle: application.job.title,
+      status,
+      companyName: application.job.employer.companyName,
     });
 
     return responses.ok(res, 'Status updated', updated);

@@ -12,7 +12,10 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
     "prisma:seed": "ts-node prisma/seed.ts",
-    "prisma:seed:demo": "ts-node prisma/seed-demo.ts"
+    "prisma:seed:demo": "ts-node prisma/seed-demo.ts",
+    "prisma:seed:full": "ts-node prisma/seed-full.ts",
+    "prisma:employer-identity": "ts-node prisma/update-employer-identity.ts",
+    "prisma:employer-create": "ts-node prisma/create-employer.ts"
   },
   "keywords": [
     "nubjobs",

@@ -8,6 +8,8 @@ import {
   useCompanyProfile,
   useUpdateCompanyProfile,
   useUploadLogo,
+  useDeleteLogo,
+  useCompanyStats,
   useUploadVerificationDocument,
   useRequestVerification,
   useVerificationStatus,
@@ -22,10 +24,18 @@ import { toast } from 'sonner';
 import { Loader2, Upload, Check, Clock } from 'lucide-react';
 
 const profileSchema = z.object({
-  companyName: z.string().min(3),
-  about: z.string().optional(),
+  companyName: z.string().min(3).max(100),
+  about: z.string().max(2000).optional(),
   website: z.string().url().optional().or(z.literal('')),
   linkedinUrl: z.string().url().optional().or(z.literal('')),
+  twitterUrl: z.string().url().optional().or(z.literal('')),
+  facebookUrl: z.string().url().optional().or(z.literal('')),
+  location: z.string().optional(),
+  foundedYear: z.coerce.number().int().min(1900).max(new Date().getFullYear()).optional().or(z.literal('')),
+  employees: z.coerce.number().int().positive().optional().or(z.literal('')),
+  industry: z.string().optional(),
+  phone: z.string().optional(),
+  email: z.string().email().optional().or(z.literal('')),
 });
 
 type ProfileFormData = z.infer<typeof profileSchema>;
@@ -33,8 +43,10 @@ type ProfileFormData = z.infer<typeof profileSchema>;
 const CompanyProfilePage: FC = () => {
   const { data: profile, isLoading } = useCompanyProfile();
   const { data: verificationStatus } = useVerificationStatus();
+  const { data: stats } = useCompanyStats();
   const updateProfileMutation = useUpdateCompanyProfile();
   const uploadLogoMutation = useUploadLogo();
+  const deleteLogoMutation = useDeleteLogo();
   const uploadDocumentMutation = useUploadVerificationDocument();
   const requestVerificationMutation = useRequestVerification();
 
@@ -45,7 +57,8 @@ const CompanyProfilePage: FC = () => {
   });
 
   const { register, handleSubmit, formState: { errors }, reset } = useForm<ProfileFormData>({
-    resolver: zodResolver(profileSchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(profileSchema) as any,
   });
 
   // Reset form when profile loads

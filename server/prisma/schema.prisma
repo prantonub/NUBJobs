@@ -106,11 +106,23 @@ model EmployerProfile {
   logoUrl               String?
   website               String?
   linkedinUrl           String?
-  
+  twitterUrl            String?
+  facebookUrl           String?
+  location              String?
+  foundedYear           Int?
+  employees             Int?
+  industry              String?
+  category              String?
+
+  // Contact
+  phone                 String?
+  email                 String?
+
   // Verification ()
   isVerified            Boolean   @default(false)
   verificationDocument  String?
   verificationRequest   String?
+  verifiedAt            DateTime?
   
   // Jobs
   jobs                  Job[]
