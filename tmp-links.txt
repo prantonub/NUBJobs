@@ -1,0 +1,15 @@
+/
+/contact
+/dashboard
+/dashboard/applications
+/employer/jobs
+/employer/jobs/new
+/employer/post-job
+/forgot-password
+/jobs
+/login
+/privacy
+/profile
+/register
+/settings
+/terms

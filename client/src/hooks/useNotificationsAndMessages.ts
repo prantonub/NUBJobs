@@ -29,7 +29,10 @@ export const useUnreadCount = () => {
     queryKey: ['unreadCount'],
     queryFn: async () => {
       const { data } = await api.get('/notifications/unread-count');
-      return data.data.unreadCount;
+      // The API responds with `{ count }`; the older shape was `unreadCount`.
+      // Reading only `unreadCount` returned undefined, so the navbar badge and
+      // any unread indicator could never light up.
+      return data.data?.count ?? data.data?.unreadCount ?? 0;
     },
     staleTime: 1 * 60 * 1000,
   });

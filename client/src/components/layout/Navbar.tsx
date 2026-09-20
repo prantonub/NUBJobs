@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   BellIcon,
   GraduationCapIcon,
@@ -14,6 +14,12 @@ import {
   UserIcon,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import {
+  useMarkAllNotificationsRead,
+  useMarkNotificationRead,
+  useNotifications,
+  useUnreadCount,
+} from "@/hooks/useNotificationsAndMessages";
 import { cn, getInitials } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,6 +53,135 @@ function isActive(pathname: string, href: string) {
   return href === "/" ? pathname === "/" : pathname.startsWith(href);
 }
 
+interface NotificationItem {
+  id: string;
+  message: string;
+  link?: string | null;
+  isRead: boolean;
+  createdAt: string;
+}
+
+/** Compact relative timestamp — avoids pulling in a date library. */
+function timeAgo(value: string): string {
+  const timestamp = new Date(value).getTime();
+  if (Number.isNaN(timestamp)) return "";
+
+  const seconds = Math.max(0, Math.floor((Date.now() - timestamp) / 1000));
+  if (seconds < 60) return "just now";
+
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+
+  return new Date(timestamp).toLocaleDateString();
+}
+
+/**
+ * Notification bell with a live dropdown.
+ *
+ * Rendered only for signed-in users: the notification queries are mounted with
+ * this component, so a guest never fires `GET /notifications` (which would 401
+ * and make the axios interceptor treat the session as over and redirect to
+ * /login).
+ */
+function NotificationMenu() {
+  const router = useRouter();
+  const { data, isLoading } = useNotifications({ limit: 8 });
+  const { data: unreadCount = 0 } = useUnreadCount();
+  const markRead = useMarkNotificationRead();
+  const markAllRead = useMarkAllNotificationsRead();
+
+  const items: NotificationItem[] = data?.data ?? [];
+
+  const openNotification = (notification: NotificationItem) => {
+    if (!notification.isRead) markRead.mutate(notification.id);
+    // `link` is stored relative (e.g. "/applications/<id>"); fall back to the
+    // dashboard so a notification without a target still goes somewhere real.
+    router.push(notification.link || "/dashboard");
+  };
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="relative"
+          aria-label={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : "Notifications"}
+        >
+          <BellIcon className="size-5" />
+          {unreadCount > 0 ? (
+            <span className="absolute -right-0.5 -top-0.5 flex min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold leading-4 text-white ring-2 ring-background">
+              {unreadCount > 9 ? "9+" : unreadCount}
+            </span>
+          ) : null}
+        </Button>
+      </DropdownMenuTrigger>
+
+      <DropdownMenuContent align="end" className="w-80 p-0">
+        <div className="flex items-center justify-between border-b border-border px-3 py-2">
+          <span className="text-sm font-semibold">Notifications</span>
+          {unreadCount > 0 ? (
+            <button
+              type="button"
+              className="text-xs font-medium text-brand-600 hover:underline disabled:opacity-50"
+              onClick={() => markAllRead.mutate()}
+              disabled={markAllRead.isPending}
+            >
+              Mark all read
+            </button>
+          ) : null}
+        </div>
+
+        <div className="max-h-80 overflow-y-auto">
+          {isLoading ? (
+            <div className="space-y-2 p-3">
+              {Array.from({ length: 3 }).map((_, index) => (
+                <Skeleton key={index} className="h-10 w-full" />
+              ))}
+            </div>
+          ) : items.length === 0 ? (
+            <p className="px-3 py-8 text-center text-sm text-muted-foreground">
+              You have no notifications yet.
+            </p>
+          ) : (
+            items.map((notification) => (
+              <button
+                key={notification.id}
+                type="button"
+                onClick={() => openNotification(notification)}
+                className={cn(
+                  "flex w-full gap-3 border-b border-border/60 px-3 py-3 text-left transition-colors last:border-0 hover:bg-muted",
+                  !notification.isRead && "bg-brand-50/60 dark:bg-brand-900/20"
+                )}
+              >
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    "mt-1.5 size-2 shrink-0 rounded-full",
+                    notification.isRead ? "bg-transparent" : "bg-brand-500"
+                  )}
+                />
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm leading-snug">{notification.message}</span>
+                  <span className="mt-0.5 block text-xs text-muted-foreground">
+                    {timeAgo(notification.createdAt)}
+                  </span>
+                </span>
+              </button>
+            ))
+          )}
+        </div>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 function BrandMark({ className }: { className?: string }) {
   return (
     <Link href="/" className={cn("flex shrink-0 items-center gap-2", className)}>
@@ -74,6 +209,14 @@ export function Navbar({ className }: NavbarProps) {
   const pathname = usePathname() ?? "/";
   const { user, isAuthenticated, isLoading, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = React.useState(false);
+  // Auth state lives in localStorage, which the server cannot read, so the
+  // server rendered the signed-out buttons while the first client render
+  // produced the skeleton — that mismatch is what raised
+  // "Hydration failed ... at Skeleton (Navbar.tsx)". Rendering the skeleton on
+  // both sides until this effect runs makes the first client render identical
+  // to the server HTML.
+  const [mounted, setMounted] = React.useState(false);
+  React.useEffect(() => setMounted(true), []);
 
   if (pathname.startsWith("/admin")) return null;
 
@@ -115,19 +258,11 @@ export function Navbar({ className }: NavbarProps) {
             />
           </div>
 
-          {isLoading ? (
+          {!mounted || isLoading ? (
             <Skeleton className="size-9 rounded-full" />
           ) : isAuthenticated ? (
             <>
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label="Notifications"
-                className="relative"
-              >
-                <BellIcon className="size-5" />
-                <span className="absolute right-2 top-2 size-2 rounded-full bg-red-500 ring-2 ring-background" />
-              </Button>
+              <NotificationMenu />
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
