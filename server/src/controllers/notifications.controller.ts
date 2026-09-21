@@ -7,7 +7,7 @@ export interface AuthRequest extends Request {
   email?: string;
   role?: string;
 }
-
+// fix notification controller to use prisma and return proper responses
 /**
  * GET /api/notifications
  * Get notifications with optional filtering
