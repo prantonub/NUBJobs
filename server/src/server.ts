@@ -1,16 +1,20 @@
 
+// Load server/.env before any module reads process.env (JWT secrets, Cloudinary…)
+import 'dotenv/config';
 import express, { Express } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
 import { initializeSocket } from './lib/socket-server';
+import { getCloudinaryCloudName, isCloudinaryConfigured } from './lib/cloudinary';
 
 // Routes
 import authRoutes from './routes/auth.routes';
 import jobsRoutes from './routes/jobs-enhanced.routes';
 import applicationsRoutes from './routes/applications-enhanced.routes';
-import profileRoutes from './routes/profile-public.routes';
+import profileRoutes from './routes/profile.routes';
+import profilePublicRoutes from './routes/profile-public.routes';
 import notificationsRoutes from './routes/notifications.routes';
 import messagesRoutes from './routes/messages.routes';
 import employerRoutes from './routes/employer.routes';
@@ -46,7 +50,10 @@ const apiPrefix = '/api';
 app.use(`${apiPrefix}/auth`, authRoutes);
 app.use(`${apiPrefix}/jobs`, jobsRoutes);
 app.use(`${apiPrefix}/applications`, applicationsRoutes);
+// Profile: authenticated endpoints (GET /, PATCH /, POST /photo, POST /resume,
+// DELETE /photo, DELETE /resume, …) first, then public lookups + legacy routes.
 app.use(`${apiPrefix}/profile`, profileRoutes);
+app.use(`${apiPrefix}/profile`, profilePublicRoutes);
 app.use(`${apiPrefix}/notifications`, notificationsRoutes);
 app.use(`${apiPrefix}/messages`, messagesRoutes);
 app.use(`${apiPrefix}/employer`, employerRoutes);
@@ -84,6 +91,11 @@ httpServer.listen(port, () => {
   console.log(`🚀 Server running on http://localhost:${port}`);
   console.log(`🔗 WebSocket enabled for real-time messaging`);
   console.log(`📡 API prefix: ${apiPrefix}`);
+  console.log(
+    isCloudinaryConfigured()
+      ? `🖼️  Cloudinary uploads enabled (cloud: ${getCloudinaryCloudName()})`
+      : '⚠️  Cloudinary not configured — file uploads will fail until CLOUDINARY_* is set in server/.env'
+  );
 });
 
 // Graceful shutdown

@@ -1,6 +1,39 @@
 import { Request, Response, NextFunction } from 'express';
+import { Prisma } from '@prisma/client';
 import prisma from '../lib/prisma';
+import { removeStoredFile } from '../lib/cloudinary';
+import { storeProfilePhoto, storeResume } from '../services/upload.service';
 import { analyzeResume } from '../services/ai.service';
+
+/** String columns of `StudentProfile` that the profile form may send. */
+const PROFILE_STRING_FIELDS = [
+  'nubId',
+  'department',
+  'bio',
+  'phone',
+  'location',
+  'linkedinUrl',
+  'githubUrl',
+  'portfolioUrl',
+] as const;
+
+/** Those of the fields above that must look like a URL when not empty. */
+const PROFILE_URL_FIELDS = ['linkedinUrl', 'githubUrl', 'portfolioUrl'] as const;
+
+const URL_PATTERN = /^https?:\/\/\S+\.\S+/i;
+
+/**
+ * `undefined` → field was not sent, leave the column untouched.
+ * `null` / `''` / whitespace → clear the column (`null`).
+ * Anything else → trimmed string.
+ */
+function readOptionalString(value: unknown): string | null | undefined {
+  if (value === undefined) return undefined;
+  if (value === null) return null;
+  if (typeof value !== 'string') return undefined;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
 
 /**
  * GET /api/profile
@@ -72,53 +105,63 @@ export const updateProfile = async (req: Request, res: Response, next: NextFunct
       return res.status(401).json({ error: 'Not authenticated' });
     }
 
-    const {
-      nubId,
-      department,
-      cgpa,
-      bio,
-      phone,
-      location,
-      skills,
-      linkedinUrl,
-      githubUrl,
-      portfolioUrl,
-      education,
-      experience,
-      projects,
-      certifications,
-    } = req.body;
+    const body = (req.body ?? {}) as Record<string, unknown>;
 
-    // Get or create profile
-    let profile = await prisma.studentProfile.findUnique({
-      where: { userId },
-    });
-
-    if (!profile) {
-      profile = await prisma.studentProfile.create({
-        data: { userId },
-      });
+    // ── Validation ───────────────────────────────────────────────────────────
+    for (const field of PROFILE_URL_FIELDS) {
+      const value = readOptionalString(body[field]);
+      if (typeof value === 'string' && !URL_PATTERN.test(value)) {
+        return res.status(400).json({ error: `${field} must be a valid URL (e.g. https://example.com)` });
+      }
     }
 
-    // Update with provided fields
+    let cgpaValue: number | null | undefined;
+    if (body.cgpa !== undefined) {
+      if (body.cgpa === null || body.cgpa === '') {
+        cgpaValue = null;
+      } else {
+        const parsed = typeof body.cgpa === 'number' ? body.cgpa : Number(body.cgpa);
+        if (!Number.isFinite(parsed) || parsed < 0 || parsed > 4) {
+          return res.status(400).json({ error: 'CGPA must be a number between 0 and 4' });
+        }
+        cgpaValue = parsed;
+      }
+    }
+
+    if (body.skills !== undefined && !Array.isArray(body.skills)) {
+      return res.status(400).json({ error: 'skills must be an array of strings' });
+    }
+
+    // ── Build the update payload ─────────────────────────────────────────────
+    // Only fields present in the request are written, so a partial auto-save
+    // never wipes values the form did not send.
+    const data: Prisma.StudentProfileUpdateInput = {};
+
+    for (const field of PROFILE_STRING_FIELDS) {
+      const value = readOptionalString(body[field]);
+      if (value !== undefined) data[field] = value;
+    }
+
+    if (cgpaValue !== undefined) data.cgpa = cgpaValue;
+
+    if (Array.isArray(body.skills)) {
+      data.skills = (body.skills as unknown[])
+        .filter((skill): skill is string => typeof skill === 'string')
+        .map((skill) => skill.trim())
+        .filter(Boolean);
+    }
+
+    // ── Make sure the row exists, then update ────────────────────────────────
+    // (a first-time save on a fresh account must not fail with P2025)
+    await prisma.studentProfile.upsert({
+      where: { userId },
+      create: { userId },
+      update: {},
+    });
+
     const updated = await prisma.studentProfile.update({
       where: { userId },
-      data: {
-        ...(nubId && { nubId }),
-        ...(department && { department }),
-        ...(cgpa !== undefined && { cgpa: cgpa ? parseFloat(cgpa) : null }),
-        ...(bio && { bio }),
-        ...(phone && { phone }),
-        ...(location && { location }),
-        ...(skills && { skills }),
-        ...(linkedinUrl && { linkedinUrl }),
-        ...(githubUrl && { githubUrl }),
-        ...(portfolioUrl && { portfolioUrl }),
-        ...(education && { githubUrl: education }),
-        ...(experience && { linkedinUrl: experience }),
-        ...(projects && { portfolioUrl: projects }),
-        ...(certifications && { photoUrl: certifications }),
-      },
+      data,
       include: {
         user: {
           select: { name: true, email: true },
@@ -134,6 +177,10 @@ export const updateProfile = async (req: Request, res: Response, next: NextFunct
 
     res.json({ data: updated, message: 'Profile updated' });
   } catch (error) {
+    // `nubId` is unique: report a duplicate as 409 instead of a 500.
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      return res.status(409).json({ error: 'That NUB ID is already linked to another account' });
+    }
     next(error);
   }
 };
@@ -154,17 +201,31 @@ export const uploadProfilePhoto = async (req: Request, res: Response, next: Next
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    // In production, upload to Cloudinary
-    // For now, we'll use base64 or a placeholder
-    const photoUrl = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
+    // Remember the current asset so it can be removed after the swap.
+    const previous = await prisma.studentProfile.findUnique({
+      where: { userId },
+      select: { photoUrl: true },
+    });
+
+    // Upload to Cloudinary first: if it fails, the previous photo stays intact.
+    const stored = await storeProfilePhoto(userId, req.file);
 
     const updated = await prisma.studentProfile.upsert({
       where: { userId },
-      create: { userId, photoUrl },
-      update: { photoUrl },
+      create: { userId, photoUrl: stored.url },
+      update: { photoUrl: stored.url },
     });
 
-    res.json({ data: updated, message: 'Photo uploaded' });
+    // Only remove the previous asset once the DB points at the new one.
+    if (previous?.photoUrl && previous.photoUrl !== stored.url) {
+      await removeStoredFile(previous.photoUrl);
+    }
+
+    res.json({
+      data: updated,
+      thumbnailUrl: stored.thumbnailUrl,
+      message: 'Photo uploaded',
+    });
   } catch (error) {
     next(error);
   }
@@ -186,16 +247,94 @@ export const uploadResume = async (req: Request, res: Response, next: NextFuncti
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    // In production, upload to Cloudinary
-    const resumeUrl = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
+    // Remember the current asset so it can be removed after the swap.
+    const previous = await prisma.studentProfile.findUnique({
+      where: { userId },
+      select: { resumeUrl: true },
+    });
+
+    // Upload to Cloudinary first: if it fails, the previous resume stays intact.
+    const stored = await storeResume(userId, req.file);
 
     const updated = await prisma.studentProfile.upsert({
       where: { userId },
-      create: { userId, resumeUrl },
-      update: { resumeUrl },
+      create: { userId, resumeUrl: stored.url },
+      update: { resumeUrl: stored.url },
     });
 
-    res.json({ data: updated, message: 'Resume uploaded' });
+    // Delete the outdated resume file from Cloudinary.
+    if (previous?.resumeUrl && previous.resumeUrl !== stored.url) {
+      await removeStoredFile(previous.resumeUrl);
+    }
+
+    res.json({
+      data: updated,
+      resumeUrl: stored.url,
+      fileName: req.file.originalname,
+      message: 'Resume uploaded',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * DELETE /api/profile/photo
+ * Delete the profile photo from Postgres and Cloudinary
+ */
+export const deleteProfilePhoto = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = (req as any).userId;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    const profile = await prisma.studentProfile.findUnique({
+      where: { userId },
+      select: { photoUrl: true },
+    });
+
+    const updated = await prisma.studentProfile.upsert({
+      where: { userId },
+      create: { userId },
+      update: { photoUrl: null },
+    });
+
+    await removeStoredFile(profile?.photoUrl);
+
+    res.json({ data: updated, message: 'Photo deleted' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * DELETE /api/profile/resume
+ * Delete the resume from Postgres and Cloudinary
+ */
+export const deleteProfileResume = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = (req as any).userId;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    const profile = await prisma.studentProfile.findUnique({
+      where: { userId },
+      select: { resumeUrl: true },
+    });
+
+    const updated = await prisma.studentProfile.upsert({
+      where: { userId },
+      create: { userId },
+      update: { resumeUrl: null },
+    });
+
+    await removeStoredFile(profile?.resumeUrl);
+
+    res.json({ data: updated, message: 'Resume deleted' });
   } catch (error) {
     next(error);
   }

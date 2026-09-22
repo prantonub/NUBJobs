@@ -2,6 +2,8 @@ import { Request, Response, NextFunction } from 'express';
 import prisma from '../lib/prisma';
 import { responses } from '../utils/response.utils';
 import { emitToUser } from '../lib/socket-server';
+import { removeStoredFile } from '../lib/cloudinary';
+import { storeCompanyLogo, storeVerificationDocument } from '../services/upload.service';
 
 export interface AuthRequest extends Request {
   userId?: string;
@@ -185,15 +187,23 @@ export async function uploadLogo(req: AuthRequest, res: Response, next: NextFunc
       return responses.notFound(res, 'Company profile not found');
     }
 
-    // In production, upload to Cloudinary (and delete the previous logo first)
-    const logoUrl = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
+    // Upload to Cloudinary, then swap the URL and clean up the previous file.
+    const stored = await storeCompanyLogo(employer.id, req.file);
+    const previousLogo = employer.logoUrl;
 
     const updated = await prisma.employerProfile.update({
       where: { id: employer.id },
-      data: { logoUrl },
+      data: { logoUrl: stored.url },
     });
 
-    return responses.ok(res, 'Logo uploaded successfully', updated);
+    if (previousLogo && previousLogo !== stored.url) {
+      await removeStoredFile(previousLogo);
+    }
+
+    return responses.ok(res, 'Logo uploaded successfully', {
+      ...updated,
+      thumbnailUrl: stored.thumbnailUrl,
+    });
   } catch (error) {
     next(error);
   }
@@ -219,11 +229,13 @@ export async function deleteCompanyLogo(req: AuthRequest, res: Response, next: N
       return responses.notFound(res, 'Company profile not found');
     }
 
-    // In production the stored file would also be deleted from S3 here.
+    // Detach the logo in Postgres, then delete the asset from Cloudinary.
     const updated = await prisma.employerProfile.update({
       where: { id: employer.id },
       data: { logoUrl: null },
     });
+
+    await removeStoredFile(employer.logoUrl);
 
     return responses.ok(res, 'Logo deleted', updated);
   } catch (error) {
@@ -463,6 +475,21 @@ export async function getPublicCompany(req: Request, res: Response, next: NextFu
 }
 
 /**
+ * The verification document is persisted as a JSON string, so retrieve the
+ * previously uploaded file URL (if any) for cleanup.
+ */
+function parseVerificationDocumentUrl(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as { documentUrl?: unknown };
+    return typeof parsed.documentUrl === 'string' ? parsed.documentUrl : null;
+  } catch {
+    // Legacy rows stored plain text (not JSON) — nothing to delete.
+    return null;
+  }
+}
+
+/**
  * POST /api/company/verification-document
  * Upload verification document (for company verification)
  */
@@ -490,22 +517,32 @@ export async function uploadVerificationDocument(
       return responses.notFound(res, 'Company profile not found');
     }
 
+    // Upload the document to Cloudinary first, then persist its URL.
+    const stored = await storeVerificationDocument(employer.id, req.file);
+    const previousDocumentUrl = parseVerificationDocumentUrl(employer.verificationDocument);
+
     // Store verification document (for admin review)
     const documentData = {
       fileName: req.file.originalname,
       fileType: req.file.mimetype,
+      fileSize: req.file.size,
+      documentUrl: stored.url,
+      publicId: stored.publicId,
       uploadedAt: new Date(),
       status: 'PENDING', // Will be reviewed by admin
     };
 
-    // Store in database (you might want to extend schema for this)
-    // For now, we'll create a simple record
     await prisma.employerProfile.update({
       where: { id: employer.id },
       data: {
         verificationDocument: JSON.stringify(documentData),
       },
     });
+
+    // Replace the previous document on Cloudinary.
+    if (previousDocumentUrl && previousDocumentUrl !== stored.url) {
+      await removeStoredFile(previousDocumentUrl);
+    }
 
     return responses.ok(res, 'Verification document uploaded. It will be reviewed by our team.', {
       status: 'PENDING',

@@ -7,10 +7,8 @@ import { z } from 'zod';
 import {
   useCompanyProfile,
   useUpdateCompanyProfile,
-  useUploadLogo,
   useDeleteLogo,
   useCompanyStats,
-  useUploadVerificationDocument,
   useRequestVerification,
   useVerificationStatus,
 } from '@/hooks/useEmployer';
@@ -21,7 +19,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { Loader2, Upload, Check, Clock } from 'lucide-react';
+import { Loader2, Check, Clock } from 'lucide-react';
+import { FileUploadZone } from '@/components/ui/FileUploadZone';
+import { DOCUMENT_MIME_TYPES, IMAGE_MIME_TYPES } from '@/hooks/useFileUpload';
 
 const profileSchema = z.object({
   companyName: z.string().min(3).max(100),
@@ -45,9 +45,7 @@ const CompanyProfilePage: FC = () => {
   const { data: verificationStatus } = useVerificationStatus();
   const { data: stats } = useCompanyStats();
   const updateProfileMutation = useUpdateCompanyProfile();
-  const uploadLogoMutation = useUploadLogo();
   const deleteLogoMutation = useDeleteLogo();
-  const uploadDocumentMutation = useUploadVerificationDocument();
   const requestVerificationMutation = useRequestVerification();
 
   const [showVerificationDialog, setShowVerificationDialog] = useState(false);
@@ -82,30 +80,6 @@ const CompanyProfilePage: FC = () => {
     }
   };
 
-  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      try {
-        await uploadLogoMutation.mutateAsync(file);
-        toast.success('Logo uploaded!');
-      } catch (error) {
-        toast.error('Failed to upload logo');
-      }
-    }
-  };
-
-  const handleDocumentUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      try {
-        await uploadDocumentMutation.mutateAsync(file);
-        toast.success('Document uploaded for verification!');
-      } catch (error) {
-        toast.error('Failed to upload document');
-      }
-    }
-  };
-
   const handleRequestVerification = async () => {
     try {
       await requestVerificationMutation.mutateAsync(verificationData);
@@ -128,33 +102,29 @@ const CompanyProfilePage: FC = () => {
         {/* Logo Section */}
         <Card className="mb-6 p-6">
           <h2 className="text-xl font-semibold mb-4">Company Logo</h2>
-          <div className="flex items-center gap-6">
-            {profile?.logoUrl && (
-              <img
-                src={profile.logoUrl}
-                alt="Company Logo"
-                className="w-24 h-24 rounded object-cover"
-              />
-            )}
-            <div>
-              <label className="cursor-pointer">
-                <Button variant="outline" asChild>
-                  <span>
-                    <Upload className="w-4 h-4 mr-2" />
-                    Upload Logo
-                  </span>
-                </Button>
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleLogoUpload}
-                  disabled={uploadLogoMutation.isPending}
-                />
-              </label>
-              <p className="text-xs text-gray-500 mt-2">PNG, JPG up to 5MB</p>
-            </div>
-          </div>
+          <FileUploadZone
+            endpoint="/employer/company/logo"
+            fieldName="logo"
+            accept={IMAGE_MIME_TYPES}
+            maxSizeMb={5}
+            previewUrl={profile?.logoUrl}
+            previewAlt={`${profile?.companyName ?? 'Company'} logo`}
+            previewLabel="Current logo"
+            label="Drag & drop your company logo here"
+            hint="PNG, JPG or WEBP · max 5MB · fitted to 512px, optimised automatically"
+            successMessage="Logo uploaded!"
+            errorMessage="Failed to upload logo"
+            invalidateKeys={[
+              ['companyProfile'],
+              ['jobs'],
+              ['job'],
+              ['recommendedJobs'],
+              ['savedJobs'],
+              ['myJobs'],
+              ['employerJobs'],
+              ['jobCategories'],
+            ]}
+          />
         </Card>
 
         {/* Company Info */}
@@ -229,24 +199,18 @@ const CompanyProfilePage: FC = () => {
             <div className="space-y-4">
               <div>
                 <h3 className="font-medium text-sm mb-2">Upload Verification Document</h3>
-                <label className="cursor-pointer">
-                  <Button variant="outline" asChild>
-                    <span>
-                      <Upload className="w-4 h-4 mr-2" />
-                      Choose Document
-                    </span>
-                  </Button>
-                  <input
-                    type="file"
-                    accept=".pdf,.doc,.docx,.jpg,.png"
-                    className="hidden"
-                    onChange={handleDocumentUpload}
-                    disabled={uploadDocumentMutation.isPending}
-                  />
-                </label>
-                <p className="text-xs text-gray-600 mt-1">
-                  Trade license, registration certificate, or tax ID
-                </p>
+                <FileUploadZone
+                  endpoint="/company/verification-document"
+                  fieldName="document"
+                  accept={DOCUMENT_MIME_TYPES}
+                  extensions={['pdf', 'doc', 'docx']}
+                  maxSizeMb={5}
+                  label="Drag & drop the document here"
+                  hint="Trade license, registration certificate or tax ID · PDF/DOC · max 5MB"
+                  successMessage="Document uploaded for verification!"
+                  errorMessage="Failed to upload document"
+                  invalidateKeys={[['verificationStatus'], ['companyProfile']]}
+                />
               </div>
 
               <Button

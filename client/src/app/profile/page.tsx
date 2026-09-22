@@ -2,7 +2,7 @@
 
 import { FC, useState, useCallback, useEffect } from 'react';
 import Link from 'next/link';
-import { useProfile, useUpdateProfile, useUploadProfilePhoto, useUploadResume, useAnalyzeResume } from '@/hooks/useProfile';
+import { useProfile, useUpdateProfile, useAnalyzeResume } from '@/hooks/useProfile';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -13,6 +13,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { Loader2, Plus, Trash2 } from 'lucide-react';
+import { getErrorMessage } from '@/lib/utils';
+import { FileUploadZone } from '@/components/ui/FileUploadZone';
+import { DOCUMENT_MIME_TYPES, IMAGE_MIME_TYPES } from '@/hooks/useFileUpload';
 
 const profileSchema = z.object({
   nubId: z.string().optional(),
@@ -30,15 +33,10 @@ type ProfileFormData = z.infer<typeof profileSchema>;
 const ProfilePage: FC = () => {
   const { data: profile, isLoading } = useProfile();
   const updateProfileMutation = useUpdateProfile();
-  const uploadPhotMutation = useUploadProfilePhoto();
-  const uploadResumeMutation = useUploadResume();
   const analyzeResumeMutation = useAnalyzeResume();
 
   const [skills, setSkills] = useState<string[]>([]);
   const [skillInput, setSkillInput] = useState('');
-  const [experience, setExperience] = useState<any[]>([]);
-  const [projects, setProjects] = useState<any[]>([]);
-  const [certifications, setCertifications] = useState<any[]>([]);
 
   const { register, handleSubmit, formState: { errors }, reset } = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
@@ -57,9 +55,6 @@ const ProfilePage: FC = () => {
         portfolioUrl: profile.portfolioUrl || '',
       });
       setSkills(profile.skills || []);
-      setExperience(profile.experience || []);
-      setProjects(profile.projects || []);
-      setCertifications(profile.certifications || []);
     }
   }, [profile, reset]);
 
@@ -77,44 +72,17 @@ const ProfilePage: FC = () => {
   const onSubmit = useCallback(
     async (data: ProfileFormData) => {
       try {
-        await updateProfileMutation.mutateAsync({
-          ...data,
-          skills,
-          experience,
-          projects,
-          certifications,
-        });
+        // Only send fields the API persists. `experience` / `projects` /
+        // `certifications` have no columns in StudentProfile yet, so posting
+        // them would fail the request.
+        await updateProfileMutation.mutateAsync({ ...data, skills });
         toast.success('Profile updated!');
       } catch (error) {
-        toast.error('Failed to update profile');
+        toast.error(getErrorMessage(error, 'Failed to update profile'));
       }
     },
-    [skills, experience, projects, certifications, updateProfileMutation]
+    [skills, updateProfileMutation]
   );
-
-  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      try {
-        await uploadPhotMutation.mutateAsync(file);
-        toast.success('Photo uploaded!');
-      } catch (error) {
-        toast.error('Failed to upload photo');
-      }
-    }
-  };
-
-  const handleResumeUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      try {
-        await uploadResumeMutation.mutateAsync(file);
-        toast.success('Resume uploaded!');
-      } catch (error) {
-        toast.error('Failed to upload resume');
-      }
-    }
-  };
 
   const handleAnalyzeResume = async () => {
     try {
@@ -138,30 +106,20 @@ const ProfilePage: FC = () => {
           {/* Photo Upload */}
           <Card className="p-6">
             <h2 className="text-xl font-semibold mb-4">Profile Photo</h2>
-            <div className="flex items-center gap-4">
-              {profile?.photoUrl && (
-                <img
-                  src={profile.photoUrl}
-                  alt="Profile"
-                  className="w-24 h-24 rounded-full object-cover"
-                />
-              )}
-              <div>
-                <label className="cursor-pointer">
-                  <Button type="button" variant="outline" asChild>
-                    <span>Upload Photo</span>
-                  </Button>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handlePhotoUpload}
-                    disabled={uploadPhotMutation.isPending}
-                  />
-                </label>
-                <p className="text-xs text-gray-500 mt-2">JPG or PNG, max 5MB</p>
-              </div>
-            </div>
+            <FileUploadZone
+              endpoint="/profile/photo"
+              fieldName="photo"
+              accept={IMAGE_MIME_TYPES}
+              maxSizeMb={5}
+              previewUrl={profile?.photoUrl}
+              previewShape="circle"
+              previewAlt={profile?.user?.name || 'Profile photo'}
+              label="Drag & drop your photo here"
+              hint="JPG, PNG or WEBP · max 5MB · square crop, optimised automatically"
+              successMessage="Profile photo updated!"
+              errorMessage="Failed to upload photo"
+              invalidateKeys={[['profile'], ['profileCompletion']]}
+            />
           </Card>
 
           {/* Personal Info */}
@@ -258,32 +216,40 @@ const ProfilePage: FC = () => {
           <Card className="p-6">
             <h2 className="text-xl font-semibold mb-4">Resume</h2>
             <div className="space-y-3">
-              <div>
-                <label className="cursor-pointer">
-                  <Button type="button" variant="outline" asChild>
-                    <span>Upload Resume</span>
-                  </Button>
-                  <input
-                    type="file"
-                    accept=".pdf,.doc,.docx"
-                    className="hidden"
-                    onChange={handleResumeUpload}
-                    disabled={uploadResumeMutation.isPending}
-                  />
-                </label>
-                <p className="text-xs text-gray-500 mt-2">PDF or DOC, max 5MB</p>
-              </div>
+              <FileUploadZone
+                endpoint="/profile/resume"
+                fieldName="resume"
+                accept={DOCUMENT_MIME_TYPES}
+                extensions={['pdf', 'doc', 'docx']}
+                maxSizeMb={5}
+                label="Drag & drop your resume here"
+                hint="PDF, DOC or DOCX · max 5MB · old file is replaced automatically"
+                successMessage="Resume uploaded!"
+                errorMessage="Failed to upload resume"
+                invalidateKeys={[['profile'], ['profileCompletion']]}
+              />
+
               {profile?.resumeUrl && (
-                <Button
-                  type="button"
-                  onClick={handleAnalyzeResume}
-                  disabled={analyzeResumeMutation.isPending}
-                >
-                  {analyzeResumeMutation.isPending && (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  )}
-                  Analyze Resume
-                </Button>
+                <div className="flex flex-wrap items-center gap-3">
+                  <a
+                    href={profile.resumeUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-sm text-blue-600 hover:underline"
+                  >
+                    View current resume
+                  </a>
+                  <Button
+                    type="button"
+                    onClick={handleAnalyzeResume}
+                    disabled={analyzeResumeMutation.isPending}
+                  >
+                    {analyzeResumeMutation.isPending && (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    )}
+                    Analyze Resume
+                  </Button>
+                </div>
               )}
             </div>
           </Card>

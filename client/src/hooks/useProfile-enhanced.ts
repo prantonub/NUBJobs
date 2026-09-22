@@ -56,7 +56,7 @@ export const useUploadResume = () => {
     mutationFn: async (file: File) => {
       const formData = new FormData();
       formData.append('resume', file);
-      const { data } = await api.post('/profile/upload-resume', formData, {
+      const { data } = await api.post('/profile/resume', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       return data.data;
@@ -76,7 +76,7 @@ export const useUploadPhoto = () => {
     mutationFn: async (file: File) => {
       const formData = new FormData();
       formData.append('photo', file);
-      const { data } = await api.post('/profile/upload-photo', formData, {
+      const { data } = await api.post('/profile/photo', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       return data.data;

@@ -205,6 +205,36 @@ See [`server/.env.example`](server/.env.example) and [`client/.env.local.example
 
 `DATABASE_URL`, `JWT_SECRET`, `JWT_REFRESH_SECRET`, `JWT_EXPIRES_IN`, `JWT_REFRESH_EXPIRES_IN`, `CLOUDINARY_*`, `RESEND_API_KEY`, `ANTHROPIC_API_KEY`, `CLIENT_URL`, `PORT`, `NODE_ENV`.
 
+### Cloudinary file uploads
+
+Uploads go through Multer (memory storage) → Cloudinary; the resulting `secure_url` is what gets stored in Postgres (`StudentProfile.photoUrl` / `resumeUrl`, `EmployerProfile.logoUrl` / `verificationDocument`).
+
+```bash
+# server/.env — values from Cloudinary Dashboard → Product Environment → API keys
+CLOUDINARY_CLOUD_NAME="<your-cloud-name>"
+CLOUDINARY_API_KEY="<your-api-key>"
+CLOUDINARY_API_SECRET="<your-api-secret>"
+# or a single connection string: CLOUDINARY_URL="cloudinary://<key>:<secret>@<cloud-name>"
+```
+
+Verify the credentials (uploads an image + a document, checks delivery, then cleans up):
+
+```bash
+cd server && npm run test:cloudinary
+```
+
+| Method | Endpoint | Auth | Field | Limits |
+| --- | --- | --- | --- | --- |
+| `POST` | `/api/profile/photo` | Student | `photo` | JPG/PNG/WEBP · 5MB |
+| `DELETE` | `/api/profile/photo` | Student | — | — |
+| `POST` | `/api/profile/resume` | Student | `resume` | PDF/DOC/DOCX · 5MB |
+| `DELETE` | `/api/profile/resume` | Student | — | — |
+| `POST` | `/api/employer/company/logo` (alias `/api/company/logo`) | Employer | `logo` | JPG/PNG/WEBP · 5MB |
+| `DELETE` | `/api/employer/company/logo` (alias `/api/company/logo`) | Employer | — | — |
+| `POST` | `/api/company/verification-document` | Employer | `document` | PDF/DOC/DOCX · 5MB |
+
+Images are transformed on delivery (`q_auto,f_auto` + avatar/logo sizing); replacing a file deletes the previous asset from Cloudinary.
+
 ---
 
 ## 🗺️ Data model at a glance

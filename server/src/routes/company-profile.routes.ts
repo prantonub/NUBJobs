@@ -1,5 +1,4 @@
 import { Router } from 'express';
-import multer from 'multer';
 import {
   getCompanyProfile,
   updateCompanyProfile,
@@ -11,10 +10,10 @@ import {
   getCompanyStats,
 } from '../controllers/company-profile.controller';
 import { authenticate, requireRole, validate } from '../middleware/auth.middleware';
+import { singleDocument, singleImage } from '../middleware/upload.middleware';
 import { z } from 'zod';
 
 const router = Router();
-const upload = multer({ storage: multer.memoryStorage() });
 
 // Validation schemas
 const updateProfileSchema = z.object({
@@ -49,10 +48,10 @@ router.patch('/', validate(updateProfileSchema), updateCompanyProfile);
 // Stats / analytics
 router.get('/stats', getCompanyStats);
 
-// File uploads
-router.post('/logo', upload.single('logo'), uploadLogo);
+// File uploads (Cloudinary via Multer memory storage)
+router.post('/logo', ...singleImage('logo'), uploadLogo);
 router.delete('/logo', deleteCompanyLogo);
-router.post('/verification-document', upload.single('document'), uploadVerificationDocument);
+router.post('/verification-document', ...singleDocument('document'), uploadVerificationDocument);
 
 // Verification
 router.post('/request-verification', validate(requestVerificationSchema), requestVerification);

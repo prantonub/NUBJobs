@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import multer from 'multer';
 import {
   getPublicProfile,
   updateStudentProfile,
@@ -11,9 +10,9 @@ import {
   getPublicStudentProfile,
 } from '../controllers/profile-public.controller';
 import { authenticate, optionalAuth, validate } from '../middleware/auth.middleware';
+import { singleDocument, singleImage } from '../middleware/upload.middleware';
 
 const router = Router();
-const upload = multer({ storage: multer.memoryStorage() });
 
 // Validation schemas
 const updateProfileSchema = z.object({
@@ -38,13 +37,13 @@ router.put('/', authenticate, validate(updateProfileSchema), updateStudentProfil
 router.post(
   '/upload-resume',
   authenticate,
-  upload.single('resume'),
+  ...singleDocument('resume'),
   uploadResume
 );
 router.post(
   '/upload-photo',
   authenticate,
-  upload.single('photo'),
+  ...singleImage('photo'),
   uploadPhoto
 );
 router.delete('/resume', authenticate, deleteResume);

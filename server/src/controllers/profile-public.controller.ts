@@ -1,6 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import prisma from '../lib/prisma';
 import { responses } from '../utils/response.utils';
+import { removeStoredFile } from '../lib/cloudinary';
+import { storeProfilePhoto, storeResume } from '../services/upload.service';
 
 export interface AuthRequest extends Request {
   userId?: string | string[];
@@ -157,16 +159,25 @@ export async function uploadResume(req: AuthRequest, res: Response, next: NextFu
       return responses.badRequest(res, 'No file uploaded');
     }
 
-    // In production, upload to cloud storage (S3, etc.)
-    // For now, save as base64 or URL
-    const resumeUrl = `/uploads/resumes/${userIdStr}/${req.file.originalname}`;
+    // Upload to Cloudinary first: if it fails the previous resume stays intact.
+    const profile = await prisma.studentProfile.findUnique({
+      where: { userId: userIdStr },
+      select: { resumeUrl: true },
+    });
+
+    const stored = await storeResume(userIdStr, req.file);
 
     const updated = await prisma.studentProfile.update({
       where: { userId: userIdStr },
-      data: { resumeUrl },
+      data: { resumeUrl: stored.url },
     });
 
-    return responses.ok(res, 'Resume uploaded', { resumeUrl });
+    // Delete the outdated resume from Cloudinary.
+    if (profile?.resumeUrl && profile.resumeUrl !== stored.url) {
+      await removeStoredFile(profile.resumeUrl);
+    }
+
+    return responses.ok(res, 'Resume uploaded', { resumeUrl: stored.url, data: updated });
   } catch (error) {
     next(error);
   }
@@ -191,20 +202,34 @@ export async function uploadPhoto(req: AuthRequest, res: Response, next: NextFun
       return responses.badRequest(res, 'No file uploaded');
     }
 
-    // Validate file type
+    // Validate file type (Multer middleware already filters, kept as defence in depth)
     if (!req.file.mimetype.startsWith('image/')) {
       return responses.badRequest(res, 'File must be an image');
     }
 
-    // In production, upload to cloud storage (S3, etc.)
-    const photoUrl = `/uploads/photos/${userIdStr}/${req.file.originalname}`;
+    // Upload to Cloudinary (400px face-cropped avatar with q_auto,f_auto).
+    const profile = await prisma.studentProfile.findUnique({
+      where: { userId: userIdStr },
+      select: { photoUrl: true },
+    });
+
+    const stored = await storeProfilePhoto(userIdStr, req.file);
 
     const updated = await prisma.studentProfile.update({
       where: { userId: userIdStr },
-      data: { photoUrl },
+      data: { photoUrl: stored.url },
     });
 
-    return responses.ok(res, 'Photo uploaded', { photoUrl });
+    // Delete the previous photo from Cloudinary.
+    if (profile?.photoUrl && profile.photoUrl !== stored.url) {
+      await removeStoredFile(profile.photoUrl);
+    }
+
+    return responses.ok(res, 'Photo uploaded', {
+      photoUrl: stored.url,
+      thumbnailUrl: stored.thumbnailUrl,
+      data: updated,
+    });
   } catch (error) {
     next(error);
   }
@@ -225,10 +250,17 @@ export async function deleteResume(req: AuthRequest, res: Response, next: NextFu
       return responses.unauthorized(res);
     }
 
+    const profile = await prisma.studentProfile.findUnique({
+      where: { userId: userIdStr },
+      select: { resumeUrl: true },
+    });
+
     const updated = await prisma.studentProfile.update({
       where: { userId: userIdStr },
       data: { resumeUrl: null },
     });
+
+    await removeStoredFile(profile?.resumeUrl);
 
     return responses.ok(res, 'Resume deleted', updated);
   } catch (error) {
@@ -251,10 +283,17 @@ export async function deletePhoto(req: AuthRequest, res: Response, next: NextFun
       return responses.unauthorized(res);
     }
 
+    const profile = await prisma.studentProfile.findUnique({
+      where: { userId: userIdStr },
+      select: { photoUrl: true },
+    });
+
     const updated = await prisma.studentProfile.update({
       where: { userId: userIdStr },
       data: { photoUrl: null },
     });
+
+    await removeStoredFile(profile?.photoUrl);
 
     return responses.ok(res, 'Photo deleted', updated);
   } catch (error) {

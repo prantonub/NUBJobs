@@ -15,7 +15,8 @@
     "prisma:seed:demo": "ts-node prisma/seed-demo.ts",
     "prisma:seed:full": "ts-node prisma/seed-full.ts",
     "prisma:employer-identity": "ts-node prisma/update-employer-identity.ts",
-    "prisma:employer-create": "ts-node prisma/create-employer.ts"
+    "prisma:employer-create": "ts-node prisma/create-employer.ts",
+    "test:cloudinary": "ts-node src/scripts/cloudinary-smoke.ts"
   },
   "keywords": [
     "nubjobs",

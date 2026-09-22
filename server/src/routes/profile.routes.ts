@@ -1,33 +1,35 @@
 import { Router } from 'express';
-import multer from 'multer';
 import {
   getProfile,
   updateProfile,
   uploadProfilePhoto,
   uploadResume,
+  deleteProfilePhoto,
+  deleteProfileResume,
   analyzeProfileResume,
   getEligibleJobsCount,
   getProfileCompletion,
 } from '../controllers/profile.controller';
 import { authenticate } from '../middleware/auth.middleware';
+import { singleDocument, singleImage } from '../middleware/upload.middleware';
 
 const router = Router();
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024 },
-});
 
-// All profile routes require authentication
-router.use(authenticate);
+// NOTE: authentication is applied per route (not with router.use) so that this
+// router can be mounted before the public profile router — unmatched requests
+// fall through to `/api/profile/:userId` instead of being rejected with a 401.
+router.get('/', authenticate, getProfile);
+router.get('/completion', authenticate, getProfileCompletion);
+router.get('/eligible-jobs', authenticate, getEligibleJobsCount);
 
-router.get('/', getProfile);
-router.get('/completion', getProfileCompletion);
-router.get('/eligible-jobs', getEligibleJobsCount);
+router.patch('/', authenticate, updateProfile);
 
-router.patch('/', updateProfile);
-
-router.post('/photo', upload.single('photo'), uploadProfilePhoto);
-router.post('/resume', upload.single('resume'), uploadResume);
-router.post('/resume/analyze', analyzeProfileResume);
+// Uploads: authenticate before Multer so unauthenticated requests are rejected
+// without buffering the file in memory.
+router.post('/photo', authenticate, ...singleImage('photo'), uploadProfilePhoto);
+router.delete('/photo', authenticate, deleteProfilePhoto);
+router.post('/resume', authenticate, ...singleDocument('resume'), uploadResume);
+router.delete('/resume', authenticate, deleteProfileResume);
+router.post('/resume/analyze', authenticate, analyzeProfileResume);
 
 export default router;

@@ -10,8 +10,11 @@ import {
 import {
   getCompanyProfile,
   updateCompanyProfile,
+  uploadLogo,
+  deleteCompanyLogo,
 } from '../controllers/company-profile.controller';
 import { authenticate, requireRole, validate } from '../middleware/auth.middleware';
+import { singleImage } from '../middleware/upload.middleware';
 import { z } from 'zod';
 
 const router = Router();
@@ -37,6 +40,10 @@ const updateCompanySchema = z.object({
 });
 router.get('/company', getCompanyProfile);
 router.patch('/company', validate(updateCompanySchema), updateCompanyProfile);
+
+// Company logo upload/delete (spec path used by the employer UI)
+router.post('/company/logo', ...singleImage('logo'), uploadLogo);
+router.delete('/company/logo', deleteCompanyLogo);
 
 // Dashboard
 router.get('/dashboard/stats', getEmployerStats);
