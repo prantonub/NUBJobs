@@ -41,6 +41,8 @@ export const useUpdateProfile = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['profile'] });
       queryClient.invalidateQueries({ queryKey: ['profileCompletion'] });
+      // The name/avatar shown in the navbar + sidebar come from /auth/me.
+      queryClient.invalidateQueries({ queryKey: ['currentUser'] });
     },
   });
 };

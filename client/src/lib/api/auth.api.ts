@@ -7,6 +7,9 @@ export interface AppUser {
   email: string;
   name: string;
   role: UserRole;
+  /** Profile photo (students) or company logo (employers). */
+  avatar?: string | null;
+  photoUrl?: string | null;
 }
 
 export interface AuthLoginPayload {

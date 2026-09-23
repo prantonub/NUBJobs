@@ -6,7 +6,6 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   BellIcon,
   GraduationCapIcon,
-  LayoutDashboardIcon,
   LogOutIcon,
   MenuIcon,
   SearchIcon,
@@ -208,6 +207,10 @@ export interface NavbarProps {
 export function Navbar({ className }: NavbarProps) {
   const pathname = usePathname() ?? "/";
   const { user, isAuthenticated, isLoading, logout } = useAuth();
+  // `avatar` is returned by GET /api/auth/me (Cloudinary profile photo), so
+  // uploading a new photo — or saving a new name — shows up here as soon as the
+  // `currentUser` query is refreshed.
+  const avatarUrl: string | null = user?.avatar ?? user?.photoUrl ?? null;
   const [mobileOpen, setMobileOpen] = React.useState(false);
   // Auth state lives in localStorage, which the server cannot read, so the
   // server rendered the signed-out buttons while the first client render
@@ -272,11 +275,8 @@ export function Navbar({ className }: NavbarProps) {
                     aria-label="Account menu"
                   >
                     <Avatar>
-                      {user?.avatar ? (
-                        <AvatarImage
-                          src={String(user.avatar)}
-                          alt={user?.name ?? "User"}
-                        />
+                      {avatarUrl ? (
+                        <AvatarImage src={avatarUrl} alt={user?.name ?? "User"} />
                       ) : null}
                       <AvatarFallback>
                         {getInitials(user?.name ?? "User")}
@@ -296,12 +296,6 @@ export function Navbar({ className }: NavbarProps) {
                     ) : null}
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link href="/dashboard">
-                      <LayoutDashboardIcon />
-                      Dashboard
-                    </Link>
-                  </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link href="/profile">
                       <UserIcon />

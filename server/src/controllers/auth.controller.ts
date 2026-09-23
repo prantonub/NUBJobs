@@ -350,6 +350,9 @@ export async function getMe(req: AuthRequest, res: Response, next: NextFunction)
         role: true,
         isEmailVerified: true,
         createdAt: true,
+        // Used by the navbar / sidebar avatar.
+        studentProfile: { select: { photoUrl: true } },
+        employerProfile: { select: { logoUrl: true } },
       },
     });
 
@@ -357,7 +360,10 @@ export async function getMe(req: AuthRequest, res: Response, next: NextFunction)
       return responses.notFound(res, 'User not found');
     }
 
-    return responses.ok(res, 'User fetched', { user });
+    const { studentProfile, employerProfile, ...rest } = user;
+    const avatar = studentProfile?.photoUrl ?? employerProfile?.logoUrl ?? null;
+
+    return responses.ok(res, 'User fetched', { user: { ...rest, avatar, photoUrl: avatar } });
   } catch (error) {
     next(error);
   }

@@ -18,6 +18,7 @@ import { FileUploadZone } from '@/components/ui/FileUploadZone';
 import { DOCUMENT_MIME_TYPES, IMAGE_MIME_TYPES } from '@/hooks/useFileUpload';
 
 const profileSchema = z.object({
+  name: z.string().min(2, 'Name must be at least 2 characters').max(80, 'Name is too long'),
   nubId: z.string().optional(),
   cgpa: z.number().min(0).max(4).optional(),
   phone: z.string().optional(),
@@ -45,6 +46,7 @@ const ProfilePage: FC = () => {
   useEffect(() => {
     if (profile) {
       reset({
+        name: profile.user?.name || '',
         nubId: profile.nubId || '',
         cgpa: profile.cgpa || undefined,
         phone: profile.phone || '',
@@ -118,7 +120,7 @@ const ProfilePage: FC = () => {
               hint="JPG, PNG or WEBP · max 5MB · square crop, optimised automatically"
               successMessage="Profile photo updated!"
               errorMessage="Failed to upload photo"
-              invalidateKeys={[['profile'], ['profileCompletion']]}
+              invalidateKeys={[['profile'], ['profileCompletion'], ['currentUser']]}
             />
           </Card>
 
@@ -126,6 +128,17 @@ const ProfilePage: FC = () => {
           <Card className="p-6">
             <h2 className="text-xl font-semibold mb-4">Personal Information</h2>
             <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Full Name</label>
+                <Input {...register('name')} placeholder="Your full name" />
+                {errors.name ? (
+                  <p className="mt-1 text-xs text-destructive">{errors.name.message}</p>
+                ) : (
+                  <p className="mt-1 text-xs text-gray-500">
+                    Shown in the top-right profile menu.
+                  </p>
+                )}
+              </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Phone</label>
                 <Input {...register('phone')} placeholder="+880..." />

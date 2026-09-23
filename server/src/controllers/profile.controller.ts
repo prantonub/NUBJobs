@@ -132,6 +132,17 @@ export const updateProfile = async (req: Request, res: Response, next: NextFunct
       return res.status(400).json({ error: 'skills must be an array of strings' });
     }
 
+    // Display name lives on `User` (shown in the navbar/sidebar), not on the
+    // student profile, so it is validated and written separately.
+    let nameValue: string | undefined;
+    if (body.name !== undefined) {
+      const rawName = typeof body.name === 'string' ? body.name.trim() : '';
+      if (rawName.length < 2 || rawName.length > 80) {
+        return res.status(400).json({ error: 'Name must be between 2 and 80 characters' });
+      }
+      nameValue = rawName;
+    }
+
     // ── Build the update payload ─────────────────────────────────────────────
     // Only fields present in the request are written, so a partial auto-save
     // never wipes values the form did not send.
@@ -158,6 +169,14 @@ export const updateProfile = async (req: Request, res: Response, next: NextFunct
       create: { userId },
       update: {},
     });
+
+    // Sync the display name first so the response below already carries it.
+    if (nameValue !== undefined) {
+      await prisma.user.update({
+        where: { id: userId },
+        data: { name: nameValue },
+      });
+    }
 
     const updated = await prisma.studentProfile.update({
       where: { userId },
