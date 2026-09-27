@@ -33,13 +33,21 @@ export const useEmployerStats = () => {
   });
 };
 
-export const useEmployerJobs = (status?: string, page?: number) => {
+export const useEmployerJobs = (
+  status?: string,
+  page?: number,
+  options: { sort?: 'newest' | 'oldest' | 'applicants' | 'views'; limit?: number } = {}
+) => {
+  const { sort = 'newest', limit = 20 } = options;
   return useQuery({
-    queryKey: ['employerJobs', status, page],
+    queryKey: ['employerJobs', status, page, sort, limit],
     queryFn: async () => {
       const params = new URLSearchParams();
-      if (status) params.append('status', status);
+      // 'ALL'/undefined → no status filter (the API returns every status then).
+      if (status && status !== 'ALL') params.append('status', status);
       if (page) params.append('page', String(page));
+      params.append('sort', sort);
+      params.append('limit', String(limit));
       const { data } = await api.get('/employer/jobs', { params });
       return data.data;
     },
@@ -76,8 +84,27 @@ export const useUpdateApplicationStatus = () => {
       const { data } = await api.patch(`/employer/applications/${id}/status`, { status, notes });
       return data.data;
     },
-    onSuccess: () => {
+    onSuccess: (_result, variables) => {
+      // Every employer-facing surface that shows this application.
       queryClient.invalidateQueries({ queryKey: ['employerApplications'] });
+      queryClient.invalidateQueries({ queryKey: ['employerApplicationsList'] });
+      queryClient.invalidateQueries({ queryKey: ['employerApplication', variables.id] });
+      queryClient.invalidateQueries({ queryKey: ['jobApplicants'] });
+      queryClient.invalidateQueries({ queryKey: ['employerStats'] });
+    },
+  });
+};
+
+/** PATCH /api/applications/:id/notes — private employer notes on a candidate. */
+export const useUpdateApplicationNotes = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, notes }: { id: string; notes: string }) => {
+      const { data } = await api.patch(`/applications/${id}/notes`, { notes });
+      return data.data;
+    },
+    onSuccess: (_result, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['employerApplication', variables.id] });
     },
   });
 };
@@ -298,6 +325,134 @@ export const useCompanyStats = () => {
     queryKey: ['companyStats'],
     queryFn: async () => {
       const { data } = await api.get('/company/stats');
+      return data.data;
+    },
+    staleTime: 60 * 1000,
+  });
+};
+
+// ── Applications (employer) ─────────────────────────────────────────────────
+
+export interface EmployerApplicationFilters {
+  status?: string;
+  jobId?: string;
+  sort?: 'newest' | 'oldest' | 'match';
+  page?: number;
+  limit?: number;
+}
+
+/**
+ * GET /api/employer/applications?view=list — flat, filterable, paginated list
+ * (the kanban `useEmployerApplications` keeps the grouped shape).
+ */
+export const useEmployerApplicationsList = (filters: EmployerApplicationFilters = {}) => {
+  const { status, jobId, sort = 'newest', page = 1, limit = 20 } = filters;
+  return useQuery({
+    queryKey: ['employerApplicationsList', { status, jobId, sort, page, limit }],
+    queryFn: async () => {
+      const params: Record<string, string | number> = { view: 'list', sort, page, limit };
+      if (status && status !== 'ALL') params.status = status;
+      if (jobId) params.jobId = jobId;
+      const { data } = await api.get('/employer/applications', { params });
+      return data.data;
+    },
+    staleTime: 30 * 1000,
+    placeholderData: (previous: any) => previous,
+  });
+};
+
+/** GET /api/employer/applications/:id — candidate profile + timeline + chat. */
+export const useEmployerApplicationDetail = (applicationId?: string | null) => {
+  return useQuery({
+    queryKey: ['employerApplication', applicationId],
+    queryFn: async () => {
+      const { data } = await api.get(`/employer/applications/${applicationId}`);
+      return data.data;
+    },
+    enabled: Boolean(applicationId),
+    staleTime: 15 * 1000,
+  });
+};
+
+/** GET /api/applications/job/:jobId — every applicant of one posting. */
+export const useJobApplicants = (
+  jobId?: string | null,
+  filters: { status?: string; page?: number; limit?: number } = {}
+) => {
+  return useQuery({
+    queryKey: ['jobApplicants', jobId, filters],
+    queryFn: async () => {
+      const { data } = await api.get(`/applications/job/${jobId}`, { params: filters });
+      return data.data;
+    },
+    enabled: Boolean(jobId),
+    staleTime: 30 * 1000,
+  });
+};
+
+// ── Job management (employer) ───────────────────────────────────────────────
+
+/**
+ * POST /api/jobs — every posting goes to PENDING and notifies the admins.
+ * Pass `{ asDraft: true }` to save through the draft endpoint instead.
+ *
+ * NOTE: `useUpdateJob` / `useDeleteJob` above already cover the draft flow
+ * (PATCH/DELETE /api/employer/jobs/:id); the equivalents on /api/jobs/:id are
+ * mounted too and share the same controllers' rules.
+ */
+export const usePostJob = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      asDraft = false,
+      ...payload
+    }: Record<string, unknown> & { asDraft?: boolean }) => {
+      const { data } = await api.post(asDraft ? '/employer/jobs' : '/jobs', payload);
+      return data.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['employerJobs'] });
+      queryClient.invalidateQueries({ queryKey: ['employerStats'] });
+    },
+  });
+};
+
+/** PATCH /api/jobs/:id/status — close or feature a posting. */
+export const useUpdateJobStatus = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, action }: { id: string; action: 'close' | 'feature' | 'unfeature' }) => {
+      const { data } = await api.patch(`/jobs/${id}/status`, { action });
+      return data.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['employerJobs'] });
+      queryClient.invalidateQueries({ queryKey: ['companyAnalytics'] });
+    },
+  });
+};
+
+/** DELETE /api/jobs/:id — only DRAFT postings can be deleted. */
+export const useDeleteJobPosting = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { data } = await api.delete(`/employer/jobs/${id}`);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['employerJobs'] });
+      queryClient.invalidateQueries({ queryKey: ['employerStats'] });
+    },
+  });
+};
+
+/** GET /api/employer/company/stats — overview, charts, top jobs and metrics. */
+export const useCompanyAnalytics = () => {
+  return useQuery({
+    queryKey: ['companyAnalytics'],
+    queryFn: async () => {
+      const { data } = await api.get('/employer/company/stats');
       return data.data;
     },
     staleTime: 60 * 1000,

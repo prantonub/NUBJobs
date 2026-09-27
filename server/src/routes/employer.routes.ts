@@ -4,26 +4,34 @@ import {
   getEmployerJobs,
   getEmployerApplications,
   getApplicationDetail,
-  updateApplicationStatus,
   scheduleInterview,
 } from '../controllers/employer.controller';
 import {
   getCompanyProfile,
+  getCompanyAnalytics,
   updateCompanyProfile,
   uploadLogo,
   deleteCompanyLogo,
+  uploadVerificationDocument,
+  submitCompanyVerification,
+  requestVerification,
+  getVerificationStatus,
 } from '../controllers/company-profile.controller';
+// ONE implementation of the status change is shared with
+// PATCH /api/applications/:id/status — pipeline rules, student email,
+// notification and the Socket.io event all live there.
+import { updateApplicationStatus } from '../controllers/applications-enhanced.controller';
 import { authenticate, requireRole, validate } from '../middleware/auth.middleware';
-import { singleImage } from '../middleware/upload.middleware';
+import { singleDocument, singleImage } from '../middleware/upload.middleware';
 import { z } from 'zod';
 
 const router = Router();
 
-// All employer routes require authentication and EMPLOYER role
+// All employer routes require authentication and the EMPLOYER role.
 router.use(authenticate);
 router.use(requireRole('EMPLOYER'));
 
-// Company profile (spec paths; same handlers as /api/company)
+// ── Company profile ─────────────────────────────────────────────────────────
 const updateCompanySchema = z.object({
   companyName: z.string().min(3).max(100).optional(),
   about: z.string().max(2000).optional().or(z.literal('')),
@@ -38,23 +46,33 @@ const updateCompanySchema = z.object({
   phone: z.string().optional().or(z.literal('')),
   email: z.string().email().optional().or(z.literal('')),
 });
+
 router.get('/company', getCompanyProfile);
 router.patch('/company', validate(updateCompanySchema), updateCompanyProfile);
+router.get('/company/stats', getCompanyAnalytics);
 
-// Company logo upload/delete (spec path used by the employer UI)
+// Logo + verification document (Cloudinary via Multer memory storage)
 router.post('/company/logo', ...singleImage('logo'), uploadLogo);
 router.delete('/company/logo', deleteCompanyLogo);
+router.post('/company/verification-document', ...singleDocument('document'), uploadVerificationDocument);
 
-// Dashboard
+// Verification
+router.post('/company/verify', submitCompanyVerification);
+router.post('/company/request-verification', requestVerification);
+router.get('/company/verification-status', getVerificationStatus);
+router.get('/verification-status', getVerificationStatus);
+
+// ── Dashboard ───────────────────────────────────────────────────────────────
 router.get('/dashboard/stats', getEmployerStats);
 
-// Jobs
+// ── Jobs ────────────────────────────────────────────────────────────────────
 router.get('/jobs', getEmployerJobs);
 
-// Applications
+// ── Applications ────────────────────────────────────────────────────────────
 router.get('/applications', getEmployerApplications);
 router.get('/applications/:id', getApplicationDetail);
 router.patch('/applications/:id/status', updateApplicationStatus);
 router.post('/applications/:id/schedule-interview', scheduleInterview);
 
 export default router;
+

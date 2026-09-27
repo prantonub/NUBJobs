@@ -208,10 +208,12 @@ model Application {
   // Application Details
   coverLetter       String?   @db.Text
   matchScore        Int       @default(0) // 0-100
+  resumeUrl         String?   // snapshot of the student's resume at apply time
   
   // Status ()
   status            ApplicationStatus @default(APPLIED)
   notes             String?   @db.Text // Employer notes
+  reviewedAt        DateTime? // first time the employer moved it past APPLIED
   
   // Interview (PROM)
   interviewDate     DateTime?

@@ -4,6 +4,7 @@ import { responses } from '../utils/response.utils';
 import { emitToUser } from '../lib/socket-server';
 import { removeStoredFile } from '../lib/cloudinary';
 import { storeCompanyLogo, storeVerificationDocument } from '../services/upload.service';
+import { sendVerificationRequestEmail } from '../services/email.service';
 
 export interface AuthRequest extends Request {
   userId?: string;
@@ -649,6 +650,245 @@ export async function getVerificationStatus(req: AuthRequest, res: Response, nex
         ? 'Verified'
         : 'Pending',
       updatedAt: employer.createdAt,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * POST /api/employer/company/verify   (alias: POST /api/company/verify)
+ * Body: { verificationDocument?, verificationReason?, documentType?, registrationNumber? }
+ *
+ * Stores the submitted document/reason, timestamps the request, notifies every
+ * admin in-app and by email.
+ */
+export async function submitCompanyVerification(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const userId = req.userId;
+    if (!userId) {
+      return responses.unauthorized(res);
+    }
+
+    const { verificationDocument, verificationReason, documentType, registrationNumber } =
+      req.body ?? {};
+
+    const employer = await prisma.employerProfile.findUnique({ where: { userId } });
+    if (!employer) {
+      return responses.notFound(res, 'Company profile not found');
+    }
+
+    if (employer.isVerified) {
+      return responses.badRequest(res, 'Company is already verified');
+    }
+
+    // The document is either a Cloudinary URL (uploaded via
+    // POST /api/company/verification-document) or a free-form explanation.
+    const document =
+      typeof verificationDocument === 'string' && verificationDocument.trim()
+        ? verificationDocument.trim()
+        : null;
+    const reason =
+      typeof verificationReason === 'string' && verificationReason.trim()
+        ? verificationReason.trim()
+        : null;
+
+    if (!document && !reason) {
+      return responses.badRequest(
+        res,
+        'Provide a verificationDocument (URL) or a verificationReason'
+      );
+    }
+
+    const requestPayload = {
+      documentType: documentType ?? 'OTHER',
+      registrationNumber: registrationNumber ?? null,
+      reason,
+      requestedAt: new Date().toISOString(),
+      status: 'PENDING' as const,
+    };
+
+    const updated = await prisma.employerProfile.update({
+      where: { id: employer.id },
+      data: {
+        verificationDocument: document ?? employer.verificationDocument,
+        verificationRequest: JSON.stringify(requestPayload),
+      },
+      select: {
+        id: true,
+        companyName: true,
+        isVerified: true,
+        verificationDocument: true,
+        verificationRequest: true,
+      },
+    });
+
+    // Alert every admin (in-app notification + email).
+    const admins = await prisma.user.findMany({
+      where: { role: 'ADMIN' },
+      select: { id: true, email: true },
+    });
+
+    if (admins.length > 0) {
+      await prisma.notification.createMany({
+        data: admins.map((admin) => ({
+          userId: admin.id,
+          type: 'JOB_ALERT' as const,
+          message: `${employer.companyName} requested company verification`,
+          link: '/admin/companies',
+        })),
+      });
+
+      for (const admin of admins) {
+        emitToUser(admin.id, 'company_verification_request', {
+          companyName: employer.companyName,
+        });
+        if (admin.email) {
+          void sendVerificationRequestEmail(admin.email, employer.companyName, reason ?? undefined);
+        }
+      }
+    }
+
+    return responses.ok(res, 'Verification request submitted', {
+      status: 'PENDING',
+      companyName: employer.companyName,
+      request: requestPayload,
+      employer: updated,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * GET /api/employer/company/stats
+ * Analytics for the employer dashboard + /employer/analytics page:
+ * `{ company, overview, jobsChart, applicationsChart, topJobs, metrics }`.
+ */
+export async function getCompanyAnalytics(req: AuthRequest, res: Response, next: NextFunction) {
+  try {
+    const userId = req.userId;
+    if (!userId) {
+      return responses.unauthorized(res);
+    }
+
+    const employer = await prisma.employerProfile.findUnique({
+      where: { userId },
+      select: { id: true, companyName: true, isVerified: true, logoUrl: true, createdAt: true },
+    });
+
+    if (!employer) {
+      return responses.notFound(res, 'Company profile not found');
+    }
+
+    const [jobs, applications] = await Promise.all([
+      prisma.job.findMany({
+        where: { employerId: employer.id },
+        select: {
+          id: true,
+          title: true,
+          status: true,
+          views: true,
+          applicantCount: true,
+          createdAt: true,
+        },
+      }),
+      prisma.application.findMany({
+        where: { job: { employerId: employer.id } },
+        select: { id: true, status: true, createdAt: true, updatedAt: true },
+      }),
+    ]);
+
+    const buckets = buildMonthBuckets();
+    const bucketKey = (date: Date) => `${date.getFullYear()}-${date.getMonth()}`;
+
+    const jobsByMonth = new Map(buckets.map((bucket) => [bucket.key, 0]));
+    const applicationsByMonth = new Map(buckets.map((bucket) => [bucket.key, 0]));
+
+    for (const job of jobs) {
+      const key = bucketKey(job.createdAt);
+      if (jobsByMonth.has(key)) jobsByMonth.set(key, (jobsByMonth.get(key) ?? 0) + 1);
+    }
+    for (const application of applications) {
+      const key = bucketKey(application.createdAt);
+      if (applicationsByMonth.has(key)) {
+        applicationsByMonth.set(key, (applicationsByMonth.get(key) ?? 0) + 1);
+      }
+    }
+
+    const thisMonth = bucketKey(new Date());
+    const totalViews = jobs.reduce((sum, job) => sum + job.views, 0);
+    const hired = applications.filter((application) => application.status === 'HIRED');
+
+    // Hired rows use `updatedAt` as the hire timestamp (no hire-date column).
+    const avgTimeToHireDays = hired.length
+      ? hired.reduce(
+          (sum, application) =>
+            sum + (application.updatedAt.getTime() - application.createdAt.getTime()),
+          0
+        ) /
+        hired.length /
+        (1000 * 60 * 60 * 24)
+      : 0;
+
+    return responses.ok(res, 'Company analytics', {
+      company: {
+        name: employer.companyName,
+        isVerified: employer.isVerified,
+        logoUrl: employer.logoUrl,
+      },
+      overview: {
+        totalJobs: jobs.length,
+        activeJobs: jobs.filter((job) => job.status === 'ACTIVE').length,
+        totalApplicants: applications.length,
+        hired: hired.length,
+        // Per-view timestamps are not stored, so these two are the closest
+        // faithful proxies: views on jobs posted this month, and applications
+        // received this month.
+        viewsThisMonth: jobs
+          .filter((job) => bucketKey(job.createdAt) === thisMonth)
+          .reduce((sum, job) => sum + job.views, 0),
+        clicksThisMonth: applications.filter(
+          (application) => bucketKey(application.createdAt) === thisMonth
+        ).length,
+      },
+      jobsChart: buckets.map((bucket) => ({
+        month: bucket.label,
+        posted: jobsByMonth.get(bucket.key) ?? 0,
+      })),
+      applicationsChart: buckets.map((bucket) => ({
+        month: bucket.label,
+        count: applicationsByMonth.get(bucket.key) ?? 0,
+      })),
+      // Applications grouped by status (pie chart on /employer/analytics).
+      statusCounts: applications.reduce<Record<string, number>>((counts, application) => {
+        counts[application.status] = (counts[application.status] ?? 0) + 1;
+        return counts;
+      }, {}),
+      topJobs: [...jobs]
+        .sort((a, b) => b.applicantCount - a.applicantCount)
+        .slice(0, 5)
+        .map((job) => ({
+          id: job.id,
+          title: job.title,
+          applicants: job.applicantCount,
+          views: job.views,
+          status: job.status,
+        })),
+      metrics: {
+        avgTimeToHire: Math.round(avgTimeToHireDays * 10) / 10,
+        acceptanceRate: applications.length
+          ? Math.round((hired.length / applications.length) * 1000) / 10
+          : 0,
+        viewsPerJob: jobs.length ? Math.round(totalViews / jobs.length) : 0,
+        clickThroughRate: totalViews
+          ? Math.round((applications.length / totalViews) * 1000) / 10
+          : 0,
+      },
     });
   } catch (error) {
     next(error);

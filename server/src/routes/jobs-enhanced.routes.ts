@@ -6,6 +6,7 @@ import {
   getJobDetail,
   createJob,
   updateJob,
+  updateJobStatus,
   deleteJob,
   getMyJobs,
   toggleSaveJob,
@@ -70,7 +71,10 @@ router.get('/:id', optionalAuth, getJobDetail);
 
 // Employer routes
 router.post('/', authenticate, requireRole('EMPLOYER'), validate(createJobSchema), createJob);
+// PUT kept for backwards compatibility, PATCH is the documented verb.
 router.put('/:id', authenticate, requireRole('EMPLOYER'), validate(updateJobSchema), updateJob);
+router.patch('/:id', authenticate, requireRole('EMPLOYER'), validate(updateJobSchema), updateJob);
+router.patch('/:id/status', authenticate, requireRole('EMPLOYER'), updateJobStatus);
 router.delete('/:id', authenticate, requireRole('EMPLOYER'), deleteJob);
 router.get('/employer/my', authenticate, requireRole('EMPLOYER'), getMyJobs);
 

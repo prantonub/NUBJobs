@@ -3,6 +3,7 @@ import { z } from 'zod';
 import {
   createApplication,
   getMyApplications,
+  getApplicationStats,
   getJobApplications,
   updateApplicationStatus,
   withdrawApplication,
@@ -13,38 +14,63 @@ import { authenticate, requireRole, validate } from '../middleware/auth.middlewa
 
 const router = Router();
 
-// Validation schemas
-// NOTE: Job/Application ids are Prisma `cuid()` values (e.g. "cmu11j0770002e6jcv675dgx4"),
-// NOT UUIDs — validating with `z.string().uuid()` rejected every real job and
-// made POST /api/applications impossible. Length bounds are the correct guard.
+// NOTE: job/application ids are Prisma `cuid()` values (e.g.
+// "cmu11j0770002e6jcv675dgx4"), not UUIDs — validating with
+// `z.string().uuid()` rejected every real job. Length bounds are the guard.
 const createApplicationSchema = z.object({
   jobId: z.string().min(1).max(64),
   coverLetter: z.string().max(500).optional(),
 });
 
 const updateStatusSchema = z.object({
-  status: z.enum(['APPLIED', 'REVIEWED', 'SHORTLISTED', 'INTERVIEWED', 'HIRED', 'REJECTED', 'WITHDRAWN']),
-  notes: z.string().optional(),
+  status: z.enum([
+    'APPLIED',
+    'REVIEWED',
+    'SHORTLISTED',
+    'INTERVIEWED',
+    'HIRED',
+    'REJECTED',
+    'WITHDRAWN',
+  ]),
+  notes: z.string().max(5000).optional(),
 });
 
 const updateNotesSchema = z.object({
-  notes: z.string(),
+  notes: z.string().max(5000),
 });
 
-// Student routes
+// ── Student routes ──────────────────────────────────────────────────────────
 router.post('/', authenticate, validate(createApplicationSchema), createApplication);
+
+// Static paths must be registered before '/:id', otherwise Express matches the
+// dynamic segment first and '/stats' / '/job/x' 404.
+router.get('/', authenticate, getMyApplications);
 router.get('/my', authenticate, getMyApplications);
-// Both verbs are accepted: the spec calls for POST /:id/withdraw, the current
-// client hook (useWithdrawApplication) issues DELETE /:id.
+router.get('/stats', authenticate, getApplicationStats);
+
 router.post('/:id/withdraw', authenticate, withdrawApplication);
+// The client hook historically used DELETE /:id for withdrawal.
 router.delete('/:id', authenticate, withdrawApplication);
 
-// Application detail (student or employer)
+// ── Employer routes ─────────────────────────────────────────────────────────
+router.get('/job/:jobId', authenticate, requireRole('EMPLOYER'), getJobApplications);
+router.patch(
+  '/:id/status',
+  authenticate,
+  requireRole('EMPLOYER'),
+  validate(updateStatusSchema),
+  updateApplicationStatus
+);
+router.patch(
+  '/:id/notes',
+  authenticate,
+  requireRole('EMPLOYER'),
+  validate(updateNotesSchema),
+  updateApplicationNotes
+);
+
+// ── Shared detail (student who applied OR employer who owns the job) ────────
 router.get('/:id', authenticate, getApplicationDetail);
 
-// Employer routes
-router.get('/job/:jobId', authenticate, requireRole('EMPLOYER'), getJobApplications);
-router.patch('/:id/status', authenticate, requireRole('EMPLOYER'), validate(updateStatusSchema), updateApplicationStatus);
-router.patch('/:id/notes', authenticate, requireRole('EMPLOYER'), validate(updateNotesSchema), updateApplicationNotes);
-
 export default router;
+

@@ -285,3 +285,154 @@ export async function sendPasswordResetEmail(
     return false;
   }
 }
+/**
+ * Shared HTML shell for the application-lifecycle emails below.
+ * The older templates inline their markup; new ones build on this helper so the
+ * subject/body stay consistent across the four application events.
+ */
+function emailShell(heading: string, bodyHtml: string): string {
+  return `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          body { font-family: Arial, sans-serif; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 8px; text-align: center; }
+          .content { padding: 20px; background: #f9f9f9; margin: 20px 0; border-radius: 8px; }
+          .info { background: #fff; border-left: 4px solid #667eea; padding: 12px 16px; border-radius: 6px; margin: 16px 0; }
+          .button { display: inline-block; background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 16px 0; }
+          .footer { text-align: center; color: #999; font-size: 12px; margin-top: 20px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>${COMPANY_NAME}</h1>
+            <p>${heading}</p>
+          </div>
+          <div class="content">${bodyHtml}</div>
+          <div class="footer">
+            <p>&copy; ${new Date().getFullYear()} ${COMPANY_NAME}. All rights reserved.</p>
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
+}
+
+/**
+ * POST /api/applications — confirmation to the student.
+ */
+export async function sendApplicationReceivedEmail(
+  email: string,
+  studentName: string,
+  jobTitle: string,
+  companyName: string,
+  matchScore: number
+): Promise<boolean> {
+  try {
+    const htmlContent = emailShell(
+      'Application Received',
+      `
+        <p>Hello ${studentName},</p>
+        <p>Your application has been submitted successfully.</p>
+        <div class="info">
+          <strong>Job:</strong> ${jobTitle}<br>
+          <strong>Company:</strong> ${companyName}<br>
+          <strong>Match score:</strong> ${matchScore}%
+        </div>
+        <p>The employer will review your profile and you'll get an email as soon as the status changes.</p>
+        <a href="${process.env.CLIENT_URL}/dashboard/applications" class="button">Track Application</a>
+      `
+    );
+
+    const result = await resend.emails.send({
+      from: FROM_EMAIL,
+      to: email,
+      subject: `Application received: ${jobTitle} at ${companyName}`,
+      html: htmlContent,
+    });
+
+    return !result.error;
+  } catch (error) {
+    console.error('Error sending application received email:', error);
+    return false;
+  }
+}
+
+/**
+ * POST /api/applications — heads-up to the employer.
+ */
+export async function sendNewApplicationEmail(
+  email: string,
+  companyName: string,
+  studentName: string,
+  jobTitle: string,
+  matchScore: number,
+  applicationId: string
+): Promise<boolean> {
+  try {
+    const htmlContent = emailShell(
+      'New Application',
+      `
+        <p>Hello ${companyName},</p>
+        <p><strong>${studentName}</strong> just applied for <strong>${jobTitle}</strong>.</p>
+        <div class="info">
+          <strong>Match score:</strong> ${matchScore}%<br>
+          <strong>Application:</strong> ${applicationId}
+        </div>
+        <a href="${process.env.CLIENT_URL}/employer/applications/${applicationId}" class="button">Review Candidate</a>
+      `
+    );
+
+    const result = await resend.emails.send({
+      from: FROM_EMAIL,
+      to: email,
+      subject: `New applicant for ${jobTitle}: ${studentName} (${matchScore}% match)`,
+      html: htmlContent,
+    });
+
+    return !result.error;
+  } catch (error) {
+    console.error('Error sending new application email:', error);
+    return false;
+  }
+}
+
+/**
+ * POST /api/employer/company/verify — alert the admins.
+ */
+export async function sendVerificationRequestEmail(
+  email: string,
+  companyName: string,
+  reason?: string
+): Promise<boolean> {
+  try {
+    const htmlContent = emailShell(
+      'Company Verification Request',
+      `
+        <p>Hello Admin,</p>
+        <p><strong>${companyName}</strong> requested company verification.</p>
+        <div class="info">
+          <strong>Company:</strong> ${companyName}<br>
+          ${reason ? `<strong>Reason:</strong> ${reason}` : ''}
+        </div>
+        <a href="${process.env.CLIENT_URL}/admin/companies" class="button">Open Admin Panel</a>
+      `
+    );
+
+    const result = await resend.emails.send({
+      from: FROM_EMAIL,
+      to: email,
+      subject: `Verification requested by ${companyName}`,
+      html: htmlContent,
+    });
+
+    return !result.error;
+  } catch (error) {
+    console.error('Error sending verification request email:', error);
+    return false;
+  }
+}

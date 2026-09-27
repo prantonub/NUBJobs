@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import prisma from '../lib/prisma';
 import { responses } from '../utils/response.utils';
+import { emitToUser } from '../lib/socket-server';
 
 export interface AuthRequest extends Request {
   userId?: string | string[];
@@ -225,12 +226,40 @@ export async function createJob(req: AuthRequest, res: Response, next: NextFunct
         minCgpa: minCgpa ? parseFloat(minCgpa) : null,
         skills: skills || [],
         deadline: deadline ? new Date(deadline) : null,
-        status: employer.isVerified ? 'ACTIVE' : 'PENDING',
+        targetUniversity: req.body.targetUniversity || 'ALL',
+        // Every posting is reviewed by an admin before it goes live.
+        status: 'PENDING',
         employerId: employer.id,
       },
+      include: { employer: { select: { companyName: true, isVerified: true } } },
     });
 
-    return responses.created(res, 'Job created', job);
+    // Ask every admin to approve it (notification + real-time ping).
+    const admins = await prisma.user.findMany({
+      where: { role: 'ADMIN' },
+      select: { id: true },
+    });
+
+    if (admins.length > 0) {
+      await prisma.notification.createMany({
+        data: admins.map((admin) => ({
+          userId: admin.id,
+          type: 'JOB_ALERT' as const,
+          message: `${job.employer.companyName} posted "${job.title}" — awaiting approval`,
+          link: '/admin/jobs',
+        })),
+      });
+
+      for (const admin of admins) {
+        emitToUser(admin.id, 'job_pending_approval', { jobId: job.id, title: job.title });
+      }
+    }
+
+    return responses.created(res, 'Job posted! Awaiting admin approval', {
+      id: job.id,
+      status: job.status,
+      job,
+    });
   } catch (error) {
     next(error);
   }
@@ -478,6 +507,68 @@ export async function getRecommendedJobs(req: AuthRequest, res: Response, next: 
       .sort((a, b) => b.matchScore - a.matchScore);
 
     return responses.ok(res, 'Recommended jobs', recommended);
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * PATCH /api/jobs/:id/status
+ * Body: { action: 'close' | 'feature' | 'unfeature' }
+ * Employer closes or features one of their own jobs.
+ */
+export async function updateJobStatus(req: AuthRequest, res: Response, next: NextFunction) {
+  try {
+    const userId = req.userId;
+    const userIdStr = Array.isArray(userId) ? userId[0] : userId;
+    const idStr = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const action = String(req.body?.action || '').toLowerCase();
+
+    if (!userIdStr) {
+      return responses.unauthorized(res);
+    }
+
+    if (!['close', 'feature', 'unfeature'].includes(action)) {
+      return responses.badRequest(res, "action must be 'close' or 'feature'");
+    }
+
+    const job = await prisma.job.findUnique({
+      where: { id: idStr },
+      include: { employer: { select: { userId: true } } },
+    });
+
+    if (!job) {
+      return responses.notFound(res, 'Job not found');
+    }
+
+    if (job.employer.userId !== userIdStr) {
+      return responses.forbidden(res);
+    }
+
+    if (action === 'close') {
+      if (job.status === 'CLOSED') {
+        return responses.badRequest(res, 'Job is already closed');
+      }
+
+      const closed = await prisma.job.update({
+        where: { id: idStr },
+        data: { status: 'CLOSED', featured: false },
+      });
+
+      return responses.ok(res, 'Job closed', closed);
+    }
+
+    // Only live postings can be featured.
+    if (job.status !== 'ACTIVE') {
+      return responses.badRequest(res, 'Only active jobs can be featured');
+    }
+
+    const updated = await prisma.job.update({
+      where: { id: idStr },
+      data: { featured: action === 'feature' },
+    });
+
+    return responses.ok(res, action === 'feature' ? 'Job featured' : 'Job unfeatured', updated);
   } catch (error) {
     next(error);
   }

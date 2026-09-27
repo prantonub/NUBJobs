@@ -16,6 +16,7 @@
     "prisma:seed:full": "ts-node prisma/seed-full.ts",
     "prisma:employer-identity": "ts-node prisma/update-employer-identity.ts",
     "prisma:employer-create": "ts-node prisma/create-employer.ts",
+    "prisma:seed:applications": "ts-node prisma/seed-applications.ts",
     "test:cloudinary": "ts-node src/scripts/cloudinary-smoke.ts"
   },
   "keywords": [

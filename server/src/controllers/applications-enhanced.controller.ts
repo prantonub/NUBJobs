@@ -1,8 +1,22 @@
 import { Request, Response, NextFunction } from 'express';
 import prisma from '../lib/prisma';
 import { responses } from '../utils/response.utils';
-import { sendApplicationStatusEmail } from '../services/email.service';
+import {
+  sendApplicationReceivedEmail,
+  sendApplicationStatusEmail,
+  sendNewApplicationEmail,
+} from '../services/email.service';
 import { emitToUser } from '../lib/socket-server';
+import { matchBreakdown } from '../utils/match.utils';
+import {
+  APPLICATION_STATUSES,
+  PIPELINE_TRANSITIONS,
+  TERMINAL_STATUSES,
+  buildApplicationTimeline,
+  isApplicationStatus,
+  validateStatusTransition,
+  type ApplicationStatusValue,
+} from '../utils/application.utils';
 
 export interface AuthRequest extends Request {
   userId?: string;
@@ -10,9 +24,44 @@ export interface AuthRequest extends Request {
   role?: string;
 }
 
+/** Express 5 query values can be arrays — normalise everything to a string. */
+function readParam(value: unknown): string {
+  if (Array.isArray(value)) return String(value[0] ?? '');
+  return value === undefined || value === null ? '' : String(value);
+}
+
+function buildPagination(total: number, page: number, limit: number) {
+  return { total, page, limit, pages: Math.max(1, Math.ceil(total / limit)) };
+}
+
+/** Employer fields every application row needs (identity + logo + badge). */
+const EMPLOYER_PUBLIC_SELECT = {
+  companyName: true,
+  logoUrl: true,
+  isVerified: true,
+  location: true,
+} as const;
+
+/** Public student fields for employer-facing lists / detail pages. */
+const STUDENT_PUBLIC_SELECT = {
+  id: true,
+  cgpa: true,
+  skills: true,
+  photoUrl: true,
+  department: true,
+  location: true,
+  resumeUrl: true,
+} as const;
+
+/** Empty counts for every status — keeps the dashboard cards stable. */
+function emptyStatusCounts(): Record<string, number> {
+  return Object.fromEntries(APPLICATION_STATUSES.map((status) => [status, 0]));
+}
+
 /**
  * POST /api/applications
- * Create application with 6-layer validation
+ * Apply for a job (student only) with 6-layer validation + full side effects:
+ * DB row, applicant counter, both emails, both notifications, employer socket.
  */
 export async function createApplication(req: AuthRequest, res: Response, next: NextFunction) {
   try {
@@ -27,22 +76,26 @@ export async function createApplication(req: AuthRequest, res: Response, next: N
       return responses.badRequest(res, 'Job ID required');
     }
 
-    // Get student profile (skills + CGPA feed the match score below)
+    // Student profile feeds the match score and provides the resume snapshot.
     const student = await prisma.studentProfile.findUnique({
       where: { userId },
-      select: { id: true, cgpa: true, skills: true },
+      select: { id: true, cgpa: true, skills: true, resumeUrl: true },
     });
 
     if (!student) {
-      return responses.notFound(res, 'Student profile not found');
+      return responses.notFound(res, 'Student profile not found. Complete your profile first.');
     }
 
-    // Get job details
     const job = await prisma.job.findUnique({
       where: { id: jobId },
       include: {
         employer: {
-          select: { userId: true, companyName: true },
+          select: {
+            userId: true,
+            companyName: true,
+            email: true,
+            user: { select: { email: true } },
+          },
         },
       },
     });
@@ -51,7 +104,7 @@ export async function createApplication(req: AuthRequest, res: Response, next: N
       return responses.notFound(res, 'Job not found');
     }
 
-    // Validation 0: banned students cannot apply
+    // Validation 0: banned accounts cannot apply
     const account = await prisma.user.findUnique({
       where: { id: userId },
       select: { isBanned: true },
@@ -60,91 +113,64 @@ export async function createApplication(req: AuthRequest, res: Response, next: N
       return responses.forbidden(res, 'Your account is banned. You cannot apply for jobs.');
     }
 
-    // Validation 1: Job must be ACTIVE
+    // Validation 1: job must be open for applications
     if (job.status !== 'ACTIVE') {
-      return responses.badRequest(res, 'Job is not active');
+      return responses.badRequest(res, 'This job is no longer accepting applications');
     }
 
-    // Validation 2: Check if already applied
+    // Validation 2: one application per student per job
     const existing = await prisma.application.findUnique({
       where: { jobId_studentId: { jobId, studentId: student.id } },
     });
 
     if (existing) {
-      return responses.badRequest(res, 'Already applied to this job');
+      return responses.badRequest(res, 'You have already applied to this job');
     }
 
-    // Validation 3: CGPA requirement check
+    // Validation 3: CGPA requirement
     if (job.minCgpa && (!student.cgpa || student.cgpa < job.minCgpa)) {
-      return responses.badRequest(res, `Minimum CGPA required: ${job.minCgpa}`);
+      return responses.badRequest(
+        res,
+        `Minimum CGPA required: ${job.minCgpa}. Your CGPA: ${student.cgpa ?? 'not set'}`
+      );
     }
 
-    // Validation 4: Deadline check
+    // Validation 4: deadline
     if (job.deadline && new Date() > job.deadline) {
-      return responses.badRequest(res, 'Application deadline passed');
+      return responses.badRequest(res, 'The application deadline has passed');
     }
 
-    // Validation 5: University targeting check
-    // If job targets specific university, check student's university
-    // (Implementation depends on StudentProfile.university field)
-
-    // Validation 6: Calculate match score
-    // Score = skills overlap (70%) + CGPA headroom (30%). Requires a non-empty
-    // student skills list, otherwise every job would score 0/100 uniformly.
-    let matchScore = 0;
-    const studentSkills = (student.skills ?? []).map((s) => s.trim().toLowerCase());
-    const jobSkills = (job.skills ?? []).map((s) => s.trim().toLowerCase());
-
-    if (jobSkills.length > 0) {
-      let score = 0;
-
-      if (studentSkills.length > 0) {
-        const studentSet = new Set(studentSkills);
-        const matchedSkills = jobSkills.filter((skill) => studentSet.has(skill));
-        score += (matchedSkills.length / jobSkills.length) * 70;
-      }
-
-      if (job.minCgpa && student.cgpa) {
-        // Meeting the bar exactly earns 30; every 0.25 above adds 5, capped at 30.
-        const cgpaBonus = Math.min(30, Math.max(0, (student.cgpa - job.minCgpa) / 0.25) * 5 + 25);
-        score += student.cgpa >= job.minCgpa ? cgpaBonus : 0;
-      }
-
-      matchScore = Math.round(score);
+    // Validation 5: resume required so the employer has something to review
+    if (!student.resumeUrl) {
+      return responses.badRequest(res, 'Upload a resume to your profile before applying');
     }
 
-    // Create application
+    // Validation 6: match score — shared formula so the persisted number equals
+    // the one shown in the Apply modal and on the job cards.
+    const breakdown = matchBreakdown(student, job);
+    const matchScore = breakdown.matchScore;
+
     const application = await prisma.application.create({
       data: {
         jobId,
         studentId: student.id,
-        coverLetter: coverLetter || null,
+        coverLetter: coverLetter?.trim() ? String(coverLetter).trim() : null,
+        resumeUrl: student.resumeUrl,
         matchScore,
         status: 'APPLIED',
       },
       include: {
-        job: {
-          include: {
-            employer: {
-              select: { userId: true, companyName: true },
-            },
-          },
-        },
-        student: {
-          include: {
-            user: { select: { name: true, email: true } },
-          },
-        },
+        job: { include: { employer: { select: EMPLOYER_PUBLIC_SELECT } } },
+        student: { include: { user: { select: { name: true, email: true } } } },
       },
     });
 
-    // Increment applicant count
+    // ── Side effects: none of these may fail the request ────────────────────
     await prisma.job.update({
       where: { id: jobId },
       data: { applicantCount: { increment: 1 } },
     });
 
-    // Create notification for employer
     await prisma.notification.create({
       data: {
         userId: job.employer.userId,
@@ -154,8 +180,36 @@ export async function createApplication(req: AuthRequest, res: Response, next: N
       },
     });
 
-    // Real-time ping to the employer: the kanban pipeline and notification bell
-    // listen for this event and invalidate their React Query caches.
+    await prisma.notification.create({
+      data: {
+        userId,
+        type: 'APPLICATION_STATUS_UPDATE',
+        message: `Application submitted for ${job.title} at ${job.employer.companyName}`,
+        link: `/dashboard/applications/${application.id}`,
+      },
+    });
+
+    const employerEmail = job.employer.email || job.employer.user?.email || null;
+    void sendApplicationReceivedEmail(
+      application.student.user.email,
+      application.student.user.name,
+      job.title,
+      job.employer.companyName,
+      matchScore
+    );
+    if (employerEmail) {
+      void sendNewApplicationEmail(
+        employerEmail,
+        job.employer.companyName,
+        application.student.user.name,
+        job.title,
+        matchScore,
+        application.id
+      );
+    }
+
+    // Real-time ping: the employer's pipeline/list and notification bell listen
+    // for this event and invalidate their React Query caches.
     emitToUser(job.employer.userId, 'new_application', {
       applicationId: application.id,
       jobId: job.id,
@@ -164,15 +218,34 @@ export async function createApplication(req: AuthRequest, res: Response, next: N
       matchScore,
     });
 
-    return responses.created(res, 'Application submitted', application);
+    return responses.created(res, 'Application submitted', {
+      id: application.id,
+      jobId: application.jobId,
+      studentId: application.studentId,
+      status: application.status,
+      matchScore: application.matchScore,
+      appliedAt: application.createdAt,
+      coverLetter: application.coverLetter,
+      resumeUrl: application.resumeUrl,
+      matchBreakdown: breakdown,
+      job: {
+        id: job.id,
+        title: job.title,
+        companyName: job.employer.companyName,
+        location: job.location,
+      },
+    });
+
   } catch (error) {
     next(error);
   }
 }
 
+
 /**
- * GET /api/applications/my
- * Get student's applications
+ * GET /api/applications  (alias: /api/applications/my)
+ * All applications of the signed-in student.
+ * Query: status, jobId, sort (newest|oldest|match), page, limit
  */
 export async function getMyApplications(req: AuthRequest, res: Response, next: NextFunction) {
   try {
@@ -181,7 +254,11 @@ export async function getMyApplications(req: AuthRequest, res: Response, next: N
       return responses.unauthorized(res);
     }
 
-    const { page = 1, limit = 10 } = req.query;
+    const statusParam = readParam(req.query.status).toUpperCase();
+    const jobId = readParam(req.query.jobId);
+    const sort = readParam(req.query.sort) || 'newest';
+    const pageNum = Math.max(1, parseInt(readParam(req.query.page)) || 1);
+    const pageSize = Math.max(1, Math.min(50, parseInt(readParam(req.query.limit)) || 20));
 
     const student = await prisma.studentProfile.findUnique({
       where: { userId },
@@ -189,38 +266,118 @@ export async function getMyApplications(req: AuthRequest, res: Response, next: N
     });
 
     if (!student) {
-      return responses.notFound(res, 'Student not found');
+      return responses.notFound(res, 'Student profile not found');
     }
 
-    const pageNum = Math.max(1, parseInt(page as string) || 1);
-    const pageSize = Math.max(1, Math.min(50, parseInt(limit as string) || 10));
-    const skip = (pageNum - 1) * pageSize;
+    const where: any = { studentId: student.id };
+    if (isApplicationStatus(statusParam)) where.status = statusParam;
+    if (jobId) where.jobId = jobId;
 
-    const [applications, total] = await Promise.all([
+    const orderBy: any =
+      sort === 'oldest'
+        ? { createdAt: 'asc' }
+        : sort === 'match'
+          ? { matchScore: 'desc' }
+          : { createdAt: 'desc' };
+
+    const [rows, total, grouped, aggregate] = await Promise.all([
       prisma.application.findMany({
-        where: { studentId: student.id },
-        include: {
-          job: {
-            include: {
-              employer: { select: { companyName: true } },
-            },
-          },
-        },
-        orderBy: { createdAt: 'desc' },
-        skip,
+        where,
+        orderBy,
+        skip: (pageNum - 1) * pageSize,
         take: pageSize,
+        include: {
+          job: { include: { employer: { select: EMPLOYER_PUBLIC_SELECT } } },
+          _count: { select: { messages: true } },
+        },
       }),
-      prisma.application.count({ where: { studentId: student.id } }),
+      prisma.application.count({ where }),
+      prisma.application.groupBy({
+        by: ['status'],
+        where: { studentId: student.id },
+        _count: { _all: true },
+      }),
+      prisma.application.aggregate({
+        where: { studentId: student.id },
+        _avg: { matchScore: true },
+      }),
     ]);
 
+    const counts = emptyStatusCounts();
+    let all = 0;
+    for (const row of grouped) {
+      counts[row.status] = row._count._all;
+      all += row._count._all;
+    }
+
     return responses.ok(res, 'Applications retrieved', {
-      data: applications,
-      pagination: {
-        total,
-        page: pageNum,
-        limit: pageSize,
-        pages: Math.ceil(total / pageSize),
+      data: rows.map((row) => ({ ...row, appliedAt: row.createdAt })),
+      stats: {
+        ...counts,
+        total: all,
+        avgMatchScore: Math.round(aggregate._avg.matchScore ?? 0),
+        pending: counts.APPLIED + counts.REVIEWED,
+        shortlisted: counts.SHORTLISTED,
+        interviewed: counts.INTERVIEWED,
+        hired: counts.HIRED,
+        rejected: counts.REJECTED,
+        withdrawn: counts.WITHDRAWN,
       },
+      pagination: buildPagination(total, pageNum, pageSize),
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+
+/**
+ * GET /api/applications/stats
+ * Status counts for the student dashboard cards.
+ */
+export async function getApplicationStats(req: AuthRequest, res: Response, next: NextFunction) {
+  try {
+    const userId = req.userId;
+    if (!userId) {
+      return responses.unauthorized(res);
+    }
+
+    const student = await prisma.studentProfile.findUnique({
+      where: { userId },
+      select: { id: true },
+    });
+
+    if (!student) {
+      return responses.notFound(res, 'Student profile not found');
+    }
+
+    const [grouped, aggregate] = await Promise.all([
+      prisma.application.groupBy({
+        by: ['status'],
+        where: { studentId: student.id },
+        _count: { _all: true },
+      }),
+      prisma.application.aggregate({
+        where: { studentId: student.id },
+        _avg: { matchScore: true },
+      }),
+    ]);
+
+    const counts = emptyStatusCounts();
+    let total = 0;
+    for (const row of grouped) {
+      counts[row.status] = row._count._all;
+      total += row._count._all;
+    }
+
+    return responses.ok(res, 'Application stats', {
+      ...counts,
+      total,
+      avgMatchScore: Math.round(aggregate._avg.matchScore ?? 0),
+      pending: counts.APPLIED + counts.REVIEWED,
+      shortlisted: counts.SHORTLISTED,
+      interviewed: counts.INTERVIEWED,
+      hired: counts.HIRED,
     });
   } catch (error) {
     next(error);
@@ -229,24 +386,23 @@ export async function getMyApplications(req: AuthRequest, res: Response, next: N
 
 /**
  * GET /api/applications/job/:jobId
- * Get applications for a job (employer only)
+ * Applications for one of the employer's jobs.
  */
 export async function getJobApplications(req: AuthRequest, res: Response, next: NextFunction) {
   try {
-    const { jobId } = req.params;
     const userId = req.userId;
-
     if (!userId) {
       return responses.unauthorized(res);
     }
 
-    const jobIdStr = Array.isArray(jobId) ? jobId[0] : jobId;
+    const jobIdStr = readParam(req.params.jobId);
+    const statusParam = readParam(req.query.status).toUpperCase();
+    const pageNum = Math.max(1, parseInt(readParam(req.query.page)) || 1);
+    const pageSize = Math.max(1, Math.min(100, parseInt(readParam(req.query.limit)) || 50));
 
     const job = await prisma.job.findUnique({
       where: { id: jobIdStr },
-      include: {
-        employer: { select: { userId: true } },
-      },
+      include: { employer: { select: { userId: true } } },
     });
 
     if (!job) {
@@ -257,61 +413,73 @@ export async function getJobApplications(req: AuthRequest, res: Response, next: 
       return responses.forbidden(res);
     }
 
-    const applications = await prisma.application.findMany({
-      where: { jobId: jobIdStr },
-      include: {
-        student: {
-          include: {
-            user: { select: { name: true, email: true } },
-          },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+    const where: any = { jobId: jobIdStr };
+    if (isApplicationStatus(statusParam)) where.status = statusParam;
 
-    return responses.ok(res, 'Job applications retrieved', applications);
+    const [rows, total, grouped] = await Promise.all([
+      prisma.application.findMany({
+        where,
+        orderBy: { matchScore: 'desc' },
+        skip: (pageNum - 1) * pageSize,
+        take: pageSize,
+        include: {
+          student: {
+            select: { ...STUDENT_PUBLIC_SELECT, user: { select: { name: true, email: true } } },
+          },
+          _count: { select: { messages: true } },
+        },
+      }),
+      prisma.application.count({ where }),
+      prisma.application.groupBy({
+        by: ['status'],
+        where: { jobId: jobIdStr },
+        _count: { _all: true },
+      }),
+    ]);
+
+    const counts = emptyStatusCounts();
+    for (const row of grouped) counts[row.status] = row._count._all;
+
+    return responses.ok(res, 'Job applications retrieved', {
+      data: rows.map((row) => ({ ...row, appliedAt: row.createdAt })),
+      stats: counts,
+      pagination: buildPagination(total, pageNum, pageSize),
+    });
   } catch (error) {
     next(error);
   }
 }
 
+
+
 /**
- * PUT /api/applications/:id/status
- * Update application status (employer only)
+ * PATCH /api/applications/:id/status
+ * (also mounted as PATCH /api/employer/applications/:id/status)
+ * Employer-only status change: pipeline rules, email, notification, socket.
  */
-export async function updateApplicationStatus(
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction
-) {
+export async function updateApplicationStatus(req: AuthRequest, res: Response, next: NextFunction) {
   try {
-    const { id } = req.params;
     const userId = req.userId;
-    const { status } = req.body;
+    const idStr = readParam(req.params.id);
+    const { status, notes } = req.body;
 
     if (!userId) {
       return responses.unauthorized(res);
     }
 
-    const idStr = Array.isArray(id) ? id[0] : id;
-
     if (!status) {
       return responses.badRequest(res, 'Status required');
+    }
+
+    if (!isApplicationStatus(status)) {
+      return responses.badRequest(res, `Invalid status. Allowed: ${APPLICATION_STATUSES.join(', ')}`);
     }
 
     const application = await prisma.application.findUnique({
       where: { id: idStr },
       include: {
-        job: {
-          include: {
-            employer: { select: { userId: true, companyName: true } },
-          },
-        },
-        student: {
-          include: {
-            user: { select: { email: true, name: true } },
-          },
-        },
+        job: { include: { employer: { select: { userId: true, companyName: true } } } },
+        student: { include: { user: { select: { email: true, name: true } } } },
       },
     });
 
@@ -320,49 +488,35 @@ export async function updateApplicationStatus(
     }
 
     if (application.job.employer.userId !== userId) {
-      return responses.forbidden(res);
+      return responses.forbidden(res, 'You can only manage applications for your own jobs');
     }
 
-    // Kanban pipeline rules: forward steps and terminal rejects only, no jumps
-    // backwards into earlier stages.
-    const PIPELINE: Record<string, string[]> = {
-      APPLIED: ['REVIEWED', 'SHORTLISTED', 'REJECTED'],
-      REVIEWED: ['SHORTLISTED', 'INTERVIEWED', 'REJECTED'],
-      SHORTLISTED: ['INTERVIEWED', 'HIRED', 'REJECTED'],
-      INTERVIEWED: ['HIRED', 'REJECTED'],
-      HIRED: [],
-      REJECTED: [],
-      WITHDRAWN: [],
-    };
-
-    if (application.status === status) {
-      return responses.badRequest(res, `Application is already ${status}`);
+    const transitionError = validateStatusTransition(
+      application.status as ApplicationStatusValue,
+      status
+    );
+    if (transitionError) {
+      return responses.badRequest(res, transitionError);
     }
 
-    if (!PIPELINE[application.status]?.includes(status)) {
-      return responses.badRequest(
-        res,
-        `Invalid transition: ${application.status} → ${status}. Allowed: ${
-          PIPELINE[application.status]?.join(', ') || 'none (terminal state)'
-        }`
-      );
-    }
-
-    // Update application
     const updated = await prisma.application.update({
       where: { id: idStr },
       data: {
         status,
-        ...(req.body.notes !== undefined ? { notes: req.body.notes } : {}),
+        ...(notes !== undefined ? { notes } : {}),
+        // First move out of APPLIED is what the timeline shows as "Reviewed".
+        ...(application.reviewedAt === null && status !== 'APPLIED'
+          ? { reviewedAt: new Date() }
+          : {}),
       },
       include: {
-        job: { select: { title: true } },
-        student: { include: { user: { select: { email: true, name: true } } } },
+        job: { select: { id: true, title: true } },
+        student: { select: { id: true } },
       },
     });
 
-    // Send email notification
-    await sendApplicationStatusEmail(
+    // ── Side effects ────────────────────────────────────────────────────────
+    void sendApplicationStatusEmail(
       application.student.user.email,
       application.student.user.name,
       application.job.title,
@@ -370,18 +524,16 @@ export async function updateApplicationStatus(
       status
     );
 
-    // Create notification
     await prisma.notification.create({
       data: {
         userId: application.student.userId,
         type: 'APPLICATION_STATUS_UPDATE',
-        message: `Your application for ${application.job.title} status changed to ${status}`,
-        link: `/applications/${application.id}`,
+        message: `Your application for ${application.job.title} is now ${status}`,
+        link: `/dashboard/applications/${application.id}`,
       },
     });
 
-    // Real-time ping to the student: the dashboard and notification bell listen
-    // for this event and invalidate their React Query caches.
+    // Student side: dashboard / list / detail caches refresh.
     emitToUser(application.student.userId, 'application_status_changed', {
       applicationId: application.id,
       jobId: application.jobId,
@@ -390,31 +542,45 @@ export async function updateApplicationStatus(
       companyName: application.job.employer.companyName,
     });
 
-    return responses.ok(res, 'Status updated', updated);
+    // Employer side: keep a second open tab (kanban / list) in sync.
+    emitToUser(application.job.employer.userId, 'application_status_changed', {
+      applicationId: application.id,
+      jobId: application.jobId,
+      status,
+      studentName: application.student.user.name,
+    });
+
+    return responses.ok(res, 'Status updated', { ...updated, appliedAt: updated.createdAt });
   } catch (error) {
     next(error);
   }
 }
 
 /**
- * PUT /api/applications/:id/withdraw
- * Withdraw application (student only, APPLIED status only)
+ * POST /api/applications/:id/withdraw  (alias: DELETE /api/applications/:id)
+ * Student withdraws their own application.
  */
 export async function withdrawApplication(req: AuthRequest, res: Response, next: NextFunction) {
   try {
-    const { id } = req.params;
     const userId = req.userId;
+    const idStr = readParam(req.params.id);
 
     if (!userId) {
       return responses.unauthorized(res);
     }
 
-    const idStr = Array.isArray(id) ? id[0] : id;
-
     const application = await prisma.application.findUnique({
       where: { id: idStr },
       include: {
         student: { select: { userId: true } },
+        job: {
+          select: {
+            id: true,
+            title: true,
+            applicantCount: true,
+            employer: { select: { userId: true } },
+          },
+        },
       },
     });
 
@@ -426,53 +592,67 @@ export async function withdrawApplication(req: AuthRequest, res: Response, next:
       return responses.forbidden(res);
     }
 
-    if (application.status !== 'APPLIED') {
-      return responses.badRequest(res, 'Can only withdraw APPLIED applications');
+    if (TERMINAL_STATUSES.includes(application.status as ApplicationStatusValue)) {
+      return responses.badRequest(
+        res,
+        `A ${application.status.toLowerCase()} application can no longer be withdrawn`
+      );
     }
 
-    // Update status
     const updated = await prisma.application.update({
       where: { id: idStr },
       data: { status: 'WITHDRAWN' },
     });
 
-    // Decrement applicant count
-    await prisma.job.update({
-      where: { id: application.jobId },
-      data: { applicantCount: { decrement: 1 } },
+    // Mirror the increment done on create — clamped at zero.
+    if (application.job.applicantCount > 0) {
+      await prisma.job.update({
+        where: { id: application.jobId },
+        data: { applicantCount: { decrement: 1 } },
+      });
+    }
+
+    await prisma.notification.create({
+      data: {
+        userId: application.job.employer.userId,
+        type: 'APPLICATION_STATUS_UPDATE',
+        message: `An applicant withdrew from ${application.job.title}`,
+        link: `/employer/applications/${idStr}`,
+      },
     });
 
-    return responses.ok(res, 'Application withdrawn', updated);
+    emitToUser(application.job.employer.userId, 'application_status_changed', {
+      applicationId: idStr,
+      jobId: application.jobId,
+      status: 'WITHDRAWN',
+    });
+
+    return responses.ok(res, 'Application withdrawn', {
+      ...updated,
+      appliedAt: updated.createdAt,
+    });
   } catch (error) {
     next(error);
   }
 }
 
 /**
- * PUT /api/applications/:id/notes
- * Update employer notes (employer only)
+ * PATCH /api/applications/:id/notes
+ * Employer keeps private notes on a candidate.
  */
 export async function updateApplicationNotes(req: AuthRequest, res: Response, next: NextFunction) {
   try {
-    const { id } = req.params;
     const userId = req.userId;
+    const idStr = readParam(req.params.id);
     const { notes } = req.body;
 
     if (!userId) {
       return responses.unauthorized(res);
     }
 
-    const idStr = Array.isArray(id) ? id[0] : id;
-
     const application = await prisma.application.findUnique({
       where: { id: idStr },
-      include: {
-        job: {
-          include: {
-            employer: { select: { userId: true } },
-          },
-        },
-      },
+      include: { job: { include: { employer: { select: { userId: true } } } } },
     });
 
     if (!application) {
@@ -480,7 +660,7 @@ export async function updateApplicationNotes(req: AuthRequest, res: Response, ne
     }
 
     if (application.job.employer.userId !== userId) {
-      return responses.forbidden(res);
+      return responses.forbidden(res, 'You can only manage applications for your own jobs');
     }
 
     const updated = await prisma.application.update({
@@ -494,32 +674,54 @@ export async function updateApplicationNotes(req: AuthRequest, res: Response, ne
   }
 }
 
+
 /**
  * GET /api/applications/:id
- * Get application detail
+ * Full detail for the student who applied or the employer who owns the job:
+ * job + company, student profile, cover letter + resume, match breakdown,
+ * status timeline and the message thread.
  */
 export async function getApplicationDetail(req: AuthRequest, res: Response, next: NextFunction) {
   try {
-    const { id } = req.params;
     const userId = req.userId;
-
     if (!userId) {
       return responses.unauthorized(res);
     }
 
-    const idStr = Array.isArray(id) ? id[0] : id;
+    const idStr = readParam(req.params.id);
 
     const application = await prisma.application.findUnique({
       where: { id: idStr },
       include: {
         job: {
           include: {
-            employer: { select: { userId: true, companyName: true } },
+            employer: {
+              select: {
+                id: true,
+                userId: true,
+                companyName: true,
+                logoUrl: true,
+                isVerified: true,
+                location: true,
+                website: true,
+              },
+            },
           },
         },
         student: {
+          include: { user: { select: { id: true, name: true, email: true } } },
+        },
+        messages: {
+          orderBy: { createdAt: 'asc' },
           include: {
-            user: { select: { id: true, email: true, name: true } },
+            sender: {
+              select: {
+                id: true,
+                name: true,
+                role: true,
+                studentProfile: { select: { photoUrl: true } },
+              },
+            },
           },
         },
       },
@@ -529,15 +731,34 @@ export async function getApplicationDetail(req: AuthRequest, res: Response, next
       return responses.notFound(res, 'Application not found');
     }
 
-    // Check access: student or employer
     const isStudent = application.student.userId === userId;
     const isEmployer = application.job.employer.userId === userId;
 
     if (!isStudent && !isEmployer) {
-      return responses.forbidden(res);
+      return responses.forbidden(res, 'You do not have access to this application');
     }
 
-    return responses.ok(res, 'Application detail', application);
+    // Opening the thread marks the other party's messages as read.
+    await prisma.message.updateMany({
+      where: { applicationId: idStr, senderId: { not: userId }, isRead: false },
+      data: { isRead: true },
+    });
+
+    // Employer notes are private — never expose them to the student.
+    const { notes, ...shared } = application;
+
+    return responses.ok(res, 'Application detail', {
+      ...shared,
+      ...(isEmployer ? { notes } : {}),
+      appliedAt: application.createdAt,
+      matchBreakdown: matchBreakdown(application.student, application.job),
+      timeline: buildApplicationTimeline(application),
+      viewer: isEmployer ? 'EMPLOYER' : 'STUDENT',
+      // Pipeline moves the viewer is allowed to make from the current status.
+      allowedTransitions: isEmployer
+        ? PIPELINE_TRANSITIONS[application.status as ApplicationStatusValue] ?? []
+        : [],
+    });
   } catch (error) {
     next(error);
   }
