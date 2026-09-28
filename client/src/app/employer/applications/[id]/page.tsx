@@ -204,6 +204,7 @@ const EmployerApplicationDetailPage: FC = () => {
             <h2 className="mb-4 font-semibold">Status Timeline</h2>
             <StatusTimeline steps={timeline} />
           </Card>
+        </div>
 
         {/* Right: status actions + messages */}
         <div className="space-y-6 lg:col-span-3">

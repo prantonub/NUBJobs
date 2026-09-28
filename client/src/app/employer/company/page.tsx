@@ -19,6 +19,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
+import Link from 'next/link';
 import { Loader2, Check, Clock } from 'lucide-react';
 import { FileUploadZone } from '@/components/ui/FileUploadZone';
 import { DOCUMENT_MIME_TYPES, IMAGE_MIME_TYPES } from '@/hooks/useFileUpload';
@@ -97,7 +98,27 @@ const CompanyProfilePage: FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-2xl mx-auto px-4">
-        <h1 className="text-3xl font-bold mb-8">Company Profile</h1>
+        <h1 className="text-3xl font-bold mb-4">Company Profile</h1>
+
+        {/* Section tabs — Overview + Settings live on this page, the rest are
+            dedicated routes so each view stays focused. */}
+        <nav className="mb-8 flex flex-wrap gap-2">
+          <Button size="sm" asChild>
+            <Link href="/employer/company">Overview</Link>
+          </Button>
+          <Button size="sm" variant="outline" asChild>
+            <Link href="/employer/jobs">Jobs</Link>
+          </Button>
+          <Button size="sm" variant="outline" asChild>
+            <Link href="/employer/applications">Applications</Link>
+          </Button>
+          <Button size="sm" variant="outline" asChild>
+            <Link href="/employer/analytics">Analytics</Link>
+          </Button>
+          <Button size="sm" variant="outline" asChild>
+            <Link href="/employer/company#settings">Settings</Link>
+          </Button>
+        </nav>
 
         {/* Logo Section */}
         <Card className="mb-6 p-6">
@@ -127,8 +148,8 @@ const CompanyProfilePage: FC = () => {
           />
         </Card>
 
-        {/* Company Info */}
-        <Card className="mb-6 p-6">
+        {/* Company Info (Settings tab anchor) */}
+        <Card id="settings" className="mb-6 p-6">
           <h2 className="text-xl font-semibold mb-4">Company Information</h2>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div>

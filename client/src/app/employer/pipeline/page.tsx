@@ -2,6 +2,7 @@
 
 import { FC, useState } from 'react';
 import { useEmployerApplications, useUpdateApplicationStatus } from '@/hooks/useEmployer';
+import { useApplicationRealtime } from '@/hooks/useApplicationRealtime';
 import {
   DndContext,
   DragEndEvent,
@@ -122,6 +123,10 @@ const ApplicantPipelinePage: FC = () => {
   const { data: applicationsData } = useEmployerApplications();
   const updateStatusMutation = useUpdateApplicationStatus();
   const [selectedApp, setSelectedApp] = useState<any>(null);
+
+  // Live pipeline: `new_application` / `application_status_changed` invalidate
+  // the grouped query so a drag on another tab shows up here immediately.
+  useApplicationRealtime('EMPLOYER');
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
