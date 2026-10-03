@@ -33,12 +33,29 @@ export const useEmployerStats = () => {
   });
 };
 
+export type EmployerJobsFilters = {
+  status?: string;
+  sort?: 'newest' | 'oldest' | 'applicants' | 'views';
+  page?: number;
+  limit?: number;
+};
+
+/**
+ * GET /api/employer/jobs — the employer's OWN postings only.
+ * Accepts either `useEmployerJobs('ACTIVE', 2)` or `useEmployerJobs({ status, sort, page, limit })`.
+ */
 export const useEmployerJobs = (
-  status?: string,
-  page?: number,
-  options: { sort?: 'newest' | 'oldest' | 'applicants' | 'views'; limit?: number } = {}
+  statusOrFilters?: string | EmployerJobsFilters,
+  pageArg?: number,
+  optionsArg: { sort?: EmployerJobsFilters['sort']; limit?: number } = {}
 ) => {
-  const { sort = 'newest', limit = 20 } = options;
+  const filters: EmployerJobsFilters =
+    typeof statusOrFilters === 'object'
+      ? statusOrFilters
+      : { status: statusOrFilters, page: pageArg, ...optionsArg };
+
+  const { status, sort = 'newest', page, limit = 20 } = filters;
+
   return useQuery({
     queryKey: ['employerJobs', status, page, sort, limit],
     queryFn: async () => {
@@ -54,28 +71,43 @@ export const useEmployerJobs = (
   });
 };
 
-export const useEmployerApplications = (jobId?: string) => {
+/** GET /api/employer/jobs/:id — one of the employer's own jobs (403 otherwise). */
+export const useEmployerJobDetail = (jobId?: string | null) => {
   return useQuery({
-    queryKey: ['employerApplications', jobId],
+    queryKey: ['employerJob', jobId],
     queryFn: async () => {
-      const params = new URLSearchParams();
-      if (jobId) params.append('jobId', jobId);
+      const { data } = await api.get(`/employer/jobs/${jobId}`);
+      return data.data;
+    },
+    enabled: Boolean(jobId),
+    staleTime: 30 * 1000,
+  });
+};
+
+/**
+ * GET /api/employer/applications — applications for the employer's OWN jobs.
+ * Without filters/with only `jobId` it returns the grouped kanban payload;
+ * the applications table uses `useEmployerApplicationsList` (`?view=list`).
+ */
+export const useEmployerApplications = (filters: { jobId?: string } = {}) => {
+  const { jobId } = filters;
+  return useQuery({
+    queryKey: ['employerApplications', jobId ?? null],
+    queryFn: async () => {
+      const params: Record<string, string> = {};
+      if (jobId) params.jobId = jobId;
       const { data } = await api.get('/employer/applications', { params });
       return data.data;
     },
   });
 };
 
-export const useApplicationDetail = (id: string) => {
-  return useQuery({
-    queryKey: ['applicationDetail', id],
-    queryFn: async () => {
-      const { data } = await api.get(`/employer/applications/${id}`);
-      return data.data;
-    },
-    enabled: !!id,
-  });
-};
+/**
+ * Application detail for the employer (GET /api/employer/applications/:id).
+ * Delegates to `useEmployerApplicationDetail` so there is a single cache key
+ * (`employerApplication`) that the realtime hook invalidates.
+ */
+export const useApplicationDetail = (id: string) => useEmployerApplicationDetail(id);
 
 export const useUpdateApplicationStatus = () => {
   const queryClient = useQueryClient();
@@ -232,7 +264,8 @@ export const useCompanyProfile = () => {
   return useQuery({
     queryKey: ['companyProfile'],
     queryFn: async () => {
-      const { data } = await api.get('/company/profile');
+      // Employer-scoped endpoint (spec): GET /api/employer/company
+      const { data } = await api.get('/employer/company');
       return data.data;
     },
   });
@@ -242,7 +275,7 @@ export const useUpdateCompanyProfile = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (profileData: any) => {
-      const { data } = await api.patch('/company/profile', profileData);
+      const { data } = await api.patch('/employer/company', profileData);
       return data.data;
     },
     onSuccess: () => {
@@ -258,7 +291,7 @@ export const useUploadLogo = () => {
     mutationFn: async (file: File) => {
       const formData = new FormData();
       formData.append('logo', file);
-      const { data } = await api.post('/company/logo', formData, {
+      const { data } = await api.post('/employer/company/logo', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       return data.data;
@@ -271,27 +304,42 @@ export const useUploadLogo = () => {
 };
 
 export const useUploadVerificationDocument = () => {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (file: File) => {
       const formData = new FormData();
       formData.append('document', file);
-      const { data } = await api.post('/company/verification-document', formData, {
+      const { data } = await api.post('/employer/company/verification-document', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       return data.data;
     },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['companyProfile'] });
+    },
   });
 };
 
+/**
+ * Submit the company for verification.
+ * Accepts the spec payload `{ verificationDocument, verificationReason }` and
+ * the legacy `{ documentType, registrationNumber }` shape.
+ */
 export const useRequestVerification = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (payload: { documentType: string; registrationNumber: string }) => {
-      const { data } = await api.post('/company/request-verification', payload);
+    mutationFn: async (payload: {
+      verificationDocument?: string;
+      verificationReason?: string;
+      documentType?: string;
+      registrationNumber?: string;
+    }) => {
+      const { data } = await api.post('/employer/company/verify', payload);
       return data.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['verificationStatus'] });
+      queryClient.invalidateQueries({ queryKey: ['companyProfile'] });
     },
   });
 };
@@ -300,7 +348,7 @@ export const useVerificationStatus = () => {
   return useQuery({
     queryKey: ['verificationStatus'],
     queryFn: async () => {
-      const { data } = await api.get('/company/verification-status');
+      const { data } = await api.get('/employer/company/verification-status');
       return data.data;
     },
   });
@@ -310,7 +358,7 @@ export const useDeleteLogo = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async () => {
-      const { data } = await api.delete('/company/logo');
+      const { data } = await api.delete('/employer/company/logo');
       return data.data;
     },
     onSuccess: () => {
@@ -458,3 +506,14 @@ export const useCompanyAnalytics = () => {
     staleTime: 60 * 1000,
   });
 };
+
+// ── Spec-named aliases ──────────────────────────────────────────────────────
+// The employer surfaces in the spec use these names; they are thin aliases over
+// the implementations above so there is exactly ONE query per endpoint.
+
+/** Alias of `useCompanyProfile` (GET /api/employer/company). */
+export const useEmployerCompany = useCompanyProfile;
+/** Alias of `useUpdateCompanyProfile` (PATCH /api/employer/company). */
+export const useUpdateCompany = useUpdateCompanyProfile;
+/** Alias of `useCompanyAnalytics` (GET /api/employer/company/stats). */
+export const useEmployerAnalytics = useCompanyAnalytics;

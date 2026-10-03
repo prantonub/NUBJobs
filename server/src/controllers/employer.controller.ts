@@ -157,13 +157,89 @@ export async function getEmployerJobs(req: AuthRequest, res: Response, next: Nex
     ]);
 
     return responses.ok(res, 'Jobs fetched', {
-      data: jobs,
+      // `postedAt` / `topApplicants` are the documented aliases of
+      // `createdAt` / `applications` for the employer jobs table.
+      data: jobs.map((job) => ({
+        ...job,
+        postedAt: job.createdAt,
+        topApplicants: job.applications ?? [],
+      })),
       pagination: {
         total,
         page: pageNum,
         limit: pageSize,
         pages: Math.ceil(total / pageSize),
       },
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * GET /api/employer/jobs/:id
+ * One of the employer's OWN postings. Returns 403 for any other employer's job.
+ */
+export async function getEmployerJobDetail(req: AuthRequest, res: Response, next: NextFunction) {
+  try {
+    const userId = req.userId;
+    if (!userId) {
+      return responses.unauthorized(res);
+    }
+
+    const idStr = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+
+    const employer = await prisma.employerProfile.findUnique({
+      where: { userId },
+      select: { id: true },
+    });
+
+    if (!employer) {
+      return responses.notFound(res, 'Employer profile not found');
+    }
+
+    const job = await prisma.job.findUnique({
+      where: { id: idStr },
+      include: {
+        _count: { select: { applications: true } },
+        applications: {
+          take: 10,
+          orderBy: { matchScore: 'desc' },
+          select: {
+            id: true,
+            status: true,
+            matchScore: true,
+            createdAt: true,
+            student: {
+              select: { id: true, cgpa: true, skills: true, user: { select: { name: true } } },
+            },
+          },
+        },
+      },
+    });
+
+    if (!job) {
+      return responses.notFound(res, 'Job not found');
+    }
+
+    // ── OWNERSHIP: an employer may only read their own posting ──────────────
+    if (job.employerId !== employer.id) {
+      return responses.forbidden(res, 'You can only manage your own jobs');
+    }
+
+    const grouped = await prisma.application.groupBy({
+      by: ['status'],
+      where: { jobId: job.id },
+      _count: { _all: true },
+    });
+
+    return responses.ok(res, 'Job fetched', {
+      ...job,
+      postedAt: job.createdAt,
+      topApplicants: job.applications,
+      statusCounts: Object.fromEntries(
+        grouped.map((row) => [row.status, row._count._all])
+      ),
     });
   } catch (error) {
     next(error);
@@ -298,6 +374,10 @@ export async function getEmployerApplications(req: AuthRequest, res: Response, n
         ...row,
         appliedAt: row.createdAt,
         lastMessage: row.messages[0] ?? null,
+        // Flattened fields for the spec's table columns.
+        studentName: row.student?.user?.name ?? null,
+        jobTitle: row.job?.title ?? null,
+        messageCount: row._count?.messages ?? 0,
       })),
       stats: { ...stats, total: totalApplications },
       pagination: {

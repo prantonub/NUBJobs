@@ -11,6 +11,8 @@ import {
   logout,
   getMe,
   resendOTP,
+  googleAuth,
+  googleAuthCallback,
 } from '../controllers/auth.controller';
 import { authenticate, validate, rateLimit } from '../middleware/auth.middleware';
 
@@ -63,6 +65,12 @@ router.post('/refresh', rateLimit(50, 15 * 60 * 1000), validate(refreshSchema), 
 router.post('/forgot-password', rateLimit(10, 15 * 60 * 1000), validate(forgotPasswordSchema), forgotPassword);
 router.post('/reset-password', rateLimit(20, 15 * 60 * 1000), validate(resetPasswordSchema), resetPassword);
 router.post('/resend-otp', rateLimit(10, 15 * 60 * 1000), validate(resendOTPSchema), resendOTP);
+
+// Google OAuth ("Continue with Google").
+// These are full-page browser redirects, so they are rate limited more loosely
+// than the JSON endpoints — a user may retry the consent screen repeatedly.
+router.get('/google', rateLimit(30, 15 * 60 * 1000), googleAuth);
+router.get('/google/callback', rateLimit(30, 15 * 60 * 1000), googleAuthCallback);
 
 // Protected routes
 router.post('/logout', authenticate, logout);

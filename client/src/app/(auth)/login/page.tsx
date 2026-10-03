@@ -44,6 +44,18 @@ export default function LoginPage() {
   const { login } = useAuthContext();
   const [serverError, setServerError] = React.useState<string | null>(null);
 
+  // Surface a failed Google sign-in: the API redirects back with ?error=….
+  // Read straight from `window.location` so this page needs no Suspense boundary.
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const oauthError = params.get("error");
+    if (!oauthError) return;
+    setServerError(oauthError);
+    toast.error(oauthError);
+    // Drop the param so a refresh doesn't replay the toast.
+    window.history.replaceState(null, "", window.location.pathname);
+  }, []);
+
   const {
     register,
     handleSubmit,
@@ -68,8 +80,9 @@ export default function LoginPage() {
   };
 
   const handleGoogle = () => {
-    const googleUrl = `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000/api"}/auth/google`;
-    window.location.assign(googleUrl);
+    // `intent=login` only affects which page the API sends errors back to.
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000/api";
+    window.location.assign(`${baseUrl}/auth/google?intent=login`);
   };
 
   return (

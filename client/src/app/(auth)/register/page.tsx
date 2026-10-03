@@ -168,6 +168,7 @@ function RegisterForm() {
     handleSubmit,
     control,
     setValue,
+    getValues,
     formState: { errors, isSubmitting },
   } = useForm<RegisterValues>({
     resolver: zodResolver(registerSchema),
@@ -187,6 +188,16 @@ function RegisterForm() {
 
   const role = useWatch({ control, name: "role" });
   const isStudent = role === "STUDENT";
+
+  // Surface a failed Google sign-up: the API redirects back with ?error=…
+  React.useEffect(() => {
+    const oauthError = searchParams.get("error");
+    if (!oauthError) return;
+    setServerError(oauthError);
+    toast.error(oauthError);
+    // Drop the param so a refresh doesn't replay the toast.
+    window.history.replaceState(null, "", window.location.pathname);
+  }, [searchParams]);
 
   const onSubmit = async (values: RegisterValues) => {
     setServerError(null);
@@ -225,8 +236,24 @@ function RegisterForm() {
   };
 
   const handleGoogle = () => {
-    const googleUrl = `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000/api"}/auth/google`;
-    window.location.assign(googleUrl);
+    // Sign-up intent: the API creates the account on the selected role and
+    // sends OAuth failures back here. The extras are carried in `state` and are
+    // only applied when a brand-new account is created.
+    const values = getValues();
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000/api";
+    const params = new URLSearchParams({
+      intent: "signup",
+      role: values.role ?? "STUDENT",
+    });
+
+    if (values.role === "STUDENT") {
+      if (values.nubId) params.set("nubId", values.nubId);
+      if (values.department) params.set("department", values.department);
+    } else if (values.companyName) {
+      params.set("companyName", values.companyName);
+    }
+
+    window.location.assign(`${baseUrl}/auth/google?${params.toString()}`);
   };
 
   return (

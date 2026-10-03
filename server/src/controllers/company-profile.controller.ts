@@ -845,6 +845,8 @@ export async function getCompanyAnalytics(req: AuthRequest, res: Response, next:
         totalJobs: jobs.length,
         activeJobs: jobs.filter((job) => job.status === 'ACTIVE').length,
         totalApplicants: applications.length,
+        // `totalApplications` is the spec's name for the same number.
+        totalApplications: applications.length,
         hired: hired.length,
         // Per-view timestamps are not stored, so these two are the closest
         // faithful proxies: views on jobs posted this month, and applications

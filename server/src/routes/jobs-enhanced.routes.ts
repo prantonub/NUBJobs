@@ -1,5 +1,4 @@
 import { Router } from 'express';
-import { z } from 'zod';
 import {
   listJobs,
   getJobCategories,
@@ -14,45 +13,15 @@ import {
   getRecommendedJobs,
 } from '../controllers/jobs-enhanced.controller';
 import { authenticate, optionalAuth, requireRole, validate } from '../middleware/auth.middleware';
+// Shared with POST/PATCH /api/employer/jobs so both endpoints accept exactly the
+// same payload (including browser form values: numbers as strings, date-only deadlines).
+import { createJobSchema, updateJobSchema } from '../utils/job-validation.utils';
+import { z } from 'zod';
 
 const router = Router();
 
-// Validation schemas
-const jobTypeEnum = z.enum([
-  'FULL_TIME',
-  'PART_TIME',
-  'INTERNSHIP',
-  'CONTRACT',
-  'REMOTE',
-  'HYBRID',
-]);
-
-const createJobSchema = z.object({
-  title: z.string().min(5).max(100),
-  description: z.string().min(50),
-  category: z.string().optional(),
-  type: jobTypeEnum,
-  location: z.string().optional(),
-  salaryMin: z.number().optional(),
-  salaryMax: z.number().optional(),
-  minCgpa: z.number().optional(),
-  skills: z.array(z.string()).min(1),
-  deadline: z.string().datetime().optional(),
-  targetUniversity: z.enum(['ALL', 'NUB', 'OTHER']).optional(),
-});
-
-const updateJobSchema = z.object({
-  title: z.string().min(5).max(100).optional(),
-  description: z.string().min(50).optional(),
-  category: z.string().optional(),
-  type: jobTypeEnum.optional(),
-  location: z.string().optional(),
-  salaryMin: z.number().optional(),
-  salaryMax: z.number().optional(),
-  minCgpa: z.number().optional(),
-  skills: z.array(z.string()).optional(),
-  deadline: z.string().datetime().optional(),
-  targetUniversity: z.enum(['ALL', 'NUB', 'OTHER']).optional(),
+const jobStatusActionSchema = z.object({
+  action: z.enum(['close', 'feature', 'unfeature']),
 });
 
 // Public routes
@@ -74,7 +43,13 @@ router.post('/', authenticate, requireRole('EMPLOYER'), validate(createJobSchema
 // PUT kept for backwards compatibility, PATCH is the documented verb.
 router.put('/:id', authenticate, requireRole('EMPLOYER'), validate(updateJobSchema), updateJob);
 router.patch('/:id', authenticate, requireRole('EMPLOYER'), validate(updateJobSchema), updateJob);
-router.patch('/:id/status', authenticate, requireRole('EMPLOYER'), updateJobStatus);
+router.patch(
+  '/:id/status',
+  authenticate,
+  requireRole('EMPLOYER'),
+  validate(jobStatusActionSchema),
+  updateJobStatus
+);
 router.delete('/:id', authenticate, requireRole('EMPLOYER'), deleteJob);
 router.get('/employer/my', authenticate, requireRole('EMPLOYER'), getMyJobs);
 

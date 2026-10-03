@@ -10,6 +10,10 @@ export type ApplicationRealtimeRole = 'STUDENT' | 'EMPLOYER';
 
 const EMPLOYER_KEYS = [
   'employerApplications',
+  'employerApplicationsList',
+  'employerApplication',
+  'employerJobs',
+  'employerJob',
   'jobApplications',
   'applications',
   'applicationStats',

@@ -4,6 +4,16 @@ import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '.
 import { hashPassword, comparePassword, generateOTP, getOTPExpiry, isOTPValid } from '../utils/password.utils';
 import { responses } from '../utils/response.utils';
 import { sendWelcomeEmail, sendPasswordResetEmail, sendOTPEmail } from '../services/email.service';
+import {
+  buildConsentUrl,
+  buildErrorRedirect,
+  buildState,
+  buildSuccessRedirect,
+  exchangeCodeForProfile,
+  isGoogleConfigured,
+  parseState,
+  upsertGoogleUser,
+} from '../services/google-oauth.service';
 
 export interface AuthRequest extends Request {
   userId?: string;
@@ -316,6 +326,126 @@ export async function resetPassword(req: AuthRequest, res: Response, next: NextF
     return responses.ok(res, 'Password reset successful');
   } catch (error) {
     next(error);
+  }
+}
+
+/**
+ * GET /api/auth/google
+ * Start Google OAuth. Bounces the browser to Google's consent screen; the
+ * requested role ("STUDENT"|"EMPLOYER") travels inside the signed-in-practice
+ * `state` value. With `?json=1` the consent URL is returned as JSON instead of
+ * redirecting, which makes the endpoint testable without a browser.
+ */
+export async function googleAuth(req: AuthRequest, res: Response, next: NextFunction) {
+  try {
+    if (!isGoogleConfigured()) {
+      return responses.badRequest(
+        res,
+        'Google sign-in is not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.'
+      );
+    }
+
+    const role = typeof req.query.role === 'string' ? req.query.role : undefined;
+    const intent = typeof req.query.intent === 'string' ? req.query.intent : undefined;
+    const state = buildState({
+      role,
+      intent,
+      nubId: typeof req.query.nubId === 'string' ? req.query.nubId : undefined,
+      department: typeof req.query.department === 'string' ? req.query.department : undefined,
+      companyName: typeof req.query.companyName === 'string' ? req.query.companyName : undefined,
+    });
+    const consentUrl = buildConsentUrl(state);
+
+    if (req.query.json === '1') {
+      return responses.ok(res, 'Google consent URL', { url: consentUrl, state });
+    }
+
+    return res.redirect(consentUrl);
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * GET /api/auth/google/callback
+ * Google redirects here with `?code=...&state=...` (or `?error=...`). We verify
+ * the state, exchange the code for the Google profile, then upsert the local
+ * account and hand the SPA a pair of tokens. The tokens are passed in the query
+ * string of the SPA callback route, which stores them and immediately scrubs
+ * the URL (see client/src/app/oauth/callback/page.tsx).
+ */
+export async function googleAuthCallback(req: AuthRequest, res: Response, next: NextFunction) {
+  const preferSignup = parseState(typeof req.query.state === 'string' ? req.query.state : undefined)
+    .intent === 'signup';
+
+  try {
+    if (!isGoogleConfigured()) {
+      return res.redirect(
+        buildErrorRedirect(preferSignup, 'Google sign-in is not configured on the server.')
+      );
+    }
+
+    // Google reports user-side failures (consent denied, etc.) via `?error=`.
+    const googleError = typeof req.query.error === 'string' ? req.query.error : undefined;
+    if (googleError) {
+      return res.redirect(
+        buildErrorRedirect(
+          preferSignup,
+          googleError === 'access_denied'
+            ? 'Google sign-in was cancelled.'
+            : 'Google sign-in failed. Please try again.'
+        )
+      );
+    }
+
+    const code = typeof req.query.code === 'string' ? req.query.code : undefined;
+    if (!code) {
+      return res.redirect(buildErrorRedirect(preferSignup, 'Missing authorization code.'));
+    }
+
+    const { role, extras } = parseState(
+      typeof req.query.state === 'string' ? req.query.state : undefined
+    );
+    const profile = await exchangeCodeForProfile(code);
+
+    // Preserve the requested role for accounts that already exist: an existing
+    // user keeps the role on their record (never silently switch it). `extras`
+    // are only used when a brand-new account is created.
+    const { user, isNewUser } = await upsertGoogleUser(profile, role, extras);
+
+    const account = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { id: true, email: true, name: true, role: true, isBanned: true },
+    });
+
+    if (!account || account.isBanned) {
+      return res.redirect(
+        buildErrorRedirect(preferSignup, 'This account has been suspended. Contact support.')
+      );
+    }
+
+    const accessToken = generateAccessToken({
+      userId: account.id,
+      email: account.email,
+      role: account.role,
+    });
+    const refreshToken = generateRefreshToken({
+      userId: account.id,
+      email: account.email,
+      role: account.role,
+    });
+
+    return res.redirect(buildSuccessRedirect(accessToken, refreshToken, isNewUser, account.role));
+  } catch (error) {
+    // Never dump a stack trace into the browser — log it and return a friendly
+    // message to the SPA so the user can retry.
+    console.error('Google OAuth callback failed:', error);
+    return res.redirect(
+      buildErrorRedirect(
+        preferSignup,
+        'Google sign-in failed. Please try again or use email and password.'
+      )
+    );
   }
 }
 

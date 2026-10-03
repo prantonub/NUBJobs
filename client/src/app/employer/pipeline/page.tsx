@@ -18,8 +18,22 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { GripVertical } from 'lucide-react';
+import { getErrorMessage } from '@/lib/utils';
 
 const STATUSES = ['APPLIED', 'REVIEWED', 'SHORTLISTED', 'INTERVIEWED', 'HIRED', 'REJECTED'];
+
+/**
+ * Mirrors `server/src/utils/application.utils.ts` so the board can reject an
+ * invalid drop before hitting the API (which also enforces these rules).
+ */
+const PIPELINE_TRANSITIONS: Record<string, string[]> = {
+  APPLIED: ['REVIEWED', 'SHORTLISTED', 'REJECTED'],
+  REVIEWED: ['SHORTLISTED', 'INTERVIEWED', 'REJECTED'],
+  SHORTLISTED: ['INTERVIEWED', 'HIRED', 'REJECTED'],
+  INTERVIEWED: ['HIRED', 'REJECTED'],
+  HIRED: [],
+  REJECTED: [],
+};
 
 const ApplicationCard: FC<{
   application: any;
@@ -158,8 +172,16 @@ const ApplicantPipelinePage: FC = () => {
 
     const appId = active.id as string;
     const newStatus = over.id as string;
+    const currentStatus = active.data?.current?.status as string | undefined;
 
-    if (newStatus === active.data?.current?.status) return;
+    if (newStatus === currentStatus) return;
+
+    // Mirror the server's pipeline rules so an invalid drop fails instantly
+    // (the API returns 400 for backwards/terminal moves).
+    if (newStatus !== 'REJECTED' && !PIPELINE_TRANSITIONS[currentStatus ?? '']?.includes(newStatus)) {
+      toast.error(`Cannot move ${currentStatus} → ${newStatus}`);
+      return;
+    }
 
     try {
       await updateStatusMutation.mutateAsync({
@@ -168,7 +190,7 @@ const ApplicantPipelinePage: FC = () => {
       });
       toast.success(`Application moved to ${newStatus}`);
     } catch (error) {
-      toast.error('Failed to update application status');
+      toast.error(getErrorMessage(error, 'Failed to update application status'));
     }
   };
 

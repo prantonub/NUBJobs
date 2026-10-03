@@ -2,21 +2,30 @@
 
 import { FC, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useCreateJob, usePublishJob, useImproveDescription } from '@/hooks/useEmployer';
+import { useCreateJob, usePostJob, useImproveDescription } from '@/hooks/useEmployer';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { ChevronRight, ChevronLeft, Wand2, Plus, Trash2, Loader2 } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Wand2, Plus, Trash2, Loader2, CircleAlert } from 'lucide-react';
+import {
+  buildJobPayload,
+  firstError,
+  readValidationErrors,
+  validateJobPayload,
+} from '@/lib/jobForm';
 
 const JobPostingWizard: FC = () => {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [isImproving, setIsImproving] = useState(false);
-  const createJobMutation = useCreateJob();
-  const publishJobMutation = usePublishJob();
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  // Draft → POST /api/employer/jobs (status DRAFT)
+  const saveDraftMutation = useCreateJob();
+  // Publish → POST /api/jobs (status PENDING + admin approval notification)
+  const postJobMutation = usePostJob();
   const improveDescMutation = useImproveDescription();
 
   const [formData, setFormData] = useState({
@@ -73,29 +82,40 @@ const JobPostingWizard: FC = () => {
     }
   };
 
-  const handlePublish = async () => {
+  /**
+   * Both buttons run the same normalisation + validation; they only differ in
+   * the endpoint (and therefore the resulting status).
+   */
+  const submitJob = async (mode: 'draft' | 'publish') => {
+    const payload = buildJobPayload(formData);
+    const clientErrors = validateJobPayload(payload);
+
+    if (Object.keys(clientErrors).length > 0) {
+      setFieldErrors(clientErrors);
+      toast.error(firstError(clientErrors));
+      return;
+    }
+
+    setFieldErrors({});
     try {
-      const newJob = await createJobMutation.mutateAsync(formData);
-      await publishJobMutation.mutateAsync(newJob.id);
-      toast.success('Job published successfully!');
-      router.push('/employer/dashboard');
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Failed to publish job');
+      if (mode === 'draft') {
+        await saveDraftMutation.mutateAsync(payload);
+        toast.success('Saved as draft');
+      } else {
+        await postJobMutation.mutateAsync(payload);
+        toast.success('Job posted! Awaiting admin approval');
+      }
+      router.push('/employer/jobs');
+    } catch (error) {
+      const errors = readValidationErrors(error);
+      setFieldErrors(errors);
+      toast.error(firstError(errors));
     }
   };
 
-  const handleSaveDraft = async () => {
-    try {
-      await createJobMutation.mutateAsync({
-        ...formData,
-        status: 'DRAFT',
-      });
-      toast.success('Job saved as draft');
-      router.push('/employer/jobs');
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Failed to save job');
-    }
-  };
+  const handlePublish = () => void submitJob('publish');
+
+  const handleSaveDraft = () => void submitJob('draft');
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -369,8 +389,26 @@ const JobPostingWizard: FC = () => {
               </Card>
 
               <div className="text-sm text-gray-600 p-4 bg-blue-50 rounded">
-                ✓ All required fields are filled. Ready to publish!
+                {Object.keys(fieldErrors).length === 0
+                  ? '✓ Review the details and publish when ready.'
+                  : 'Fix the highlighted problems below before publishing.'}
               </div>
+            </div>
+          )}
+
+          {Object.keys(fieldErrors).length > 0 && (
+            <div className="mt-6 rounded-lg border border-destructive/40 bg-destructive/5 p-4">
+              <p className="flex items-center gap-2 text-sm font-medium text-destructive">
+                <CircleAlert className="size-4" />
+                Please fix these problems
+              </p>
+              <ul className="mt-2 space-y-1 text-sm text-destructive">
+                {Object.entries(fieldErrors).map(([field, message]) => (
+                  <li key={field}>
+                    <span className="font-medium capitalize">{field.replace(/([A-Z])/g, ' $1')}</span>: {message}
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
 
@@ -393,16 +431,23 @@ const JobPostingWizard: FC = () => {
                     type="button"
                     variant="outline"
                     onClick={handleSaveDraft}
-                    disabled={createJobMutation.isPending}
+                    disabled={saveDraftMutation.isPending || postJobMutation.isPending}
                   >
-                    Save as Draft
+                    {saveDraftMutation.isPending ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Saving…
+                      </>
+                    ) : (
+                      'Save as Draft'
+                    )}
                   </Button>
                   <Button
                     type="button"
                     onClick={handlePublish}
-                    disabled={createJobMutation.isPending}
+                    disabled={saveDraftMutation.isPending || postJobMutation.isPending}
                   >
-                    {createJobMutation.isPending && (
+                    {postJobMutation.isPending && (
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                     )}
                     Publish Job

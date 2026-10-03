@@ -22,6 +22,11 @@ model User {
   isEmailVerified   Boolean   @default(false)
   isBanned          Boolean   @default(false)
 
+  // Google OAuth ("Continue with Google")
+  googleId          String?   @unique
+  avatarUrl         String?   // picture from the Google profile
+  provider          String    @default("local") // "local" | "google"
+
   // OTP for email verification
   otpCode           String?
   otpExpiry         DateTime?

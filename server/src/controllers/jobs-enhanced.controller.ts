@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import prisma from '../lib/prisma';
 import { responses } from '../utils/response.utils';
 import { emitToUser } from '../lib/socket-server';
+import { sendJobPendingApprovalEmail } from '../services/email.service';
 
 export interface AuthRequest extends Request {
   userId?: string | string[];
@@ -221,9 +222,10 @@ export async function createJob(req: AuthRequest, res: Response, next: NextFunct
         category: category || null,
         type: type || 'FULL_TIME',
         location: location || null,
-        salaryMin: salaryMin ? parseInt(salaryMin) : null,
-        salaryMax: salaryMax ? parseInt(salaryMax) : null,
-        minCgpa: minCgpa ? parseFloat(minCgpa) : null,
+        // The schema already coerced these to numbers (or undefined).
+        salaryMin: salaryMin ?? null,
+        salaryMax: salaryMax ?? null,
+        minCgpa: minCgpa ?? null,
         skills: skills || [],
         deadline: deadline ? new Date(deadline) : null,
         targetUniversity: req.body.targetUniversity || 'ALL',
@@ -234,10 +236,10 @@ export async function createJob(req: AuthRequest, res: Response, next: NextFunct
       include: { employer: { select: { companyName: true, isVerified: true } } },
     });
 
-    // Ask every admin to approve it (notification + real-time ping).
+    // Ask every admin to approve it (notification + email + real-time ping).
     const admins = await prisma.user.findMany({
       where: { role: 'ADMIN' },
-      select: { id: true },
+      select: { id: true, email: true },
     });
 
     if (admins.length > 0) {
@@ -252,6 +254,14 @@ export async function createJob(req: AuthRequest, res: Response, next: NextFunct
 
       for (const admin of admins) {
         emitToUser(admin.id, 'job_pending_approval', { jobId: job.id, title: job.title });
+        if (admin.email) {
+          void sendJobPendingApprovalEmail(
+            admin.email,
+            job.employer.companyName,
+            job.title,
+            job.id
+          );
+        }
       }
     }
 

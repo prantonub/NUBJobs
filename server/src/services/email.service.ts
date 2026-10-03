@@ -436,3 +436,40 @@ export async function sendVerificationRequestEmail(
     return false;
   }
 }
+
+/**
+ * POST /api/jobs — alert every admin that a posting is waiting for approval.
+ */
+export async function sendJobPendingApprovalEmail(
+  email: string,
+  companyName: string,
+  jobTitle: string,
+  jobId: string
+): Promise<boolean> {
+  try {
+    const htmlContent = emailShell(
+      'Job Pending Approval',
+      `
+        <p>Hello Admin,</p>
+        <p><strong>${companyName}</strong> posted a new job that needs your review.</p>
+        <div class="info">
+          <strong>Job:</strong> ${jobTitle}<br>
+          <strong>Job id:</strong> ${jobId}
+        </div>
+        <a href="${process.env.CLIENT_URL}/admin/jobs" class="button">Review Job</a>
+      `
+    );
+
+    const result = await resend.emails.send({
+      from: FROM_EMAIL,
+      to: email,
+      subject: `Job pending approval: ${jobTitle} (${companyName})`,
+      html: htmlContent,
+    });
+
+    return !result.error;
+  } catch (error) {
+    console.error('Error sending job pending approval email:', error);
+    return false;
+  }
+}

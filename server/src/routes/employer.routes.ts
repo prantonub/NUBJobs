@@ -2,6 +2,7 @@ import { Router } from 'express';
 import {
   getEmployerStats,
   getEmployerJobs,
+  getEmployerJobDetail,
   getEmployerApplications,
   getApplicationDetail,
   scheduleInterview,
@@ -67,6 +68,8 @@ router.get('/dashboard/stats', getEmployerStats);
 
 // ── Jobs ────────────────────────────────────────────────────────────────────
 router.get('/jobs', getEmployerJobs);
+// Employer-scoped job detail (403 for a job that belongs to another company).
+router.get('/jobs/:id', getEmployerJobDetail);
 
 // ── Applications ────────────────────────────────────────────────────────────
 router.get('/applications', getEmployerApplications);

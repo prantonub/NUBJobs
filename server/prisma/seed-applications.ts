@@ -157,6 +157,55 @@ const COMPANIES = [
   },
 ];
 
+/**
+ * Spec distribution: how many jobs each company posts and how many
+ * applications it receives (30 jobs / 200 applications in total).
+ */
+const COMPANY_VOLUME: Record<string, { jobs: number; applications: number }> = {
+  'Brain Station 23': { jobs: 12, applications: 87 },
+  BJIT: { jobs: 8, applications: 45 },
+  Shajgoj: { jobs: 4, applications: 28 },
+  Pathao: { jobs: 3, applications: 22 },
+  Shohoz: { jobs: 3, applications: 18 },
+};
+
+/** Weighted status mix: applied 25% · reviewed 18% · shortlisted 15% · interviewed 12% · hired 6% · rejected 24%. */
+const STATUS_WEIGHTS: Array<{ status: string; weight: number }> = [
+  { status: 'APPLIED', weight: 0.25 },
+  { status: 'REVIEWED', weight: 0.18 },
+  { status: 'SHORTLISTED', weight: 0.15 },
+  { status: 'INTERVIEWED', weight: 0.12 },
+  { status: 'HIRED', weight: 0.06 },
+  { status: 'REJECTED', weight: 0.24 },
+];
+
+/** Interleaved status queue of exactly `count` entries. */
+function buildStatusQueue(count: number): string[] {
+  const plan = STATUS_WEIGHTS.map((entry) => ({
+    status: entry.status,
+    remaining: Math.floor(count * entry.weight),
+  }));
+
+  let assigned = plan.reduce((sum, entry) => sum + entry.remaining, 0);
+  for (const entry of plan) {
+    if (assigned >= count) break;
+    entry.remaining += 1;
+    assigned += 1;
+  }
+
+  const queue: string[] = [];
+  let cursor = 0;
+  while (queue.length < count) {
+    const entry = plan[cursor % plan.length];
+    if (entry.remaining > 0) {
+      queue.push(entry.status);
+      entry.remaining -= 1;
+    }
+    cursor += 1;
+  }
+  return queue;
+}
+
 const STUDENTS = [
   { name: 'Rahim Uddin', department: 'CSE', cgpa: 3.75, skills: ['React', 'TypeScript', 'Node.js', 'PostgreSQL'] },
   { name: 'Karim Hasan', department: 'CSE', cgpa: 3.4, skills: ['Python', 'Django', 'PostgreSQL', 'REST API'] },
@@ -176,15 +225,7 @@ const STUDENTS = [
   { name: 'Sabbir Rahman', department: 'CIVIL', cgpa: 2.9, skills: ['AutoCAD', 'Project Management', 'Excel'] },
 ];
 
-/** Applications per status — the exact distribution from the spec. */
-const STATUS_PLAN: Array<{ status: string; count: number }> = [
-  { status: 'APPLIED', count: 20 },
-  { status: 'REVIEWED', count: 15 },
-  { status: 'SHORTLISTED', count: 12 },
-  { status: 'INTERVIEWED', count: 10 },
-  { status: 'HIRED', count: 5 },
-  { status: 'REJECTED', count: 18 },
-];
+/** Applications per status — superseded by the per-company weighted mix below. */
 
 const COVER_LETTERS = [
   'I am a final-year CSE student at NUB with hands-on experience building production web apps. I would love to contribute to your team.',
@@ -289,7 +330,27 @@ async function main(): Promise<void> {
       create: { userId: user.id, ...profileData },
     });
 
-    for (const [index, template] of JOB_TEMPLATES.entries()) {
+    const volume = COMPANY_VOLUME[company.name] ?? {
+      jobs: JOB_TEMPLATES.length,
+      applications: 0,
+    };
+
+    // Re-runnable: drop any postings left over from an earlier seed run so the
+    // job count matches COMPANY_VOLUME exactly. Applications, messages and
+    // saved jobs cascade with the job.
+    await prisma.job.deleteMany({ where: { employerId: employer.id } });
+
+    for (let index = 0; index < volume.jobs; index += 1) {
+      const base = JOB_TEMPLATES[index % JOB_TEMPLATES.length];
+      const level = Math.floor(index / JOB_TEMPLATES.length);
+      const template = {
+        ...base,
+        title:
+          level === 0
+            ? base.title
+            : `${base.title} — ${['Mid-level', 'Senior', 'Lead'][level - 1] ?? `Level ${level + 1}`}`,
+      };
+
       const description = `${company.name} is hiring a ${template.title}.
 
 Responsibilities
@@ -339,42 +400,62 @@ Requirements
   }
   console.log(`✓ employers: ${COMPANIES.length}, jobs: ${jobs.length}`);
 
-  // ── Applications (exact status distribution) ──────────────────────────────
+  // ── Applications (exact per-company distribution) ─────────────────────────
   const jobIds = jobs.map((job) => job.id);
 
   // Re-runnable: drop the applications previously created for these demo jobs.
   await prisma.application.deleteMany({ where: { jobId: { in: jobIds } } });
 
-  // 30 jobs × 16 students = 480 candidate pairs; step 13 (coprime with 480)
-  // walks them without repeats and keeps every job/student mix realistic.
-  const allPairs: Array<{ job: (typeof jobs)[number]; student: (typeof students)[number] }> = [];
-  for (const job of jobs) {
-    for (const student of students) allPairs.push({ job, student });
-  }
-
-  const selected: typeof allPairs = [];
+  // Each company only receives applications for ITS OWN jobs, so an employer
+  // logging in sees exactly the spec numbers (87/45/28/22/18).
+  const selected: Array<{ job: (typeof jobs)[number]; student: (typeof students)[number] }> = [];
   const seenPairs = new Set<string>();
-  let cursor = 0;
-  while (selected.length < 80 && cursor < allPairs.length * 4) {
-    const pair = allPairs[(cursor * 13) % allPairs.length];
-    cursor += 1;
-    const key = `${pair.job.id}:${pair.student.id}`;
-    if (seenPairs.has(key)) continue;
-    seenPairs.add(key);
-    selected.push(pair);
+
+  for (const company of COMPANIES) {
+    const wanted = COMPANY_VOLUME[company.name]?.applications ?? 0;
+    const companyPairs = jobs
+      .filter((job) => job.companyName === company.name)
+      .flatMap((job) => students.map((student) => ({ job, student })));
+
+    let taken = 0;
+    // Round-robin across the company's jobs so EVERY posting receives
+    // applicants (87 apps → ~7 per job at Brain Station 23), instead of
+    // filling the first jobs and leaving the rest at zero.
+    const byJob = new Map<string, Array<{ job: (typeof jobs)[number]; student: (typeof students)[number] }>>();
+    for (const pair of companyPairs) {
+      const list = byJob.get(pair.job.id) ?? [];
+      list.push(pair);
+      byJob.set(pair.job.id, list);
+    }
+
+    let round = 0;
+    while (taken < wanted) {
+      let progressed = false;
+      for (const list of byJob.values()) {
+        if (taken >= wanted) break;
+        const pair = list[round];
+        if (!pair) continue;
+        const key = `${pair.job.id}:${pair.student.id}`;
+        if (seenPairs.has(key)) continue;
+        seenPairs.add(key);
+        selected.push(pair);
+        taken += 1;
+        progressed = true;
+      }
+      if (!progressed) break;
+      round += 1;
+    }
   }
 
-  // Round-robin the plan so every pipeline column shows a mix of jobs.
-  const statusQueue: string[] = [];
-  const planCursor = STATUS_PLAN.map((plan) => ({ ...plan }));
-  let planIndex = 0;
-  while (statusQueue.length < 80) {
-    const entry = planCursor[planIndex % planCursor.length];
-    if (entry.count > 0) {
-      statusQueue.push(entry.status);
-      entry.count -= 1;
-    }
-    planIndex += 1;
+  // One proportional status queue per company.
+  const statusQueues = new Map<string, string[]>();
+  const statusCursors = new Map<string, number>();
+  for (const company of COMPANIES) {
+    statusQueues.set(
+      company.name,
+      buildStatusQueue(COMPANY_VOLUME[company.name]?.applications ?? 0)
+    );
+    statusCursors.set(company.name, 0);
   }
 
   const created: Array<{
@@ -386,7 +467,11 @@ Requirements
   }> = [];
 
   for (const [index, pair] of selected.entries()) {
-    const status = statusQueue[index];
+    // Per-company status (interleaved so each pipeline column stays mixed).
+    const companyQueue = statusQueues.get(pair.job.companyName) ?? [];
+    const companyCursor = statusCursors.get(pair.job.companyName) ?? 0;
+    const status = companyQueue[companyCursor] ?? 'APPLIED';
+    statusCursors.set(pair.job.companyName, companyCursor + 1);
     const appliedAt = daysAgo(75 - (index % 70));
     const progressed = status !== 'APPLIED';
     const reviewedAt = progressed ? daysAgo(Math.max(1, 70 - (index % 70))) : null;

@@ -18,7 +18,8 @@ export type UploadResourceType = StoredResourceType | 'auto';
 export const CLOUDINARY_FOLDERS = {
   profilePhotos: 'nubjobs/profile-photos',
   resumes: 'nubjobs/resumes',
-  companyLogos: 'nubjobs/company-logos',
+  // Company logos live under nubjobs/images/* (spec path).
+  companyLogos: 'nubjobs/images/company-logos',
   verificationDocuments: 'nubjobs/verification-documents',
   smokeTests: 'nubjobs/tests',
 } as const;
