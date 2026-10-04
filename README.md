@@ -186,7 +186,11 @@ curl http://localhost:5000/api/health
 | `npm run lint` | Type-check with `tsc --noEmit` |
 | `npm run prisma:generate` | Generate Prisma client |
 | `npm run prisma:migrate` | Run `prisma migrate dev` |
+| `npm run prisma:seed:applications` | Seed demo employers, jobs and applications |
 | `npm run prisma:studio` | Open Prisma Studio |
+| `npm run test:cloudinary` | Verify Cloudinary credentials end-to-end |
+| `npm run test:google-oauth` | Google OAuth service smoke test (state, consent URL, user upsert) |
+| `npm run test:google-oauth:http` | Google OAuth live route checks (server must be running) |
 
 ### Client (`/client`)
 
@@ -203,7 +207,7 @@ curl http://localhost:5000/api/health
 
 See [`server/.env.example`](server/.env.example) and [`client/.env.local.example`](client/.env.local.example) for the full list. Key server variables:
 
-`DATABASE_URL`, `JWT_SECRET`, `JWT_REFRESH_SECRET`, `JWT_EXPIRES_IN`, `JWT_REFRESH_EXPIRES_IN`, `CLOUDINARY_*`, `RESEND_API_KEY`, `ANTHROPIC_API_KEY`, `CLIENT_URL`, `PORT`, `NODE_ENV`.
+`DATABASE_URL`, `JWT_SECRET`, `JWT_REFRESH_SECRET`, `JWT_EXPIRES_IN`, `JWT_REFRESH_EXPIRES_IN`, `CLOUDINARY_*`, `RESEND_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_CALLBACK_URL`, `CLIENT_URL`, `PORT`, `NODE_ENV`.
 
 ### Cloudinary file uploads
 
@@ -234,6 +238,31 @@ cd server && npm run test:cloudinary
 | `POST` | `/api/company/verification-document` | Employer | `document` | PDF/DOC/DOCX · 5MB |
 
 Images are transformed on delivery (`q_auto,f_auto` + avatar/logo sizing); replacing a file deletes the previous asset from Cloudinary.
+
+### Continue with Google (OAuth 2.0)
+
+SDK-free authorization-code flow: the browser is redirected to Google, and the callback exchanges the `code`, reads the profile, upserts the user and hands a token pair back to the SPA (`/oauth/callback`). `state` is a base64url JSON blob carrying the role/intent (plus optional signup extras); it is re-validated server-side, so a tampered value can never escalate privileges.
+
+```bash
+# server/.env — Google Cloud Console → APIs & Services → Credentials → OAuth client ID (Web application)
+GOOGLE_CLIENT_ID="<your-client-id>.apps.googleusercontent.com"
+GOOGLE_CLIENT_SECRET="<your-client-secret>"
+GOOGLE_CALLBACK_URL="http://localhost:5000/api/auth/google/callback"
+```
+
+The redirect URI in the Google client **must match `GOOGLE_CALLBACK_URL` exactly** (add the production URL as well when deploying). New Google users get `provider: "google"`, `isEmailVerified: true` and a random password; an existing email account is auto-linked instead of duplicated; a duplicate NUB ID on signup is dropped rather than blocking sign-in.
+
+| Method | Endpoint | Purpose |
+| --- | --- | --- |
+| `GET` | `/api/auth/google` | Redirect to the Google consent screen (`?json=1` returns the URL instead) |
+| `GET` | `/api/auth/google/callback` | Exchange the code, upsert the user, redirect to `CLIENT_URL/oauth/callback` |
+
+Verify it without a browser (service-level, uses disposable accounts that are deleted afterwards):
+
+```bash
+cd server && npm run test:google-oauth        # state round-trip, consent URL, upsert/link/duplicate NUB ID
+cd server && npm run test:google-oauth:http   # live routes (needs `npm run dev` running): redirects + error paths
+```
 
 ---
 

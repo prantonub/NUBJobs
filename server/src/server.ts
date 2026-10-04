@@ -8,6 +8,7 @@ import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
 import { initializeSocket } from './lib/socket-server';
 import { getCloudinaryCloudName, isCloudinaryConfigured } from './lib/cloudinary';
+import { isGoogleConfigured } from './services/google-oauth.service';
 
 // Routes
 import authRoutes from './routes/auth.routes';
@@ -95,6 +96,11 @@ httpServer.listen(port, () => {
     isCloudinaryConfigured()
       ? `🖼️  Cloudinary uploads enabled (cloud: ${getCloudinaryCloudName()})`
       : '⚠️  Cloudinary not configured — file uploads will fail until CLOUDINARY_* is set in server/.env'
+  );
+  console.log(
+    isGoogleConfigured()
+      ? '🔐 Google sign-in enabled (/api/auth/google)'
+      : '⚠️  Google sign-in disabled — set GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET in server/.env'
   );
 });
 

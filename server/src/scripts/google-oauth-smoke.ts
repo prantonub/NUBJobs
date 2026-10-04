@@ -1,3 +1,5 @@
+import 'dotenv/config';
+
 /**
  * Live smoke test for the Google OAuth service (no browser, no Google network
  * calls). Verifies the pieces the callback depends on:
@@ -15,7 +17,9 @@ import { hashPassword } from '../utils/password.utils';
 import { generateAccessToken, verifyAccessToken } from '../utils/jwt.utils';
 import {
   buildConsentUrl,
+  buildErrorRedirect,
   buildState,
+  buildSuccessRedirect,
   parseState,
   upsertGoogleUser,
   type GoogleProfile,
@@ -89,6 +93,26 @@ async function main() {
     consentUrl.searchParams.get('scope')
   );
   check('consent URL echoes the state', consentUrl.searchParams.get('state') === state);
+
+  // ── 2b. redirect contract expected by client/src/app/oauth/callback ────────
+  const success = new URL(buildSuccessRedirect('access-123', 'refresh-456', true, 'EMPLOYER'));
+  const clientUrl = (process.env.CLIENT_URL || 'http://localhost:3000').replace(/\/$/, '');
+  check('success redirect targets the SPA callback', success.origin === new URL(clientUrl).origin, success.origin);
+  check('success redirect path is /oauth/callback', success.pathname === '/oauth/callback', success.pathname);
+  check('success redirect carries the access token', success.searchParams.get('accessToken') === 'access-123');
+  check('success redirect carries the refresh token', success.searchParams.get('refreshToken') === 'refresh-456');
+  check('success redirect flags a new user', success.searchParams.get('isNew') === 'true', success.searchParams.get('isNew'));
+  check('success redirect carries the role', success.searchParams.get('role') === 'EMPLOYER');
+
+  const signupError = new URL(buildErrorRedirect(true, 'Google sign-in was cancelled.'));
+  const loginError = new URL(buildErrorRedirect(false, 'Google sign-in was cancelled.'));
+  check('signup error returns to /register', signupError.pathname === '/register', signupError.pathname);
+  check('login error returns to /login', loginError.pathname === '/login', loginError.pathname);
+  check(
+    'error message is encoded in the query string',
+    signupError.searchParams.get('error') === 'Google sign-in was cancelled.',
+    signupError.searchParams.get('error')
+  );
 
   // ── 3. upsertGoogleUser ────────────────────────────────────────────────────
   const studentProfile = profile();

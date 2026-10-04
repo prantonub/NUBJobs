@@ -17,7 +17,9 @@
     "prisma:employer-identity": "ts-node prisma/update-employer-identity.ts",
     "prisma:employer-create": "ts-node prisma/create-employer.ts",
     "prisma:seed:applications": "ts-node prisma/seed-applications.ts",
-    "test:cloudinary": "ts-node src/scripts/cloudinary-smoke.ts"
+    "test:cloudinary": "ts-node src/scripts/cloudinary-smoke.ts",
+    "test:google-oauth": "ts-node src/scripts/google-oauth-smoke.ts",
+    "test:google-oauth:http": "ts-node src/scripts/google-oauth-http-smoke.ts"
   },
   "keywords": [
     "nubjobs",
