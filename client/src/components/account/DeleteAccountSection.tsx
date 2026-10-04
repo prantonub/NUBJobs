@@ -19,7 +19,12 @@ import {
 } from '@/components/ui/alert-dialog';
 
 interface DeleteAccountSectionProps {
-  /** Only render for this role (students use /profile, employers use company settings). */
+  /**
+   * Optional pin — e.g. the company settings tab only shows this to employers.
+   * Without it the card renders for every deletable role (student *and*
+   * employer); admins are excluded either way, so Google sign-ins of any
+   * student/employer role always see it on /settings.
+   */
   requiredRole?: 'STUDENT' | 'EMPLOYER';
 }
 
@@ -43,6 +48,9 @@ export const DeleteAccountSection: FC<DeleteAccountSectionProps> = ({ requiredRo
   const [error, setError] = useState<string | null>(null);
 
   if (!user) return null;
+  // Only student/employer accounts can ever be deleted here (admins are
+  // managed from the admin panel and get 403 from the server anyway).
+  if (user.role !== 'STUDENT' && user.role !== 'EMPLOYER') return null;
   if (requiredRole && user.role !== requiredRole) return null;
 
   const isGoogleAccount = user.provider === 'google';

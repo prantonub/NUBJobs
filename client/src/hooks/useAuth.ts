@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import api from '@/lib/axios';
+import api, { AUTH_EVENT } from '@/lib/axios';
 import { useEffect } from 'react';
 
 export interface User {
@@ -22,6 +22,20 @@ export interface AuthResponse {
  */
 export const useCurrentUser = () => {
   const hasToken = typeof window !== 'undefined' && !!localStorage.getItem('token');
+  const queryClient = useQueryClient();
+
+  // Token changes that bypass the login mutation must refresh this query too:
+  // Google OAuth stores its tokens via setAuthToken(), which only dispatches
+  // AUTH_EVENT. Without this listener a stale entry (e.g. `null` captured
+  // before the OAuth redirect) survives the whole `staleTime` window and
+  // role-gated UI fed by `user` never appears after a Google sign-in.
+  useEffect(() => {
+    const invalidateCurrentUser = () => {
+      queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+    };
+    window.addEventListener(AUTH_EVENT, invalidateCurrentUser);
+    return () => window.removeEventListener(AUTH_EVENT, invalidateCurrentUser);
+  }, [queryClient]);
 
   return useQuery({
     queryKey: ['currentUser'],
