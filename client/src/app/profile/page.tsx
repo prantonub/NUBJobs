@@ -16,6 +16,7 @@ import { Loader2, Plus, Trash2 } from 'lucide-react';
 import { getErrorMessage } from '@/lib/utils';
 import { FileUploadZone } from '@/components/ui/FileUploadZone';
 import { DOCUMENT_MIME_TYPES, IMAGE_MIME_TYPES } from '@/hooks/useFileUpload';
+import { DeleteAccountSection } from '@/components/account/DeleteAccountSection';
 
 const profileSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters').max(80, 'Name is too long'),
@@ -286,6 +287,9 @@ const ProfilePage: FC = () => {
             </Link>
           </div>
         </form>
+
+        {/* Danger zone — permanently delete the student account. */}
+        <DeleteAccountSection requiredRole="STUDENT" />
       </div>
     </div>
   );

@@ -22,6 +22,7 @@ import { DOCUMENT_MIME_TYPES, IMAGE_MIME_TYPES } from '@/hooks/useFileUpload';
 import { toast } from 'sonner';
 import { BadgeCheck, Clock, Loader2, Trash2 } from 'lucide-react';
 import { getErrorMessage } from '@/lib/utils';
+import { DeleteAccountSection } from '@/components/account/DeleteAccountSection';
 
 const CITIES = ['Dhaka', 'Chattogram', 'Sylhet', 'Khulna', 'Rajshahi', 'Barishal', 'Rangpur', 'Mymensingh', 'Remote'];
 const INDUSTRIES = [
@@ -436,6 +437,9 @@ export const CompanySettingsTab: FC = () => {
           </div>
         )}
       </Card>
+
+      {/* Danger zone — permanently delete the employer account. */}
+      <DeleteAccountSection requiredRole="EMPLOYER" />
     </div>
   );
 };

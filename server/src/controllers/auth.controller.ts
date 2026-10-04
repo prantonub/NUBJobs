@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import prisma from '../lib/prisma';
+import { removeStoredFile } from '../lib/cloudinary';
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../utils/jwt.utils';
 import { hashPassword, comparePassword, generateOTP, getOTPExpiry, isOTPValid } from '../utils/password.utils';
 import { responses } from '../utils/response.utils';
@@ -450,6 +451,85 @@ export async function googleAuthCallback(req: AuthRequest, res: Response, next: 
 }
 
 /**
+ * DELETE /api/auth/account
+ * Permanently delete the authenticated user's own account.
+ *
+ * Local accounts must send their current password in the body as
+ * `{ password }`. Google accounts (`provider: "google"`) have no usable
+ * password, so they must instead send `{ confirmEmail }` matching their own
+ * account email.
+ *
+ * Protected accounts are never deleted: admins/moderators, and the final
+ * remaining admin in the database (so the platform can always be managed).
+ * Related rows (profiles, applications, saved jobs, messages, notifications,
+ * events, RSVPs, jobs) are removed by the schema's `onDelete: Cascade` rules;
+ * uploaded files are deleted from Cloudinary first so no orphan assets remain.
+ */
+export async function deleteAccount(req: AuthRequest, res: Response, next: NextFunction) {
+  try {
+    const userId = req.userId;
+    if (!userId) {
+      return responses.unauthorized(res);
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        password: true,
+        provider: true,
+        studentProfile: { select: { photoUrl: true, resumeUrl: true } },
+        employerProfile: { select: { logoUrl: true, verificationDocument: true } },
+      },
+    });
+
+    if (!user) {
+      return responses.notFound(res, 'Account not found');
+    }
+
+    if (user.role !== 'STUDENT' && user.role !== 'EMPLOYER') {
+      // Admins/moderators are managed from the admin panel — never here, so an
+      // account with elevated privileges can't be removed through this flow.
+      return responses.forbidden(res, 'Only student and employer accounts can be deleted here');
+    }
+
+    const body = (req.body ?? {}) as { password?: unknown; confirmEmail?: unknown };
+    if (user.provider === 'google') {
+      const confirmEmail = typeof body.confirmEmail === 'string' ? body.confirmEmail.trim().toLowerCase() : '';
+      if (confirmEmail !== user.email.toLowerCase()) {
+        return responses.badRequest(res, 'Type your account email to confirm deletion');
+      }
+    } else {
+      const password = typeof body.password === 'string' ? body.password : '';
+      if (!password) {
+        return responses.badRequest(res, 'Your current password is required');
+      }
+      const matches = await comparePassword(password, user.password);
+      if (!matches) {
+        return responses.unauthorized(res, 'Incorrect password');
+      }
+    }
+
+    // Best effort: delete uploaded files before the DB rows disappear.
+    const uploadedFiles = [
+      user.studentProfile?.photoUrl,
+      user.studentProfile?.resumeUrl,
+      user.employerProfile?.logoUrl,
+      user.employerProfile?.verificationDocument,
+    ].filter((fileUrl): fileUrl is string => typeof fileUrl === 'string' && fileUrl.length > 0);
+    await Promise.all(uploadedFiles.map((fileUrl) => removeStoredFile(fileUrl)));
+
+    await prisma.user.delete({ where: { id: user.id } });
+
+    return responses.ok(res, 'Account deleted');
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
  * POST /api/auth/logout
  * Logout user (client-side token removal)
  */
@@ -479,6 +559,8 @@ export async function getMe(req: AuthRequest, res: Response, next: NextFunction)
         name: true,
         role: true,
         isEmailVerified: true,
+        // "local" vs "google" — drives how the client confirms account deletion.
+        provider: true,
         createdAt: true,
         // Used by the navbar / sidebar avatar.
         studentProfile: { select: { photoUrl: true } },

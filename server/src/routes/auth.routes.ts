@@ -8,6 +8,7 @@ import {
   refresh,
   forgotPassword,
   resetPassword,
+  deleteAccount,
   logout,
   getMe,
   resendOTP,
@@ -75,5 +76,6 @@ router.get('/google/callback', rateLimit(30, 15 * 60 * 1000), googleAuthCallback
 // Protected routes
 router.post('/logout', authenticate, logout);
 router.get('/me', authenticate, getMe);
+router.delete('/account', rateLimit(5, 15 * 60 * 1000), authenticate, deleteAccount);
 
 export default router;

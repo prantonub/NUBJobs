@@ -7,6 +7,8 @@ export interface AppUser {
   email: string;
   name: string;
   role: UserRole;
+  /** `"local"` or `"google"` — decides how account deletion is confirmed. */
+  provider?: string;
   /** Profile photo (students) or company logo (employers). */
   avatar?: string | null;
   photoUrl?: string | null;
@@ -31,6 +33,9 @@ export const authApi = {
   refresh: (refreshToken?: string) => api.post('/auth/refresh', { refreshToken: refreshToken ?? localStorage.getItem('refreshToken') }),
   logout: () => api.post('/auth/logout'),
   me: () => api.get('/auth/me'),
+  /** Permanently delete the signed-in user's own account. */
+  deleteAccount: (payload: { password?: string; confirmEmail?: string }) =>
+    api.delete('/auth/account', { data: payload }),
   forgotPassword: (email: string) => api.post('/auth/forgot-password', { email }),
   resetPassword: (payload: { email: string; otp: string; newPassword: string }) => api.post('/auth/reset-password', payload),
   resendOtp: (email: string) => api.post('/auth/resend-otp', { email }),
