@@ -5,6 +5,7 @@ import Link from 'next/link';
 import {
   useCompanyProfile,
   useEmployerApplicationsList,
+  useEmployerDashboard,
   useEmployerJobs,
   useEmployerStats,
   useVerificationStatus,
@@ -26,6 +27,9 @@ import { Briefcase, Eye, TrendingUp, Users } from 'lucide-react';
  */
 const EmployerDashboardPage: FC = () => {
   const { data: stats } = useEmployerStats();
+  // Spec endpoint: overview (total jobs / applications / hired / views this
+  // month) + hiring metrics for the cards below.
+  const { data: dashboard } = useEmployerDashboard();
   const { data: company } = useCompanyProfile();
   const { data: verification } = useVerificationStatus();
   const { data: jobsData } = useEmployerJobs({ limit: 5 });
@@ -49,7 +53,7 @@ const EmployerDashboardPage: FC = () => {
     { label: 'Total Jobs Posted', value: stats?.totalJobs ?? 0, icon: Briefcase, color: 'bg-blue-500' },
     { label: 'Total Applications', value: stats?.totalApplications ?? 0, icon: Users, color: 'bg-purple-500' },
     { label: 'Hired Candidates', value: stats?.statusCounts?.HIRED ?? 0, icon: TrendingUp, color: 'bg-green-500' },
-    { label: 'Active Jobs', value: stats?.activeJobs ?? 0, icon: Eye, color: 'bg-orange-500' },
+    { label: 'Views This Month', value: dashboard?.overview?.viewsThisMonth ?? 0, icon: Eye, color: 'bg-orange-500' },
   ];
 
   return (
@@ -107,6 +111,7 @@ const EmployerDashboardPage: FC = () => {
                   <tr>
                     <th className="py-2 font-medium">Job Title</th>
                     <th className="py-2 font-medium">Applications</th>
+                    <th className="py-2 font-medium">Views</th>
                     <th className="py-2 font-medium">Status</th>
                     <th className="py-2 font-medium">Posted</th>
                   </tr>
@@ -120,6 +125,7 @@ const EmployerDashboardPage: FC = () => {
                         </Link>
                       </td>
                       <td className="py-2">{job._count?.applications ?? 0}</td>
+                      <td className="py-2">{job.views ?? 0}</td>
                       <td className="py-2">
                         <StatusBadge status={job.status} />
                       </td>

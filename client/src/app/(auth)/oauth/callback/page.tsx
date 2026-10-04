@@ -99,6 +99,8 @@ function GoogleCallbackInner() {
         const user = data?.data?.user ?? data?.user;
         if (!user) throw new Error("No user in response");
         if (user.role === "ADMIN") router.replace("/admin");
+        // Spec: employers (new sign-ups included) land on their workspace.
+        else if (user.role === "EMPLOYER") router.replace("/employer/dashboard");
         else router.replace("/dashboard");
       })
       .catch(() => {

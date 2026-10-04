@@ -517,3 +517,85 @@ export const useEmployerCompany = useCompanyProfile;
 export const useUpdateCompany = useUpdateCompanyProfile;
 /** Alias of `useCompanyAnalytics` (GET /api/employer/company/stats). */
 export const useEmployerAnalytics = useCompanyAnalytics;
+
+// ── Spec endpoints ───────────────────────────────────────────────────────────
+
+/**
+ * GET /api/employer/dashboard — spec-shaped overview
+ * `{ overview, recentJobs, recentApplications, stats, … }`.
+ */
+export const useEmployerDashboard = () => {
+  return useQuery({
+    queryKey: ['employerDashboard'],
+    queryFn: async () => {
+      const { data } = await api.get('/employer/dashboard');
+      return data.data;
+    },
+  });
+};
+
+/** GET /api/employer/pipeline — grouped kanban payload (own jobs only). */
+export const useEmployerPipeline = (jobId?: string) => useEmployerApplications({ jobId });
+
+/**
+ * PATCH /api/jobs/:id/feature — toggle the featured flag on an ACTIVE job
+ * (ownership enforced server-side).
+ */
+export const useFeatureJob = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, featured }: { id: string; featured: boolean }) => {
+      const { data } = await api.patch(`/jobs/${id}/feature`, { featured });
+      return data.data;
+    },
+    onSuccess: () => {
+      for (const queryKey of [
+        ['employerJobs'],
+        ['employerDashboard'],
+        ['employerStats'],
+        ['jobs'],
+      ]) {
+        queryClient.invalidateQueries({ queryKey });
+      }
+    },
+  });
+};
+
+/** GET /api/employer/messages — conversation list for this company. */
+export const useEmployerMessages = () => {
+  return useQuery({
+    queryKey: ['employerMessages'],
+    queryFn: async () => {
+      const { data } = await api.get('/employer/messages');
+      return data.data as any[];
+    },
+    staleTime: 15 * 1000,
+  });
+};
+
+/** GET /api/employer/messages/:studentId — full thread + student profile. */
+export const useEmployerMessageThread = (studentId?: string | null) => {
+  return useQuery({
+    queryKey: ['employerMessageThread', studentId ?? null],
+    queryFn: async () => {
+      const { data } = await api.get(`/employer/messages/${studentId}`);
+      return data.data;
+    },
+    enabled: Boolean(studentId),
+  });
+};
+
+/** POST /api/employer/messages/:studentId — send (server emits `new_message`). */
+export const useSendEmployerMessage = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ studentId, message }: { studentId: string; message: string }) => {
+      const { data } = await api.post(`/employer/messages/${studentId}`, { message });
+      return data.data;
+    },
+    onSuccess: (_result, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['employerMessageThread', variables.studentId] });
+      queryClient.invalidateQueries({ queryKey: ['employerMessages'] });
+    },
+  });
+};

@@ -42,6 +42,12 @@ export interface DashboardLayoutProps {
   title?: string;
   breadcrumbs?: Breadcrumb[];
   nav?: DashboardNavItem[];
+  /**
+   * Optional block rendered at the very top of the sidebar (desktop aside and
+   * the mobile Sheet). The employer shell uses it for the company logo, name
+   * and verification badge.
+   */
+  sidebarTop?: React.ReactNode;
 }
 
 const DEFAULT_NAV: DashboardNavItem[] = [
@@ -117,6 +123,7 @@ export function DashboardLayout({
   title,
   breadcrumbs,
   nav = DEFAULT_NAV,
+  sidebarTop,
 }: DashboardLayoutProps) {
   const pathname = usePathname() ?? "";
   const { user, logout } = useAuth();
@@ -155,7 +162,7 @@ export function DashboardLayout({
   return (
     <div className="flex min-h-screen bg-muted/30">
       <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-border bg-background md:flex">
-        <div className="h-4 shrink-0" />
+        {sidebarTop ?? <div className="h-4 shrink-0" />}
         <SidebarNav nav={nav} pathname={pathname} />
         {userBlock}
       </aside>
@@ -178,7 +185,7 @@ export function DashboardLayout({
                 <SheetTitle className="sr-only">Navigation</SheetTitle>
               </SheetHeader>
               <div className="flex h-full flex-col">
-                <div className="h-4 shrink-0" />
+                {sidebarTop ?? <div className="h-4 shrink-0" />}
                 <SidebarNav
                   nav={nav}
                   pathname={pathname}

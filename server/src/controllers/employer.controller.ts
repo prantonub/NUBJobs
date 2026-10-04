@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import prisma from '../lib/prisma';
 import { responses } from '../utils/response.utils';
 import { matchBreakdown } from '../utils/match.utils';
+import { emitToUser } from '../lib/socket-server';
 import {
   PIPELINE_TRANSITIONS,
   buildApplicationTimeline,
@@ -533,3 +534,356 @@ export async function scheduleInterview(req: AuthRequest, res: Response, next: N
     next(error);
   }
 }
+
+// ════════════════════════════════════════════════════════════════════════════
+// Employer dashboard overview (GET /api/employer/dashboard)
+// ════════════════════════════════════════════════════════════════════════════
+
+/**
+ * GET /api/employer/dashboard
+ * Spec-shaped overview for the main employer dashboard. Every query is scoped
+ * to `employerId`, so a company only ever sees its own numbers.
+ */
+export async function getEmployerDashboard(req: AuthRequest, res: Response, next: NextFunction) {
+  try {
+    const userId = req.userId;
+    if (!userId) return responses.unauthorized(res);
+
+    const employer = await prisma.employerProfile.findUnique({
+      where: { userId },
+      select: { id: true, companyName: true, logoUrl: true, isVerified: true },
+    });
+    if (!employer) return responses.notFound(res, 'Employer profile not found');
+
+    const monthStart = new Date();
+    monthStart.setDate(1);
+    monthStart.setHours(0, 0, 0, 0);
+    const DAY_MS = 24 * 60 * 60 * 1000;
+
+    const [totalJobs, totalApplications, statusGroups, recentJobsRaw, recentApplicationsRaw, hiredRows, monthJobs] =
+      await Promise.all([
+        prisma.job.count({ where: { employerId: employer.id } }),
+        prisma.application.count({ where: { job: { employerId: employer.id } } }),
+        prisma.application.groupBy({
+          by: ['status'],
+          where: { job: { employerId: employer.id } },
+          _count: { _all: true },
+        }),
+        prisma.job.findMany({
+          where: { employerId: employer.id },
+          orderBy: { createdAt: 'desc' },
+          take: 5,
+          select: {
+            id: true,
+            title: true,
+            status: true,
+            views: true,
+            applicantCount: true,
+            createdAt: true,
+            _count: { select: { applications: true } },
+          },
+        }),
+        prisma.application.findMany({
+          where: { job: { employerId: employer.id } },
+          orderBy: { createdAt: 'desc' },
+          take: 5,
+          select: {
+            id: true,
+            status: true,
+            matchScore: true,
+            createdAt: true,
+            student: { select: { user: { select: { name: true } } } },
+            job: { select: { title: true } },
+          },
+        }),
+        prisma.application.findMany({
+          where: { job: { employerId: employer.id }, status: 'HIRED' },
+          select: { createdAt: true, updatedAt: true },
+          take: 500,
+        }),
+        prisma.job.findMany({
+          where: { employerId: employer.id, createdAt: { gte: monthStart } },
+          select: { views: true },
+        }),
+      ]);
+
+    const statusCounts: Record<string, number> = {
+      APPLIED: 0,
+      REVIEWED: 0,
+      SHORTLISTED: 0,
+      INTERVIEWED: 0,
+      HIRED: 0,
+      REJECTED: 0,
+    };
+    for (const row of statusGroups) {
+      if (row.status in statusCounts) statusCounts[row.status] = row._count._all;
+    }
+
+    const hired = statusCounts.HIRED ?? 0;
+    // Views are tracked per job only, so "this month" = views on postings
+    // created within the current calendar month.
+    const viewsThisMonth = monthJobs.reduce((sum, job) => sum + job.views, 0);
+    const acceptanceRate =
+      totalApplications > 0 ? `${((hired / totalApplications) * 100).toFixed(1)}%` : '0.0%';
+    const avgDays =
+      hiredRows.length > 0
+        ? Math.max(
+            1,
+            Math.round(
+              hiredRows.reduce((sum, row) => sum + (row.updatedAt.getTime() - row.createdAt.getTime()) / DAY_MS, 0) /
+                hiredRows.length
+            )
+          )
+        : null;
+
+    return responses.ok(res, 'Dashboard fetched', {
+      overview: { totalJobs, totalApplications, hired, viewsThisMonth },
+      recentJobs: recentJobsRaw.map((job) => ({
+        id: job.id,
+        title: job.title,
+        status: job.status,
+        applicants: job._count.applications ?? job.applicantCount,
+        views: job.views,
+        postedAt: job.createdAt,
+      })),
+      recentApplications: recentApplicationsRaw.map((application) => ({
+        id: application.id,
+        studentName: application.student?.user?.name ?? 'Candidate',
+        jobTitle: application.job?.title ?? '',
+        status: application.status,
+        matchScore: application.matchScore,
+        appliedAt: application.createdAt,
+      })),
+      stats: {
+        avgTimeToHire: avgDays !== null ? `${avgDays} days` : 'N/A',
+        acceptanceRate,
+      },
+      // Extras for the dashboard page (chart + header) — a superset of the
+      // spec payload, so /dashboard/stats consumers keep working too.
+      statusCounts,
+      companyName: employer.companyName,
+      logoUrl: employer.logoUrl,
+      isVerified: employer.isVerified,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// Employer messaging (GET/POST /api/employer/messages[...])
+// ════════════════════════════════════════════════════════════════════════════
+
+/** Resolve this employer's most recent application with a student (profile id OR user id accepted). */
+async function findMyApplicationWithStudent(employerId: string, studentParam: string) {
+  return prisma.application.findFirst({
+    where: {
+      job: { employerId },
+      OR: [{ studentId: studentParam }, { student: { userId: studentParam } }],
+    },
+    orderBy: { updatedAt: 'desc' },
+    include: {
+      student: {
+        select: {
+          id: true,
+          photoUrl: true,
+          cgpa: true,
+          department: true,
+          skills: true,
+          resumeUrl: true,
+          user: { select: { id: true, name: true, email: true } },
+        },
+      },
+      job: { select: { id: true, title: true } },
+    },
+  });
+}
+
+/**
+ * GET /api/employer/messages
+ * Conversation list for the signed-in company: one entry per student who has
+ * applied to any of the employer's jobs, sorted by most recent activity.
+ */
+export async function getEmployerMessages(req: AuthRequest, res: Response, next: NextFunction) {
+  try {
+    const userId = req.userId;
+    if (!userId) return responses.unauthorized(res);
+
+    const employer = await prisma.employerProfile.findUnique({
+      where: { userId },
+      select: { id: true },
+    });
+    if (!employer) return responses.notFound(res, 'Employer profile not found');
+
+    const [applications, unreadGroups] = await Promise.all([
+      prisma.application.findMany({
+        where: { job: { employerId: employer.id } },
+        orderBy: { updatedAt: 'desc' },
+        select: {
+          id: true,
+          updatedAt: true,
+          studentId: true,
+          job: { select: { id: true, title: true } },
+          student: {
+            select: { id: true, photoUrl: true, user: { select: { id: true, name: true } } },
+          },
+          messages: {
+            orderBy: { createdAt: 'desc' },
+            take: 1,
+            select: { content: true, createdAt: true, senderId: true },
+          },
+        },
+      }),
+      // Unread messages sent TO the employer, per conversation.
+      prisma.message.groupBy({
+        by: ['applicationId'],
+        where: {
+          isRead: false,
+          senderId: { not: userId },
+          application: { job: { employerId: employer.id } },
+        },
+        _count: { _all: true },
+      }),
+    ]);
+
+    const unreadByApplication = new Map<string, number>();
+    for (const row of unreadGroups) unreadByApplication.set(row.applicationId, row._count._all);
+
+    // One row per student; extra applications only fold in their unread counts.
+    const byStudent = new Map<string, any>();
+    for (const application of applications) {
+      const studentUserId = application.student.user.id;
+      const unread = unreadByApplication.get(application.id) ?? 0;
+      const existing = byStudent.get(studentUserId);
+      if (existing) {
+        existing.unreadCount += unread;
+        continue;
+      }
+      const last = application.messages[0];
+      byStudent.set(studentUserId, {
+        studentId: application.student.id,
+        studentUserId,
+        studentName: application.student.user.name,
+        studentPhoto: application.student.photoUrl,
+        applicationId: application.id,
+        jobTitle: application.job.title,
+        lastMessage: last?.content ?? null,
+        lastMessageTime: last?.createdAt ?? application.updatedAt,
+        unreadCount: unread,
+      });
+    }
+
+    const conversations = Array.from(byStudent.values()).sort(
+      (a, b) => new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime()
+    );
+
+    return responses.ok(res, 'Conversations fetched', conversations);
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * GET /api/employer/messages/:studentId
+ * Full thread with one student (all of their applications to this company).
+ * `:studentId` accepts either the student-profile id or the user id.
+ */
+export async function getEmployerMessageThread(req: AuthRequest, res: Response, next: NextFunction) {
+  try {
+    const userId = req.userId;
+    if (!userId) return responses.unauthorized(res);
+
+    const employer = await prisma.employerProfile.findUnique({
+      where: { userId },
+      select: { id: true },
+    });
+    if (!employer) return responses.notFound(res, 'Employer profile not found');
+
+    const rawParam = Array.isArray(req.params.studentId)
+      ? String(req.params.studentId[0])
+      : String(req.params.studentId ?? '');
+    const primary = await findMyApplicationWithStudent(employer.id, rawParam);
+    if (!primary) return responses.notFound(res, 'No conversation with this student');
+
+    const ownedApps = await prisma.application.findMany({
+      where: { job: { employerId: employer.id }, studentId: primary.studentId },
+      select: { id: true },
+    });
+    const applicationIds = ownedApps.map((application) => application.id);
+
+    const messages = await prisma.message.findMany({
+      where: { applicationId: { in: applicationIds } },
+      include: { sender: { select: { id: true, name: true, email: true } } },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    // Opening the thread marks the student's messages as read.
+    await prisma.message.updateMany({
+      where: { applicationId: { in: applicationIds }, senderId: { not: userId }, isRead: false },
+      data: { isRead: true },
+    });
+
+    return responses.ok(res, 'Thread fetched', {
+      messages,
+      applicationId: primary.id,
+      jobTitle: primary.job.title,
+      studentProfile: primary.student,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * POST /api/employer/messages/:studentId
+ * Send a message to a student who applied to the employer's job. Emits
+ * `new_message` to the student's user room for real-time delivery.
+ */
+export async function sendEmployerMessage(req: AuthRequest, res: Response, next: NextFunction) {
+  try {
+    const userId = req.userId;
+    if (!userId) return responses.unauthorized(res);
+
+    const employer = await prisma.employerProfile.findUnique({
+      where: { userId },
+      select: { id: true },
+    });
+    if (!employer) return responses.notFound(res, 'Employer profile not found');
+
+    const rawParam = Array.isArray(req.params.studentId)
+      ? String(req.params.studentId[0])
+      : String(req.params.studentId ?? '');
+    const application = await findMyApplicationWithStudent(employer.id, rawParam);
+    if (!application) {
+      return responses.notFound(res, 'This student has not applied to your jobs');
+    }
+
+    const body = (req.body ?? {}) as { message?: unknown; content?: unknown };
+    const content =
+      typeof body.message === 'string' && body.message.trim()
+        ? body.message.trim()
+        : typeof body.content === 'string' && body.content.trim()
+          ? body.content.trim()
+          : '';
+    if (!content) return responses.badRequest(res, 'Message text is required');
+
+    const message = await prisma.message.create({
+      data: { applicationId: application.id, senderId: userId, content, isRead: false },
+      include: { sender: { select: { id: true, name: true, email: true } } },
+    });
+
+    // Real-time delivery to the student (their socket joins `user_<id>`).
+    emitToUser(application.student.user.id, 'new_message', {
+      message,
+      applicationId: application.id,
+      conversationId: application.id,
+      sender: { id: userId, name: message.sender.name },
+    });
+
+    return responses.created(res, 'Message sent', message);
+  } catch (error) {
+    next(error);
+  }
+}
+
+

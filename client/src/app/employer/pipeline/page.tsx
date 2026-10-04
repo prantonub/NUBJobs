@@ -1,7 +1,7 @@
 'use client';
 
 import { FC, useState } from 'react';
-import { useEmployerApplications, useUpdateApplicationStatus } from '@/hooks/useEmployer';
+import { useEmployerApplications, useEmployerJobs, useUpdateApplicationStatus } from '@/hooks/useEmployer';
 import { useApplicationRealtime } from '@/hooks/useApplicationRealtime';
 import {
   DndContext,
@@ -134,7 +134,14 @@ const KanbanColumn: FC<{
 };
 
 const ApplicantPipelinePage: FC = () => {
-  const { data: applicationsData } = useEmployerApplications();
+  // Spec filters: by job (server-side) and by application month (client-side
+  // slice over the already employer-scoped rows).
+  const [jobFilter, setJobFilter] = useState('ALL');
+  const [monthFilter, setMonthFilter] = useState('ALL');
+  const { data: jobsData } = useEmployerJobs({ limit: 50 });
+  const { data: applicationsData } = useEmployerApplications({
+    jobId: jobFilter === 'ALL' ? undefined : jobFilter,
+  });
   const updateStatusMutation = useUpdateApplicationStatus();
   const [selectedApp, setSelectedApp] = useState<any>(null);
 
@@ -157,10 +164,21 @@ const ApplicantPipelinePage: FC = () => {
     REJECTED: [],
   };
 
+  const monthMatches = (value?: string | Date) => {
+    if (monthFilter === 'ALL') return true;
+    const date = value ? new Date(value) : null;
+    if (!date || Number.isNaN(date.getTime())) return true;
+    const monthsBack = Number(monthFilter);
+    const cutoff = new Date(new Date().getFullYear(), new Date().getMonth() - (monthsBack - 1), 1);
+    return date >= cutoff;
+  };
+
   if (applicationsData) {
     Object.entries(applicationsData).forEach(([status, apps]: [string, any]) => {
       if (status in groupedApps) {
-        groupedApps[status] = apps;
+        groupedApps[status] = (Array.isArray(apps) ? apps : []).filter((app: any) =>
+          monthMatches(app.createdAt ?? app.appliedAt)
+        );
       }
     });
   }
@@ -200,6 +218,34 @@ const ApplicantPipelinePage: FC = () => {
         <div className="mb-8">
           <h1 className="text-3xl font-bold">Applicant Pipeline</h1>
           <p className="text-gray-600 mt-2">Drag applications between columns to update status</p>
+        </div>
+
+        {/* Filters: by job and by application month */}
+        <div className="mb-6 flex flex-wrap items-center gap-3">
+          <select
+            value={jobFilter}
+            onChange={(event) => setJobFilter(event.target.value)}
+            className="rounded border bg-background px-3 py-2 text-sm"
+            aria-label="Filter by job"
+          >
+            <option value="ALL">All Jobs</option>
+            {(jobsData?.data ?? []).map((job: any) => (
+              <option key={job.id} value={job.id}>
+                {job.title}
+              </option>
+            ))}
+          </select>
+          <select
+            value={monthFilter}
+            onChange={(event) => setMonthFilter(event.target.value)}
+            className="rounded border bg-background px-3 py-2 text-sm"
+            aria-label="Filter by month"
+          >
+            <option value="ALL">All time</option>
+            <option value="1">Last month</option>
+            <option value="3">Last 3 months</option>
+            <option value="6">Last 6 months</option>
+          </select>
         </div>
 
         <DndContext

@@ -1,10 +1,14 @@
 import { Router } from 'express';
 import {
   getEmployerStats,
+  getEmployerDashboard,
   getEmployerJobs,
   getEmployerJobDetail,
   getEmployerApplications,
   getApplicationDetail,
+  getEmployerMessages,
+  getEmployerMessageThread,
+  sendEmployerMessage,
   scheduleInterview,
 } from '../controllers/employer.controller';
 import {
@@ -65,6 +69,24 @@ router.get('/verification-status', getVerificationStatus);
 
 // ── Dashboard ───────────────────────────────────────────────────────────────
 router.get('/dashboard/stats', getEmployerStats);
+// Spec endpoint: overview + recent jobs/applications + hiring metrics.
+router.get('/dashboard', getEmployerDashboard);
+
+// ── Kanban pipeline (grouped applications for the employer's OWN jobs) ──────
+// Same handler as GET /applications (view=kanban): grouped by status with
+// student skills/CGPA/match score, always filtered by `employerId`.
+router.get('/pipeline', getEmployerApplications);
+
+// ── Analytics (same payload as /company/stats: overview, charts, metrics) ──
+router.get('/analytics', getCompanyAnalytics);
+
+// ── Messaging (scoped to students who applied to this employer's jobs) ──────
+const sendMessageToStudentSchema = z.object({
+  message: z.string().min(1).max(5000),
+});
+router.get('/messages', getEmployerMessages);
+router.get('/messages/:studentId', getEmployerMessageThread);
+router.post('/messages/:studentId', validate(sendMessageToStudentSchema), sendEmployerMessage);
 
 // ── Jobs ────────────────────────────────────────────────────────────────────
 router.get('/jobs', getEmployerJobs);

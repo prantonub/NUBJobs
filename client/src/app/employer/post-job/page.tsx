@@ -1,8 +1,8 @@
 'use client';
 
-import { FC, useState } from 'react';
+import { FC, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useCreateJob, usePostJob, useImproveDescription } from '@/hooks/useEmployer';
+import { useCreateJob, usePostJob, useImproveDescription, useUpdateJob } from '@/hooks/useEmployer';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -116,6 +116,58 @@ const JobPostingWizard: FC = () => {
   const handlePublish = () => void submitJob('publish');
 
   const handleSaveDraft = () => void submitJob('draft');
+
+  // ── Auto-save (spec): persist in-progress forms as DRAFT every 30 seconds.
+  // The FIRST tick creates the draft; later ticks UPDATE that same job so the
+  // list never fills with duplicates. Too-thin forms (below the client mins)
+  // and in-flight submits are skipped, and failures stay silent — the manual
+  // "Save as Draft" button is where real validation errors surface.
+  const updateDraftMutation = useUpdateJob();
+  const formDataRef = useRef(formData);
+  const saveDraftRef = useRef(saveDraftMutation);
+  const updateDraftRef = useRef(updateDraftMutation);
+  const autoDraftIdRef = useRef<string | null>(null);
+  const autoSavingRef = useRef(false);
+  const lastAutoSavedRef = useRef(0);
+
+  useEffect(() => {
+    formDataRef.current = formData;
+    saveDraftRef.current = saveDraftMutation;
+    updateDraftRef.current = updateDraftMutation;
+  });
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      if (autoSavingRef.current) return;
+      if (Date.now() - lastAutoSavedRef.current < 30_000) return;
+
+      const current = formDataRef.current;
+      if (current.title.trim().length < 10 || current.description.trim().length < 50) return;
+
+      const payload = buildJobPayload(current);
+      if (Object.keys(validateJobPayload(payload)).length > 0) return;
+
+      autoSavingRef.current = true;
+      void (async () => {
+        try {
+          if (autoDraftIdRef.current) {
+            await updateDraftRef.current.mutateAsync({ id: autoDraftIdRef.current, ...payload });
+          } else {
+            const created = await saveDraftRef.current.mutateAsync(payload);
+            autoDraftIdRef.current = created?.id ?? null;
+            toast.success('Draft auto-saved. You can edit it later under My Jobs.');
+          }
+          lastAutoSavedRef.current = Date.now();
+        } catch {
+          // Silent by design — auto-save must never interrupt typing.
+        } finally {
+          autoSavingRef.current = false;
+        }
+      })();
+    }, 30_000);
+
+    return () => window.clearInterval(interval);
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">

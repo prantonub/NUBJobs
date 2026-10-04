@@ -50,6 +50,20 @@ router.patch(
   validate(jobStatusActionSchema),
   updateJobStatus
 );
+// Spec verbs: PATCH /api/jobs/:id/close { reason? } and
+// PATCH /api/jobs/:id/feature { featured }. Both adapt onto the ONE
+// ownership-checked `updateJobStatus` implementation (employerId verified,
+// close allowed on any live posting, feature only on ACTIVE jobs).
+router.patch('/:id/close', authenticate, requireRole('EMPLOYER'), (req, _res, next) => {
+  // `reason` is accepted for spec compatibility; Job has no column for it.
+  req.body = { action: 'close' };
+  next();
+}, updateJobStatus);
+router.patch('/:id/feature', authenticate, requireRole('EMPLOYER'), (req, _res, next) => {
+  const featured = req.body?.featured !== false;
+  req.body = { action: featured ? 'feature' : 'unfeature' };
+  next();
+}, updateJobStatus);
 router.delete('/:id', authenticate, requireRole('EMPLOYER'), deleteJob);
 router.get('/employer/my', authenticate, requireRole('EMPLOYER'), getMyJobs);
 

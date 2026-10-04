@@ -71,7 +71,13 @@ export default function LoginPage() {
     try {
       const user = await login(values.email, values.password);
       toast.success("Welcome back!");
-      router.push(user?.role === "ADMIN" ? "/admin" : "/dashboard");
+      router.push(
+    user?.role === "ADMIN"
+      ? "/admin"
+      : user?.role === "EMPLOYER"
+        ? "/employer/dashboard"
+        : "/dashboard"
+  );
     } catch (error) {
       const message = getErrorMessage(error, "Invalid email or password.");
       setServerError(message);

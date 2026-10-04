@@ -1,6 +1,6 @@
 'use client';
 
-import type { FC } from 'react';
+import { useState, type FC } from 'react';
 import { useEmployerAnalytics } from '@/hooks/useEmployer';
 import { Card } from '@/components/ui/card';
 import {
@@ -17,6 +17,8 @@ import {
  */
 export const EmployerAnalyticsPanel: FC = () => {
   const { data, isLoading } = useEmployerAnalytics();
+  // Spec date filter: window the monthly chart buckets (3 / 6 / 12 months).
+  const [rangeMonths, setRangeMonths] = useState('12');
 
   if (isLoading) {
     return <p className="p-8 text-center text-sm text-muted-foreground">Loading analytics…</p>;
@@ -26,6 +28,9 @@ export const EmployerAnalyticsPanel: FC = () => {
   const metrics = data?.metrics ?? {};
   const jobsChart = data?.jobsChart ?? [];
   const applicationsChart = data?.applicationsChart ?? [];
+  const months = Math.max(1, Number(rangeMonths) || 12);
+  const visibleJobsChart = jobsChart.slice(-months);
+  const visibleApplicationsChart = applicationsChart.slice(-months);
   const topJobs = data?.topJobs ?? [];
   const statusCounts: Record<string, number> = data?.statusCounts ?? {};
 
@@ -49,6 +54,23 @@ export const EmployerAnalyticsPanel: FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* Date range filter for the time-series charts */}
+      <div className="flex items-center justify-end gap-2">
+        <label htmlFor="analytics-range" className="text-xs text-muted-foreground">
+          Date range
+        </label>
+        <select
+          id="analytics-range"
+          value={rangeMonths}
+          onChange={(event) => setRangeMonths(event.target.value)}
+          className="rounded border bg-background px-2 py-1 text-sm"
+        >
+          <option value="3">Last 3 months</option>
+          <option value="6">Last 6 months</option>
+          <option value="12">Last 12 months</option>
+        </select>
+      </div>
+
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         {overviewCards.map((card) => (
           <Card key={card.label} className="p-4">
@@ -70,12 +92,12 @@ export const EmployerAnalyticsPanel: FC = () => {
       <div className="grid gap-6 lg:grid-cols-2">
         <Card className="p-6">
           <h2 className="mb-4 font-semibold">Jobs Posted Over Time</h2>
-          <JobsLineChart data={jobsChart} />
+          <JobsLineChart data={visibleJobsChart} />
         </Card>
 
         <Card className="p-6">
           <h2 className="mb-4 font-semibold">Applications per Month</h2>
-          <ApplicationsLineChart data={applicationsChart} />
+          <ApplicationsLineChart data={visibleApplicationsChart} />
         </Card>
 
         <Card className="p-6">
