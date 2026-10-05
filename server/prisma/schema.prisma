@@ -43,10 +43,16 @@ model User {
   sentMessages      Message[]         @relation("MessageSender")
   notifications     Notification[]
   eventRsvps        EventRsvp[]
-  
+
   // Events organized
   organizedEvents   CampusEvent[]
-  
+
+  // Admin panel: audit trail of every privileged action (spec: AuditLog)
+  adminActions      AuditLog[]        @relation("AuditLogAdmin")
+  // Admin tier: SUPER_ADMIN | CONTENT_MODERATOR | SUPPORT_TEAM
+  // (only meaningful when role = ADMIN; defaults to SUPER_ADMIN)
+  adminRole         String            @default("SUPER_ADMIN")
+
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 }
@@ -91,7 +97,8 @@ model StudentProfile {
   applications      Application[]
   savedJobs         SavedJob[]
   eventRsvps        EventRsvp[]
-  
+  disputes          Dispute[]
+
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 }
@@ -127,10 +134,13 @@ model EmployerProfile {
   isVerified            Boolean   @default(false)
   verificationDocument  String?
   verificationRequest   String?
+  // Admin-panel verification pipeline: NONE | PENDING | APPROVED | REJECTED
+  verificationStatus    String    @default("NONE")
   verifiedAt            DateTime?
   
   // Jobs
   jobs                  Job[]
+  disputes              Dispute[]
   publishedAt           DateTime?
   
   createdAt             DateTime  @default(now())
@@ -194,6 +204,7 @@ enum JobStatus {
   PENDING
   ACTIVE
   CLOSED
+  REJECTED
 }
 
 // ============================================
@@ -289,6 +300,15 @@ enum NotificationType {
   EVENT_REMINDER
   EVENT_NOTIFICATION
   JOB_ALERT
+  JOB_APPROVED
+  JOB_REJECTED
+  COMPANY_VERIFIED
+  COMPANY_VERIFICATION_REJECTED
+  ACCOUNT_BANNED
+  ACCOUNT_UNBANNED
+  PASSWORD_RESET
+  DISPUTE_UPDATE
+  ADMIN_MESSAGE
 }
 
 // ============================================
@@ -367,6 +387,63 @@ model EventRsvp {
   
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
+}
+
+// ============================================
+// ADMIN PANEL — AUDIT LOG, DISPUTES, SETTINGS
+// ============================================
+
+model AuditLog {
+  id           String   @id @default(cuid())
+  adminId      String
+  admin        User     @relation("AuditLogAdmin", fields: [adminId], references: [id], onDelete: Cascade)
+  adminName    String
+  action       String   // approve_job, reject_job, ban_user, verify_company, ...
+  resourceType String   // job, user, company, application, dispute, setting
+  resourceId   String?
+  details      String?  @db.Text
+  ipAddress    String?
+  userAgent    String?
+  createdAt    DateTime @default(now())
+
+  @@index([adminId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+model Dispute {
+  id          String   @id @default(cuid())
+  type        String   @default("OTHER") // GHOSTING, MISLEADING_JOB, COMMUNICATION, PAYMENT, OTHER
+  title       String?
+  description String   @db.Text
+  status      String   @default("OPEN") // OPEN, RESOLVED, CLOSED
+
+  reporterId  String?
+  studentId   String?
+  student     StudentProfile?  @relation(fields: [studentId], references: [id], onDelete: SetNull)
+  employerId  String?
+  employer    EmployerProfile? @relation(fields: [employerId], references: [id], onDelete: SetNull)
+  jobId       String?
+  applicationId String?
+
+  action      String?  // WARN_STUDENT, WARN_EMPLOYER, BAN_STUDENT, BAN_EMPLOYER, REFUND, OTHER, NONE
+  resolution  String?  @db.Text
+  resolvedAt  DateTime?
+  resolvedBy  String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([status])
+  @@index([type])
+}
+
+model PlatformSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String   @db.Text
+  updatedBy String?
+  updatedAt DateTime @updatedAt
 }
 
 // ============================================

@@ -222,7 +222,7 @@ export async function sendApplicationStatusEmail(
 }
 
 /**
- * Send password reset email
+ * Send password reset email — OTP variant used by the forgot-password flow.
  */
 export async function sendPasswordResetEmail(
   email: string,
@@ -320,6 +320,142 @@ function emailShell(heading: string, bodyHtml: string): string {
       </body>
     </html>
   `;
+}
+
+/**
+ * Admin → job approve/reject decision email to the employer.
+ * (Side effect of PATCH /api/admin/jobs/:id/approve and .../reject.)
+ */
+export async function sendJobStatusEmail(
+  email: string,
+  companyName: string,
+  jobTitle: string,
+  approved: boolean,
+  note?: string
+): Promise<boolean> {
+  try {
+    const heading = approved ? 'Job Approved' : 'Job Update';
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <style>
+            body { font-family: Arial, sans-serif; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 8px; text-align: center; }
+            .content { padding: 20px; background: #f9f9f9; margin: 20px 0; border-radius: 8px; }
+            .info { background: #eef2ff; border-left: 4px solid #667eea; padding: 12px 14px; border-radius: 6px; margin: 14px 0; }
+            .button { display: inline-block; margin-top: 12px; padding: 10px 18px; background: #667eea; color: #fff !important; border-radius: 6px; text-decoration: none; }
+            .footer { text-align: center; color: #999; font-size: 12px; margin-top: 20px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>${COMPANY_NAME}</h1>
+              <p>${heading}</p>
+            </div>
+            <div class="content">
+              <p>Hello ${companyName},</p>
+              ${
+                approved
+                  ? `<p>Your job <strong>${jobTitle}</strong> has been <strong>approved</strong> and is now live for students.</p>`
+                  : `<p>Your job <strong>${jobTitle}</strong> was <strong>not approved</strong>.</p>
+                     <div class="info"><strong>Reason:</strong> ${note ?? 'It did not meet our posting guidelines.'}</div>`
+              }
+              ${note && approved ? `<div class="info"><strong>Note from review:</strong> ${note}</div>` : ''}
+              <a href="${process.env.CLIENT_URL}/employer/jobs" class="button">View Your Jobs</a>
+            </div>
+            <div class="footer">
+              <p>If you didn't expect this email, please ignore it.</p>
+              <p>&copy; ${new Date().getFullYear()} ${COMPANY_NAME}. All rights reserved.</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+
+    const result = await resend.emails.send({
+      from: FROM_EMAIL,
+      to: email,
+      subject: approved ? `Approved: ${jobTitle} is now live` : `Update on your job: ${jobTitle}`,
+      html: htmlContent,
+    });
+
+    return !result.error;
+  } catch (error) {
+    console.error('Error sending job status email:', error);
+    return false;
+  }
+}
+
+/**
+ * Admin → company verification approve/reject email to the employer.
+ * (Side effect of PATCH /api/admin/companies/:id/verify and .../reject-verification.)
+ */
+export async function sendVerificationDecisionEmail(
+  email: string,
+  companyName: string,
+  approved: boolean,
+  note?: string
+): Promise<boolean> {
+  try {
+    const heading = approved ? 'Company Verified' : 'Verification Update';
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <style>
+            body { font-family: Arial, sans-serif; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 8px; text-align: center; }
+            .content { padding: 20px; background: #f9f9f9; margin: 20px 0; border-radius: 8px; }
+            .info { background: #eef2ff; border-left: 4px solid #667eea; padding: 12px 14px; border-radius: 6px; margin: 14px 0; }
+            .button { display: inline-block; margin-top: 12px; padding: 10px 18px; background: #667eea; color: #fff !important; border-radius: 6px; text-decoration: none; }
+            .footer { text-align: center; color: #999; font-size: 12px; margin-top: 20px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>${COMPANY_NAME}</h1>
+              <p>${heading}</p>
+            </div>
+            <div class="content">
+              <p>Hello ${companyName},</p>
+              ${
+                approved
+                  ? `<p>Good news — your company is now <strong>verified</strong> on ${COMPANY_NAME}. Your badge is visible on your profile and job posts.</p>`
+                  : `<p>Thanks for submitting your documents. We could not approve verification at this time.</p>
+                     <div class="info"><strong>Reason:</strong> ${note ?? 'Documents did not meet our verification requirements.'}</div>
+                     <p>You may update your documents and resubmit from your company page.</p>`
+              }
+              ${note && approved ? `<div class="info"><strong>Note from review:</strong> ${note}</div>` : ''}
+              <a href="${process.env.CLIENT_URL}/employer/company" class="button">Open Company Page</a>
+            </div>
+            <div class="footer">
+              <p>If you didn't expect this email, please ignore it.</p>
+              <p>&copy; ${new Date().getFullYear()} ${COMPANY_NAME}. All rights reserved.</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+
+    const result = await resend.emails.send({
+      from: FROM_EMAIL,
+      to: email,
+      subject: approved ? `${companyName} is now verified on ${COMPANY_NAME}` : `${COMPANY_NAME}: verification update for ${companyName}`,
+      html: htmlContent,
+    });
+
+    return !result.error;
+  } catch (error) {
+    console.error('Error sending verification decision email:', error);
+    return false;
+  }
 }
 
 /**
