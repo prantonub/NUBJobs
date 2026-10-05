@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import prisma from '../lib/prisma';
 import { verifyAccessToken } from '../utils/jwt.utils';
 import { responses, sendValidationError, sendError } from '../utils/response.utils';
 import { ZodSchema } from 'zod';
@@ -59,13 +60,47 @@ export function optionalAuth(req: AuthRequest, res: Response, next: NextFunction
 
 /**
  * Require specific role
+ *
+ * Fail-closed on the JWT claim, then — only when the claim misses — re-check
+ * the live DB row before refusing. That second lookup costs one indexed query
+ * and only runs on what would otherwise be a 403, so:
+ *  - a stale token (role changed by an admin / a re-registered account while
+ *    the 1h access token was still valid) self-heals instead of locking the
+ *    user out with "This action requires one of: …";
+ *  - genuinely unauthorized accounts still get a 403, with the mismatch
+ *    between token claim and DB role written to the warn log.
  */
 export function requireRole(...roles: string[]) {
-  return (req: AuthRequest, res: Response, next: NextFunction) => {
-    if (!req.role || !roles.includes(req.role)) {
+  return async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      if (req.role && roles.includes(req.role)) return next();
+
+      let dbRole: string | null = null;
+      if (req.userId) {
+        try {
+          const user = await prisma.user.findUnique({
+            where: { id: req.userId },
+            select: { role: true },
+          });
+          dbRole = user?.role ?? null;
+          if (dbRole && roles.includes(dbRole)) {
+            // Stale-claim heal: continue the request under the live role so a
+            // role change mid-session takes effect immediately.
+            req.role = dbRole;
+            console.warn(`[authz] healed stale claim user=${req.userId} claim=${req.role ?? 'none'} db=${dbRole}`);
+            return next();
+          }
+        } catch (dbError) {
+          console.error('[authz] role fallback lookup failed:', dbError);
+        }
+      }
+
+      // Which account and claim hit the wall — essential for debugging stale sessions.
+      console.warn(`[authz] blocked user=${req.userId ?? 'unknown'} claim=${req.role ?? 'none'} db=${dbRole ?? 'unknown'} needs=${roles.join(',')}`);
       return responses.forbidden(res, `This action requires one of: ${roles.join(', ')}`);
+    } catch (error) {
+      return next(error);
     }
-    next();
   };
 }
 

@@ -58,9 +58,28 @@ api.interceptors.request.use((config) => {
 // ── Refresh-on-401 with a single-flight queue ────────────────────────────────
 // While one refresh request is in flight, other 401s wait in `queue` and are
 // replayed with the new token once it resolves (or all rejected on failure).
+//
+// NOTE: the API nests every payload under `data` (`responses.ok` →
+// `{ success, statusCode, message, data }`), so the fresh token must be read
+// from `data.data.accessToken` — plain `data.accessToken` is undefined and the
+// old code stored that, silently wiping the session.
 type QueueEntry = {
   resolve: (token: string) => void;
   reject: (error: unknown) => void;
+};
+
+/** Parse the token-refresh response envelope, accepting all known shapes. */
+export function readRefreshedToken(data: unknown): string | undefined {
+  const envelope = data as
+    | { data?: { accessToken?: string; token?: string }; accessToken?: string; token?: string }
+    | null
+    | undefined;
+  return (
+    envelope?.data?.accessToken ??
+    envelope?.data?.token ??
+    envelope?.accessToken ??
+    envelope?.token
+  );
 };
 
 let isRefreshing = false;
@@ -109,7 +128,7 @@ api.interceptors.response.use(
       if (!refreshToken) throw new Error("No refresh token available");
 
       const { data } = await api.post(REFRESH_URL, { refreshToken });
-      const newToken: string | undefined = data?.accessToken ?? data?.token;
+      const newToken = readRefreshedToken(data);
       if (!newToken) throw new Error("No access token in refresh response");
 
       setAuthToken(newToken);
