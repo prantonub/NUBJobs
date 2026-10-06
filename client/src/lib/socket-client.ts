@@ -219,3 +219,44 @@ export function removeListener(event: string): void {
   if (!socket) return;
   socket.off(event);
 }
+
+// ============================================================
+// Direct messaging (spec §SOCKET.IO EVENTS) — student <-> employer
+// ============================================================
+
+/** Emit a direct message over the socket (spec EMIT §send_message). */
+export function emitDirectMessage(payload: { recipientId: string; content: string; jobId?: string }): void {
+  if (!socket?.connected) return;
+  socket.emit('send_message', payload);
+}
+
+/** Emit a read receipt for one message (spec EMIT §message_read). */
+export function emitMessageRead(messageId: string): void {
+  if (!socket?.connected) return;
+  socket.emit('message_read', { messageId });
+}
+
+/** Tell the other user typing started (spec EMIT §typing_start). */
+export function emitTypingStart(recipientId: string): void {
+  if (!socket?.connected) return;
+  socket.emit('typing_start', { recipientId });
+}
+
+/** Tell the other user typing stopped (spec EMIT §typing_stop). */
+export function emitTypingStop(recipientId: string): void {
+  if (!socket?.connected) return;
+  socket.emit('typing_stop', { recipientId });
+}
+
+/**
+ * Subscribe to a direct-messaging server event.
+ * Returns an unsubscribe function that removes exactly this handler —
+ * always use it in a React effect cleanup.
+ */
+export function onMessagingEvent<T = any>(event: string, handler: (payload: T) => void): () => void {
+  if (!socket) return () => undefined;
+  socket.on(event, handler as any);
+  return () => {
+    socket?.off(event, handler as any);
+  };
+}

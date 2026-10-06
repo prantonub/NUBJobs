@@ -41,8 +41,17 @@ model User {
   
   // Messages & Notifications
   sentMessages      Message[]         @relation("MessageSender")
+  receivedMessages  Message[]         @relation("MessageRecipient")
   notifications     Notification[]
   eventRsvps        EventRsvp[]
+
+  // Direct messaging (student <-> employer conversations)
+  conversationsAsUser1 Conversation[] @relation("ConversationUser1")
+  conversationsAsUser2 Conversation[] @relation("ConversationUser2")
+  blockingUsers      BlockedUser[]     @relation("BlockedBlocker")
+  blockedByUsers     BlockedUser[]     @relation("BlockedTarget")
+  messageDraftsSent  MessageDraft[]    @relation("DraftSender")
+  messageDraftsGot   MessageDraft[]    @relation("DraftRecipient")
 
   // Events organized
   organizedEvents   CampusEvent[]
@@ -185,6 +194,8 @@ model Job {
   employer          EmployerProfile @relation(fields: [employerId], references: [id], onDelete: Cascade)
   applications      Application[]
   savedJobs         SavedJob[]
+  // Direct messaging: conversations linked to this job posting
+  conversations     Conversation[]
   
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
@@ -317,23 +328,112 @@ enum NotificationType {
 
 model Message {
   id                String    @id @default(cuid())
-  
-  // Conversation (Application-based)
-  applicationId     String
-  application       Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
-  
+
+  // Legacy application-scoped thread (kept working — optional so a Message can
+  // instead belong to a direct student<->employer Conversation).
+  applicationId     String?
+  application       Application? @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  // Direct messaging (spec: Conversation <-> Message)
+  conversationId    String?
+  conversation      Conversation? @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
   // Sender
   senderId          String
   sender            User      @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
-  
+
+  // Direct-messaging recipient (null for legacy application messages — the
+  // recipient there is implied by the Application's parties).
+  recipientId       String?
+  recipient         User?     @relation("MessageRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+
   // Content
   content           String    @db.Text
-  
+
   // Read Status ()
   isRead            Boolean   @default(false)
-  
+  readAt            DateTime?
+
+  // Soft delete: keep the row for audit trail, hide it from clients
+  isDeleted         Boolean   @default(false)
+
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
+
+  @@index([conversationId, createdAt])
+  @@index([applicationId])
+  @@index([senderId])
+  @@index([recipientId])
+}
+
+// ============================================
+// DIRECT MESSAGING (student <-> employer)
+// ============================================
+
+/// One row per participant pair. `user1Id < user2Id` is enforced in the
+/// controller (canonical ordering) so a pair always maps to exactly one row
+/// regardless of who initiated.
+model Conversation {
+  id                String    @id @default(cuid())
+
+  user1Id           String
+  user1             User      @relation("ConversationUser1", fields: [user1Id], references: [id], onDelete: Cascade)
+  user2Id           String
+  user2             User      @relation("ConversationUser2", fields: [user2Id], references: [id], onDelete: Cascade)
+
+  // Optional job context — which posting this thread is about
+  jobId             String?
+  job               Job?      @relation(fields: [jobId], references: [id], onDelete: SetNull)
+
+  lastMessage       String?   @db.Text
+  lastMessageTime   DateTime  @default(now())
+
+  // Per-user view flags (each side archives/pins independently)
+  user1Archived     Boolean   @default(false)
+  user2Archived     Boolean   @default(false)
+  user1Pinned       Boolean   @default(false)
+  user2Pinned       Boolean   @default(false)
+
+  // Block state mirrored from BlockedUser for fast thread checks
+  user1BlockedUser2 Boolean   @default(false)
+  user2BlockedUser1 Boolean   @default(false)
+
+  messages          Message[]
+
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@unique([user1Id, user2Id])
+  @@index([user1Id])
+  @@index([user2Id])
+  @@index([lastMessageTime])
+}
+
+model BlockedUser {
+  id          String   @id @default(cuid())
+  blockerId   String
+  blocker     User     @relation("BlockedBlocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blockedId   String
+  blocked     User     @relation("BlockedTarget", fields: [blockedId], references: [id], onDelete: Cascade)
+  reason      String?
+  createdAt   DateTime @default(now())
+
+  @@unique([blockerId, blockedId])
+  @@index([blockerId])
+}
+
+/// Draft auto-save per (sender, recipient) pair.
+model MessageDraft {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation("DraftSender", fields: [userId], references: [id], onDelete: Cascade)
+  recipientId String
+  recipient   User     @relation("DraftRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  content     String   @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, recipientId])
 }
 
 // ============================================

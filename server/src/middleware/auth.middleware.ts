@@ -78,6 +78,7 @@ export function requireRole(...roles: string[]) {
       let dbRole: string | null = null;
       if (req.userId) {
         try {
+          const claim = req.role ?? 'none';
           const user = await prisma.user.findUnique({
             where: { id: req.userId },
             select: { role: true },
@@ -87,7 +88,7 @@ export function requireRole(...roles: string[]) {
             // Stale-claim heal: continue the request under the live role so a
             // role change mid-session takes effect immediately.
             req.role = dbRole;
-            console.warn(`[authz] healed stale claim user=${req.userId} claim=${req.role ?? 'none'} db=${dbRole}`);
+            console.warn(`[authz] healed stale claim user=${req.userId} claim=${claim} db=${dbRole}`);
             return next();
           }
         } catch (dbError) {

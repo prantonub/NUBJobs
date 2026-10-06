@@ -117,6 +117,24 @@ export function validateJobPayload(payload: JobPayload): Record<string, string> 
 }
 
 /**
+ * Turn `requireRole`'s 403 ("This action requires one of: EMPLOYER") into
+ * something the user can act on. The raw message is a role list, not advice —
+ * it appears when the session's JWT claim doesn't match the area they're in
+ * (stale token, signed-in as the wrong account, admin role changed mid-session).
+ */
+function humanizeAuthzMessage(message: string): string {
+  if (!/This action requires one of:/i.test(message)) return message;
+  const roles = message.replace(/.*This action requires one of:\s*/i, '').trim();
+  if (roles.includes('EMPLOYER')) {
+    return 'This account is not signed in as an employer. Sign out and sign in with your employer account (or sign up as one), then try again.';
+  }
+  if (roles.includes('ADMIN')) {
+    return 'Your account does not have admin access. Sign in with an admin account to continue.';
+  }
+  return `This action requires one of: ${roles} — sign in with an account that has that role.`;
+}
+
+/**
  * Pull per-field validation errors out of an API response
  * (`{ message: 'Validation failed', data: { title: '…' } }`).
  */
@@ -134,7 +152,7 @@ export function readValidationErrors(error: unknown): Record<string, string> {
   }
 
   const message = payload?.message || payload?.error;
-  return message ? { form: message } : {};
+  return message ? { form: humanizeAuthzMessage(message) } : {};
 }
 
 /** First available error, for a toast title. */

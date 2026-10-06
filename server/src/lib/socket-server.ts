@@ -89,6 +89,147 @@ export function initializeSocket(app: any) {
     // ===== MESSAGE EVENTS =====
 
     /**
+     * Direct-messaging send (spec §EMIT send_message).
+     * Payload: { recipientId, content, jobId? } — dispatched by payload shape
+     * so the legacy applicationId handler below keeps working unchanged.
+     */
+    socket.on(
+      'send_message',
+      async (data: { recipientId?: string; applicationId?: string; content?: string; jobId?: string }) => {
+        if (!data?.recipientId || !data?.content) return; // legacy path owns this call
+        try {
+          const senderId = userId;
+          const recipientId = String(data.recipientId);
+          const content = String(data.content).trim();
+          if (!content || content.length > 5000 || recipientId === senderId) {
+            socket.emit('error', { message: 'Invalid message' });
+            return;
+          }
+
+          // Reuse the HTTP pipeline so validation, block checks, rate limit,
+          // conversation update, new_message emit and offline notification are
+          // identical no matter which transport delivered the message.
+          const sender = await prisma.user.findUnique({
+            where: { id: senderId },
+            select: { name: true },
+          });
+          const recipient = await prisma.user.findUnique({
+            where: { id: recipientId },
+            select: { id: true },
+          });
+          if (!recipient) {
+            socket.emit('error', { message: 'Recipient not found' });
+            return;
+          }
+
+          const block = await prisma.blockedUser.findFirst({
+            where: {
+              OR: [
+                { blockerId: senderId, blockedId: recipientId },
+                { blockerId: recipientId, blockedId: senderId },
+              ],
+            },
+          });
+          if (block) {
+            socket.emit('error', { message: 'Messaging blocked between these users' });
+            return;
+          }
+
+          // Canonical pair ordering mirrors the controller.
+          const [user1Id, user2Id] = senderId < recipientId ? [senderId, recipientId] : [recipientId, senderId];
+          let conv = await prisma.conversation.findUnique({
+            where: { user1Id_user2Id: { user1Id, user2Id } },
+          });
+          if (!conv) {
+            conv = await prisma.conversation.create({
+              data: { user1Id, user2Id, jobId: data.jobId || undefined },
+            });
+          }
+
+          const message = await prisma.message.create({
+            data: {
+              conversationId: conv.id,
+              senderId,
+              recipientId,
+              content,
+              isRead: false,
+            },
+          });
+          await prisma.conversation.update({
+            where: { id: conv.id },
+            data: { lastMessage: content.slice(0, 500), lastMessageTime: message.createdAt },
+          });
+
+          const payload = {
+            message: {
+              id: message.id,
+              conversationId: conv.id,
+              senderId,
+              recipientId,
+              content,
+              timestamp: message.createdAt,
+              isRead: false,
+            },
+            sender: { id: senderId, name: sender?.name ?? 'Someone' },
+            timestamp: message.createdAt,
+          };
+          // Deliver to every open tab of the recipient (personal room).
+          io.to(userRoom(recipientId)).emit('new_message', payload);
+          // Echo to the sender's other tabs so they stay in sync.
+          socket.emit('new_message', payload);
+
+          // Offline → DB notification + notification event (spec §side effects).
+          if (!onlineUsers.has(recipientId)) {
+            await prisma.notification
+              .create({
+                data: {
+                  userId: recipientId,
+                  type: 'NEW_MESSAGE',
+                  message: `New message from ${sender?.name ?? 'Someone'}`,
+                  link: `/messages?user=${senderId}`,
+                },
+              })
+              .catch(() => undefined);
+            io.to(userRoom(recipientId)).emit('notification', {
+              type: 'NEW_MESSAGE',
+              message: `New message from ${sender?.name ?? 'Someone'}`,
+              data: { messageId: message.id, senderId },
+            });
+          }
+        } catch (error) {
+          console.error('send_message error:', error);
+          socket.emit('error', { message: 'Failed to send message' });
+        }
+      }
+    );
+
+    /**
+     * Read receipt (spec §EMIT message_read).
+     * Payload: { messageId } — the legacy handler below takes { applicationId }.
+     */
+    socket.on('message_read', async (data: { messageId?: string }) => {
+      if (!data?.messageId) return; // legacy application flow
+      try {
+        const message = await prisma.message.findUnique({ where: { id: data.messageId } });
+        if (!message || message.recipientId !== userId) return;
+        if (!message.isRead) {
+          await prisma.message.update({
+            where: { id: message.id },
+            data: { isRead: true, readAt: new Date() },
+          });
+        }
+        const readAt = new Date();
+        io.to(userRoom(message.senderId)).emit('message_read', {
+          messageId: message.id,
+          conversationId: message.conversationId,
+          readAt,
+        });
+      } catch (error) {
+        console.error('message_read error:', error);
+      }
+    });
+
+    /**
      * join_conversation - Join a conversation room
      */
     socket.on('join_conversation', async (data: { applicationId: string }, callback) => {
@@ -136,9 +277,11 @@ export function initializeSocket(app: any) {
     /**
      * send_message - Send a message in conversation
      */
-    socket.on('send_message', async (data: any, callback) => {
+    socket.on('send_message', async (data: any, callback: (r: any) => void = () => {}) => {
+      const ack = typeof callback === 'function' ? callback : () => {};
       try {
         const { applicationId, content } = data;
+        if (!applicationId) return; // spec payload ({ recipientId }) — other listener's job
 
         // Validate user is participant
         const application = await prisma.application.findUnique({
@@ -228,9 +371,18 @@ export function initializeSocket(app: any) {
     });
 
     /**
-     * typing_start - User started typing
+     * typing_start - User started typing.
+     * Spec payload: { recipientId } → direct-messaging `typing_indicator`.
+     * Legacy payload: { applicationId } → room-based `user_typing`.
      */
-    socket.on('typing_start', (data: { applicationId: string }) => {
+    socket.on('typing_start', (data: { recipientId?: string; applicationId?: string }) => {
+      if (data?.recipientId) {
+        io.to(userRoom(data.recipientId)).emit('typing_indicator', {
+          senderId: userId,
+          senderName: socket.data.email ?? 'Someone',
+        });
+        return;
+      }
       const room = `conversation_${data.applicationId}`;
       socket.to(room).emit('user_typing', {
         userId,
@@ -239,9 +391,14 @@ export function initializeSocket(app: any) {
     });
 
     /**
-     * typing_stop - User stopped typing
+     * typing_stop - User stopped typing.
+     * Spec payload: { recipientId } → `stop_typing`; legacy: { applicationId }.
      */
-    socket.on('typing_stop', (data: { applicationId: string }) => {
+    socket.on('typing_stop', (data: { recipientId?: string; applicationId?: string }) => {
+      if (data?.recipientId) {
+        io.to(userRoom(data.recipientId)).emit('stop_typing', { senderId: userId });
+        return;
+      }
       const room = `conversation_${data.applicationId}`;
       socket.to(room).emit('user_typing_stopped', {
         userId,

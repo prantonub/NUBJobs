@@ -747,7 +747,12 @@ export async function getEmployerMessages(req: AuthRequest, res: Response, next:
     ]);
 
     const unreadByApplication = new Map<string, number>();
-    for (const row of unreadGroups) unreadByApplication.set(row.applicationId, row._count._all);
+    for (const row of unreadGroups) {
+      // applicationId is nullable now (direct-messaging messages have none) —
+      // those unread counts belong to /messages, not this employer thread list.
+      if (!row.applicationId) continue;
+      unreadByApplication.set(row.applicationId, row._count._all);
+    }
 
     // One row per student; extra applications only fold in their unread counts.
     const byStudent = new Map<string, any>();

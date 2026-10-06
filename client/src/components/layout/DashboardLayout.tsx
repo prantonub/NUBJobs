@@ -15,6 +15,8 @@ import {
   UserIcon,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useGetUnreadCount } from "@/hooks/useMessages";
+import { NotificationBadge } from "@/components/messages/NotificationBadge";
 import { cn, getInitials } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -105,12 +107,21 @@ function SidebarNav({
             )}
           >
             {item.icon}
-            {item.label}
+            <span className="flex-1">{item.label}</span>
+            {item.href === "/messages" && <MessagesNavBadge />}
           </Link>
         );
       })}
     </nav>
   );
+}
+
+/** Live unread pill on the Messages nav row (spec §9 NotificationBadge). */
+function MessagesNavBadge() {
+  const { user } = useAuth();
+  const { data: count = 0 } = useGetUnreadCount();
+  if (!user || !count) return null;
+  return <NotificationBadge count={count} />;
 }
 
 /**
