@@ -11,7 +11,7 @@ import {
   useEmployerMessages,
   useSendEmployerMessage,
 } from '@/hooks/useEmployer';
-import { getSocket } from '@/lib/socket-client';
+import { ensureMessagingSocket } from '@/hooks/useMessages';
 import { cn, getErrorMessage, getInitials } from '@/lib/utils';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -58,9 +58,11 @@ const EmployerMessagesPage: FC = () => {
     if (!selected && filtered.length > 0) setSelected(filtered[0].studentId);
   }, [filtered, selected]);
 
-  // Real-time delivery while this page is open.
+  // Real-time delivery while this page is open. After a hard refresh no socket
+  // exists yet (AuthContext only dials one on login) — dial it here or these
+  // handlers would silently never register.
   useEffect(() => {
-    const socket = getSocket();
+    const socket = ensureMessagingSocket();
     if (!socket) return undefined;
     const onNewMessage = () => {
       queryClient.invalidateQueries({ queryKey: ['employerMessages'] });
@@ -73,6 +75,16 @@ const EmployerMessagesPage: FC = () => {
       socket.off('new_message', onNewMessage);
     };
   }, [queryClient, selected]);
+
+  // Opening (or refreshing) the thread marks the student's messages read
+  // server-side — reflect that in the nav pill, unified-inbox rows and this
+  // sidebar's own unread badges right away instead of waiting for a refresh.
+  useEffect(() => {
+    if (!thread) return;
+    queryClient.invalidateQueries({ queryKey: ['unreadMessageCount'] });
+    queryClient.invalidateQueries({ queryKey: ['conversations'] });
+    queryClient.invalidateQueries({ queryKey: ['employerMessages'] });
+  }, [thread, queryClient]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });

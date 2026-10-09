@@ -20,6 +20,8 @@ export const CLOUDINARY_FOLDERS = {
   resumes: 'nubjobs/resumes',
   // Company logos live under nubjobs/images/* (spec path).
   companyLogos: 'nubjobs/images/company-logos',
+  // Twitter-style post photos (max 1200px wide, aspect preserved).
+  postPhotos: 'nubjobs/images/post-photos',
   verificationDocuments: 'nubjobs/verification-documents',
   smokeTests: 'nubjobs/tests',
 } as const;
@@ -43,6 +45,12 @@ export const IMAGE_TRANSFORMATIONS: Record<string, UploadApiOptions['transformat
     width: 512,
     height: 512,
     crop: 'fit',
+    quality: 'auto',
+    fetch_format: 'auto',
+  },
+  // Post photo: stored at original size (only auto format/quality),
+  // so the feed can show the real photo. CSS handles the display size.
+  postPhoto: {
     quality: 'auto',
     fetch_format: 'auto',
   },

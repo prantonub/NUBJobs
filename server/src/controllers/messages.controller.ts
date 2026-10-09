@@ -359,7 +359,8 @@ export async function getConversations(req: AuthRequest, res: Response, next: Ne
     const decorated = await Promise.all(
       all.map(async (conv) => {
         const mine = sideOf(conv, userId);
-        const other = mine === 'user1' ? conv.user1 : conv.user2;
+        // The OTHER party is always the opposite side (I'm user1 → they're user2).
+        const other = mine === 'user1' ? conv.user2 : conv.user1;
         const unreadCount = await prisma.message.count({
           where: {
             conversationId: conv.id,
@@ -500,6 +501,9 @@ export async function getConversation(req: AuthRequest, res: Response, next: Nex
       : null;
 
     return responses.ok(res, 'Conversation retrieved', {
+      // True when the viewer has blocked the other side (chat stays readable,
+      // composer must lock with "You can't message this user").
+      blockedByMe: blocked === 'you_blocked_them',
       otherUser: {
         id: otherUser.id,
         name: otherUser.name,
@@ -677,7 +681,9 @@ export async function markConversationRead(req: AuthRequest, res: Response, next
     if (!userId) return responses.unauthorized(res);
 
     const conv = await findConversationWith(userId, otherId);
-    if (!conv) return responses.notFound(res, 'Conversation not found');
+    // Deep links (?user=<id>) open threads before any message exists —
+    // there is nothing to mark read yet, so succeed instead of 404'ing.
+    if (!conv) return responses.ok(res, 'Nothing to mark read', { success: true });
 
     await prisma.message.updateMany({
       where: { conversationId: conv.id, recipientId: userId, isRead: false },
@@ -875,9 +881,20 @@ export async function getUnreadCount(req: AuthRequest, res: Response, next: Next
     const userId = req.userId;
     if (!userId) return responses.unauthorized(res);
 
-    const unreadCount = await prisma.message.count({
+    // Direct conversations: messages addressed to me that I haven't opened.
+    const directCount = await prisma.message.count({
       where: { recipientId: userId, isRead: false, isDeleted: false, conversationId: { not: null } },
     });
+
+    // Legacy application threads predate `conversationId` (and often
+    // `recipientId`), so they must be counted separately — the same
+    // participant-aware helper the unified inbox uses. Opening one of these
+    // threads marks its messages read, so the badge clears exactly like a
+    // direct conversation.
+    const legacy = await legacyApplicationThreads(userId, '');
+    const legacyCount = legacy.reduce((sum, thread) => sum + thread.unreadCount, 0);
+
+    const unreadCount = directCount + legacyCount;
     return responses.ok(res, 'Unread count', { unreadCount });
   } catch (error) {
     next(error);

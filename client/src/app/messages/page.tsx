@@ -16,6 +16,7 @@ import {
   useArchiveConversation,
   usePinConversation,
   useBlockUser,
+  useUnblockUser,
   useTypingIndicator,
   useSocket,
   type ConversationSummary,
@@ -51,7 +52,8 @@ const MessagesPage: FC = () => {
     filter: tab,
     search: search || undefined,
   });
-  const { data: thread, isLoading: threadLoading } = useConversation(selectedUserId, { limit: 50 });
+  const { data: thread, isLoading: threadLoading, isError: threadFailed, error: threadError } =
+    useConversation(selectedUserId, { limit: 50 });
 
   const sendMutation = useSendMessage(selectedUserId, thread?.job?.id ?? undefined);
   const markAllMutation = useMarkAllAsRead(selectedUserId);
@@ -59,6 +61,7 @@ const MessagesPage: FC = () => {
   const archiveMutation = useArchiveConversation();
   const pinMutation = usePinConversation();
   const blockMutation = useBlockUser();
+  const unblockMutation = useUnblockUser();
   const typing = useTypingIndicator(selectedUserId);
 
   // Live events for the currently open thread (and the list/badge overall).
@@ -112,6 +115,12 @@ const MessagesPage: FC = () => {
     );
   }, [selectedAppId, selectedUserId, conversations, thread]);
 
+  // Block state for the open chat: 'me' (thread/list says so),
+  // 'them' (thread fetch 403 = they blocked me). Either locks the composer.
+  const blockedByThem = threadFailed && (threadError as any)?.response?.status === 403;
+  const blockedByMe = Boolean(thread?.blockedByMe ?? selectedConversation?.blocked);
+  const chatBlocked: 'me' | 'them' | null = blockedByMe ? 'me' : blockedByThem ? 'them' : null;
+
   // Selecting a conversation marks it read and shows it on mobile.
   useEffect(() => {
     if (selectedUserId || selectedAppId) {
@@ -120,6 +129,19 @@ const MessagesPage: FC = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedUserId, selectedAppId]);
+
+  // A message that arrives while this thread is already open is being read
+  // right now — mark it read so the "(1)" pill clears without a refresh. The
+  // `hasIncomingUnread` guard stops the invalidate → refetch → effect loop:
+  // once read-all lands, the refetched thread has no incoming unread left.
+  useEffect(() => {
+    if (!selectedUserId || !thread?.messages?.length) return;
+    const hasIncomingUnread = thread.messages.some(
+      (m) => m.senderId !== user?.id && !m.isRead
+    );
+    if (hasIncomingUnread) markAllMutation.mutate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [thread, selectedUserId, user?.id]);
 
   const selectConversation = (conv: ConversationSummary) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -158,9 +180,24 @@ const MessagesPage: FC = () => {
 
   const handleBlock = () => {
     if (!selectedUserId) return;
+    if (
+      !confirm(
+        'Block this user?\n\n· You won’t be able to message each other\n· Your chat history stays visible\n· You can unblock anytime from this chat menu'
+      )
+    ) {
+      return;
+    }
     blockMutation.mutate(selectedUserId, {
       onSuccess: () => toast.success('User blocked'),
       onError: () => toast.error('Failed to block user'),
+    });
+  };
+
+  const handleUnblock = () => {
+    if (!selectedUserId) return;
+    unblockMutation.mutate(selectedUserId, {
+      onSuccess: () => toast.success('User unblocked'),
+      onError: () => toast.error('Failed to unblock user'),
     });
   };
 
@@ -271,6 +308,8 @@ const MessagesPage: FC = () => {
           onMarkAllRead={() => !markAllMutation.isPending && markAllMutation.mutate()}
           onArchive={() => selectedUserId && selectedConversation && handleArchive(selectedConversation)}
           onBlock={handleBlock}
+          onUnblock={handleUnblock}
+          blocked={chatBlocked}
           onBack={() => setMobileChatOpen(false)}
           />
         )}

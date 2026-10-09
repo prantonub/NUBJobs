@@ -12,6 +12,8 @@ export interface AppUser {
   /** Profile photo (students) or company logo (employers). */
   avatar?: string | null;
   photoUrl?: string | null;
+  /** Social platform handle (profile URL: /community/@username). */
+  username?: string | null;
 }
 
 export interface AuthLoginPayload {

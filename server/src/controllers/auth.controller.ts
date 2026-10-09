@@ -182,6 +182,7 @@ export async function login(req: AuthRequest, res: Response, next: NextFunction)
         email: user.email,
         name: user.name,
         role: user.role,
+        username: user.username,
       },
     });
   } catch (error) {
@@ -438,7 +439,7 @@ export async function googleAuthCallback(req: AuthRequest, res: Response, next: 
 
     return res.redirect(buildSuccessRedirect(accessToken, refreshToken, isNewUser, account.role));
   } catch (error) {
-    // Never dump a stack trace into the browser — log it and return a friendly
+    // Never dump a stack trace into the browser Ã¢â‚¬â€ log it and return a friendly
     // message to the SPA so the user can retry.
     console.error('Google OAuth callback failed:', error);
     return res.redirect(
@@ -490,7 +491,7 @@ export async function deleteAccount(req: AuthRequest, res: Response, next: NextF
     }
 
     if (user.role !== 'STUDENT' && user.role !== 'EMPLOYER') {
-      // Admins/moderators are managed from the admin panel — never here, so an
+      // Admins/moderators are managed from the admin panel Ã¢â‚¬â€ never here, so an
       // account with elevated privileges can't be removed through this flow.
       return responses.forbidden(res, 'Only student and employer accounts can be deleted here');
     }
@@ -559,9 +560,12 @@ export async function getMe(req: AuthRequest, res: Response, next: NextFunction)
         name: true,
         role: true,
         isEmailVerified: true,
-        // "local" vs "google" — drives how the client confirms account deletion.
+        // "local" vs "google" Ã¢â‚¬â€ drives how the client confirms account deletion.
         provider: true,
         createdAt: true,
+        // Social platform: @username profile link + local avatar.
+        username: true,
+        avatarUrl: true,
         // Used by the navbar / sidebar avatar.
         studentProfile: { select: { photoUrl: true } },
         employerProfile: { select: { logoUrl: true } },

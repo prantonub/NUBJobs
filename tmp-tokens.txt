@@ -1,2 +1,0 @@
-﻿Γùç injected env (17) from .env // tip: Γîÿ enable debugging { debug: true }
-admin@nubjobs.local|eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJjbXU2a3VrcW8wMDAwZTZxNG8yZnc1NTYxIiwiZW1haWwiOiJhZG1pbkBudWJqb2JzLmxvY2FsIiwicm9sZSI6IkFETUlOIiwiaWF0IjoxNzkxMTk3NDAxLCJleHAiOjE3OTExOTgzMDF9.v0zr775aD2SWTRe9dKXqG2B9IZZ7C6ByKH79M2j8dqk

@@ -15,7 +15,7 @@ import {
   UserIcon,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { useGetUnreadCount } from "@/hooks/useMessages";
+import { useGetUnreadCount, useUnreadBadgeRealtime } from "@/hooks/useMessages";
 import { NotificationBadge } from "@/components/messages/NotificationBadge";
 import { cn, getInitials } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -108,7 +108,9 @@ function SidebarNav({
           >
             {item.icon}
             <span className="flex-1">{item.label}</span>
-            {item.href === "/messages" && <MessagesNavBadge />}
+            {/* Any "Messages" row gets the pill — student `/messages` and
+                employer `/employer/messages` alike. */}
+            {item.href.endsWith("/messages") && <MessagesNavBadge />}
           </Link>
         );
       })}
@@ -139,6 +141,9 @@ export function DashboardLayout({
   const pathname = usePathname() ?? "";
   const { user, logout } = useAuth();
   const [open, setOpen] = React.useState(false);
+  // Live "(1)" pill: a message arriving anywhere invalidates the badge query
+  // immediately instead of waiting for the next refetch.
+  useUnreadBadgeRealtime();
 
   const userBlock = (
     <div className="mt-auto border-t border-border p-3">

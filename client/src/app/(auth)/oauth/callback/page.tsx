@@ -43,6 +43,18 @@ function GoogleCallbackInner() {
   const code = searchParams.get("code");
   const state = searchParams.get("state");
   const [sessionError, setSessionError] = React.useState<string | null>(null);
+  // Set once the effect has confirmed the link really carries no credentials,
+  // so a healthy sign-in never flashes the "missing details" error while
+  // `useSearchParams` hydrates a frame behind the full-page redirect.
+  const [checkedNoCredentials, setCheckedNoCredentials] =
+    React.useState(false);
+  // Guards the success path against its own URL scrub: after verification
+  // starts we scrub the address bar (tokens must not linger in history),
+  // which re-renders this component with empty params. Without the guard that
+  // second run would mistake consumption for a direct visit and flash the
+  // "couldn't find the details" error for a frame before the dashboard
+  // navigation lands — the 0.5s error-then-success flicker.
+  const consumedRef = React.useRef(false);
 
   // Everything that can be decided from the query string alone is derived while
   // rendering, so the error shows immediately and the effect below stays free
@@ -55,8 +67,11 @@ function GoogleCallbackInner() {
   const missingDetails =
     !googleError && !accessToken && !code
       ? "We couldn't find the Google sign-in details in this link. Please start the sign-in again."
-      : null;
-  const error = googleError ?? missingDetails ?? sessionError;
+    : null;
+  // `missingDetails` renders only after the effect confirms the link really
+  // carries no credentials - until then only the spinner shows, hiding the
+  // one-frame empty-params state while params hydrate behind the redirect.
+  const error = googleError ?? ((checkedNoCredentials ? missingDetails : null) ?? sessionError);
 
   // The hand-off must only be applied once, even though React invokes effects
   // twice in development. Deliberately not a `cancelled` flag from a cleanup:
@@ -65,6 +80,9 @@ function GoogleCallbackInner() {
   const startedRef = React.useRef(false);
 
   React.useEffect(() => {
+    // Our own URL scrub re-renders with empty params: never mistake that for
+    // a new visit while verification (or dashboard navigation) is away.
+    if (consumedRef.current) return;
     if (startedRef.current) return;
     startedRef.current = true;
 
@@ -83,7 +101,17 @@ function GoogleCallbackInner() {
       return;
     }
 
-    if (!accessToken) return;
+    // No credentials in the link: a direct visit or a failure the render pass
+    // did not recognize. Confirm it here (not during render) so a healthy
+    // sign-in never flashes missing-details while params hydrate.
+    if (!accessToken) {
+      setCheckedNoCredentials(true);
+      return;
+    }
+
+    // Mark consumed before scrubbing: the scrub re-renders with empty params,
+    // and no later run may mistake that for a fresh visit.
+    consumedRef.current = true;
 
     // Scrub the URL only after this pass has a working token: replacing the
     // location can rerender this effect in the same browser session, and the
@@ -142,9 +170,13 @@ function GoogleCallbackInner() {
     </div>
   ) : null;
 
+  // Loader and error are mutually exclusive: a healthy sign-in shows only the
+  // spinner until dashboard navigation lands; a real failure swaps the spinner
+  // for the retry screen instead of stacking both.
+  if (error) return alert;
+
   return (
     <>
-      {alert}
       <div className="flex flex-col items-center gap-4 py-6 text-center">
         <Loader2Icon className="size-6 animate-spin text-brand-600" />
         <div>

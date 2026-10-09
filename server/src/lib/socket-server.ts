@@ -22,6 +22,24 @@ export const userRoom = (userId: string) => `user_${userId}`;
 /** Room that both participants of an application (conversation) join. */
 export const conversationRoom = (applicationId: string) => `conversation_${applicationId}`;
 
+/** Social feed broadcast room — every socket joins on connect (spec: feed-live). */
+export const feedRoom = 'feed_live';
+
+/** Per-post room for granular updates (spec: post-{postId}). */
+export const postRoom = (postId: string) => `post_${postId}`;
+
+/** Broadcast a social event to every connected client. */
+export function emitFeed(event: string, payload: unknown): void {
+  if (!ioInstance) return;
+  ioInstance.to(feedRoom).emit(event, payload);
+}
+
+/** Push a social event to everyone viewing one post. */
+export function emitPostEvent(postId: string, event: string, payload: unknown): void {
+  if (!ioInstance) return;
+  ioInstance.to(postRoom(postId)).emit(event, payload);
+}
+
 /** The live Socket.io server, or `null` before/without `initializeSocket`. */
 export function getIO(): Server | null {
   return ioInstance;
@@ -53,6 +71,28 @@ export function initializeSocket(app: any) {
 
   ioInstance = io;
 
+  // Community event reminders: every minute, fire due reminders once.
+  setInterval(async () => {
+    try {
+      const due = await prisma.eventReminder.findMany({
+        where: { sent: false, remindAt: { lte: new Date() } },
+        include: {
+          event: { select: { id: true, title: true, eventDate: true, location: true, isVirtual: true } },
+        },
+        take: 50,
+      });
+      for (const reminder of due) {
+        emitToUser(reminder.userId, 'event_reminder', {
+          event: reminder.event,
+          remindAt: reminder.remindAt,
+        });
+        await prisma.eventReminder.update({ where: { id: reminder.id }, data: { sent: true } });
+      }
+    } catch (error) {
+      console.error('Event reminder sweep failed:', error);
+    }
+  }, 60_000);
+
   // Middleware: JWT authentication
   io.use(async (socket, next) => {
     try {
@@ -80,6 +120,16 @@ export function initializeSocket(app: any) {
     // Join a personal room so HTTP controllers can target this user with
     // `emitToUser(userId, ...)` even when they don't know the socket id.
     socket.join(userRoom(userId));
+    // Social feed: everyone receives feed broadcasts (spec: feed-live room).
+    socket.join(feedRoom);
+
+    // Granular post rooms — clients ask to watch/unwatch a single post.
+    socket.on('join_post', (postId?: string) => {
+      if (typeof postId === 'string' && postId) socket.join(postRoom(postId));
+    });
+    socket.on('leave_post', (postId?: string) => {
+      if (typeof postId === 'string' && postId) socket.leave(postRoom(postId));
+    });
 
     console.log(`User connected: ${userId} (${socket.id})`);
 

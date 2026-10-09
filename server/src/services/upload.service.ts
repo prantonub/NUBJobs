@@ -82,6 +82,22 @@ export async function storeResume(userId: string, file: UploadedFile): Promise<S
   });
 }
 
+/** POST /api/social/posts/photo — feed photo (1200px fit, `q_auto,f_auto`). */
+export async function storePostPhoto(userId: string, file: UploadedFile): Promise<StoredImage> {
+  assertMime(file, IMAGE_MIME_TYPES, 'image');
+
+  const stored = await uploadBuffer(file.buffer, {
+    folder: CLOUDINARY_FOLDERS.postPhotos,
+    publicId: buildPublicId('post-photos', userId),
+    resourceType: 'image',
+    transformation: IMAGE_TRANSFORMATIONS.postPhoto,
+    allowedFormats: ['jpg', 'jpeg', 'png', 'webp'],
+    tags: ['post-photo', userId],
+  });
+
+  return { ...stored, thumbnailUrl: optimizeImageUrl(stored.url, { width: 640, height: 640, crop: 'limit' }) };
+}
+
 /** POST /api/employer/company/logo — 512px fit logo, `q_auto,f_auto`. */
 export async function storeCompanyLogo(employerId: string, file: UploadedFile): Promise<StoredImage> {
   assertMime(file, IMAGE_MIME_TYPES, 'image');

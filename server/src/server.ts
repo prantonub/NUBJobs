@@ -1,5 +1,5 @@
 
-// Load server/.env before any module reads process.env (JWT secrets, Cloudinary…)
+// Load server/.env before any module reads process.env (JWT secrets, CloudinaryÃ¢â‚¬Â¦)
 import 'dotenv/config';
 import express, { Express } from 'express';
 import cors from 'cors';
@@ -25,6 +25,7 @@ import eventsRoutes from './routes/events.routes';
 import aiRoutes from './routes/ai-features.routes';
 import adminRoutes from './routes/admin.routes';
 import companiesRoutes from './routes/companies.routes';
+import socialRoutes from './routes/social.routes';
 
 const app: Express = express();
 const port = process.env.PORT || 5000;
@@ -52,7 +53,7 @@ app.use(`${apiPrefix}/auth`, authRoutes);
 app.use(`${apiPrefix}/jobs`, jobsRoutes);
 app.use(`${apiPrefix}/applications`, applicationsRoutes);
 // Profile: authenticated endpoints (GET /, PATCH /, POST /photo, POST /resume,
-// DELETE /photo, DELETE /resume, …) first, then public lookups + legacy routes.
+// DELETE /photo, DELETE /resume, Ã¢â‚¬Â¦) first, then public lookups + legacy routes.
 app.use(`${apiPrefix}/profile`, profileRoutes);
 app.use(`${apiPrefix}/profile`, profilePublicRoutes);
 app.use(`${apiPrefix}/notifications`, notificationsRoutes);
@@ -64,6 +65,8 @@ app.use(`${apiPrefix}/events`, eventsRoutes);
 app.use(`${apiPrefix}/ai`, aiRoutes);
 app.use(`${apiPrefix}/admin`, adminRoutes);
 app.use(`${apiPrefix}/companies`, companiesRoutes);
+// Professional networking platform (feed, follows, DMs, notifications, search)
+app.use(`${apiPrefix}/social`, socialRoutes);
 
 // 404 handler
 app.use((req, res) => {
@@ -87,20 +90,21 @@ app.use((err: any, req: any, res: any, next: any) => {
 // Initialize Socket.io with HTTP server
 const { httpServer, io } = initializeSocket(app);
 
+
 // Start server
 httpServer.listen(port, () => {
-  console.log(`🚀 Server running on http://localhost:${port}`);
-  console.log(`🔗 WebSocket enabled for real-time messaging`);
-  console.log(`📡 API prefix: ${apiPrefix}`);
+  console.log(`Ã°Å¸Å¡â‚¬ Server running on http://localhost:${port}`);
+  console.log(`Ã°Å¸â€â€” WebSocket enabled for real-time messaging`);
+  console.log(`Ã°Å¸â€œÂ¡ API prefix: ${apiPrefix}`);
   console.log(
     isCloudinaryConfigured()
-      ? `🖼️  Cloudinary uploads enabled (cloud: ${getCloudinaryCloudName()})`
-      : '⚠️  Cloudinary not configured — file uploads will fail until CLOUDINARY_* is set in server/.env'
+      ? `Ã°Å¸â€“Â¼Ã¯Â¸Â  Cloudinary uploads enabled (cloud: ${getCloudinaryCloudName()})`
+      : 'Ã¢Å¡Â Ã¯Â¸Â  Cloudinary not configured Ã¢â‚¬â€ file uploads will fail until CLOUDINARY_* is set in server/.env'
   );
   console.log(
     isGoogleConfigured()
-      ? '🔐 Google sign-in enabled (/api/auth/google)'
-      : '⚠️  Google sign-in disabled — set GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET in server/.env'
+      ? 'Ã°Å¸â€Â Google sign-in enabled (/api/auth/google)'
+      : 'Ã¢Å¡Â Ã¯Â¸Â  Google sign-in disabled Ã¢â‚¬â€ set GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET in server/.env'
   );
 });
 

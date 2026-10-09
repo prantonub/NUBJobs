@@ -1,8 +1,7 @@
 'use client';
 
 import { FC, useEffect, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { InfoIcon, MoreVerticalIcon, ArrowLeftIcon, ArchiveIcon, BanIcon, PhoneIcon } from 'lucide-react';
+import { MoreVerticalIcon, ArrowLeftIcon, ArchiveIcon, BanIcon, ShieldOffIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -32,6 +31,9 @@ export const ChatWindow: FC<{
   onMarkAllRead?: () => void;
   onArchive?: () => void;
   onBlock?: () => void;
+  onUnblock?: () => void;
+  /** Viewer-side block state: 'me' = I blocked them, 'them' = they blocked me. */
+  blocked?: 'me' | 'them' | null;
   onBack?: () => void;
   sending?: boolean;
 }> = ({
@@ -49,13 +51,14 @@ export const ChatWindow: FC<{
   onMarkAllRead,
   onArchive,
   onBlock,
+  onUnblock,
+  blocked = null,
   onBack,
   sending,
 }) => {
   const bottomRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [autoScroll, setAutoScroll] = useState(true);
-  const router = useRouter();
 
   const identity = otherUser
     ? { id: otherUser.id, name: otherUser.name, photo: otherUser.photo, role: otherUser.role, email: otherUser.email }
@@ -116,17 +119,6 @@ export const ChatWindow: FC<{
           </span>
         )}
         <div className="ml-auto flex items-center gap-1">
-          <Button variant="ghost" size="icon" aria-label="Call" disabled>
-            <PhoneIcon className="size-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Profile info"
-            onClick={() => router.push(`/profile/${identity.id}`)}
-          >
-            <InfoIcon className="size-4" />
-          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" aria-label="More actions">
@@ -139,10 +131,16 @@ export const ChatWindow: FC<{
                   <ArchiveIcon className="mr-2 size-4" /> Archive
                 </DropdownMenuItem>
               )}
-              {onBlock && (
-                <DropdownMenuItem className="text-red-500" onClick={onBlock}>
-                  <BanIcon className="mr-2 size-4" /> Block user
+              {blocked === 'me' && onUnblock ? (
+                <DropdownMenuItem onClick={onUnblock}>
+                  <ShieldOffIcon className="mr-2 size-4" /> Unblock user
                 </DropdownMenuItem>
+              ) : (
+                blocked === null && onBlock && (
+                  <DropdownMenuItem className="text-red-500" onClick={onBlock}>
+                    <BanIcon className="mr-2 size-4" /> Block user
+                  </DropdownMenuItem>
+                )
               )}
             </DropdownMenuContent>
           </DropdownMenu>
@@ -195,14 +193,26 @@ export const ChatWindow: FC<{
         <div ref={bottomRef} />
       </div>
 
-      {/* Composer */}
-      <MessageInput
-        onSend={onSend}
-        onTyping={onTyping}
-        onStopTyping={onStopTyping}
-        draftKey={identity.id}
-        sending={sending}
-      />
+      {/* Composer — replaced by the block notice once messaging is locked */}
+      {blocked ? (
+        <div className="border-t bg-muted/40 px-4 py-4 text-center">
+          <p className="text-sm font-medium text-muted-foreground">You can't message this user</p>
+          {blocked === 'me' && onUnblock && (
+            <Button variant="outline" size="sm" className="mt-2" onClick={onUnblock}>
+              <ShieldOffIcon className="mr-1.5 size-3.5" />
+              Unblock
+            </Button>
+          )}
+        </div>
+      ) : (
+        <MessageInput
+          onSend={onSend}
+          onTyping={onTyping}
+          onStopTyping={onStopTyping}
+          draftKey={identity.id}
+          sending={sending}
+        />
+      )}
     </div>
   );
 };

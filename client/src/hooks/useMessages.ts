@@ -10,7 +10,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/axios';
-import { emitMessageRead, emitTypingStart, emitTypingStop, isSocketConnected, onMessagingEvent } from '@/lib/socket-client';
+import { connectSocket, emitMessageRead, emitTypingStart, emitTypingStop, getSocket, isSocketConnected, onMessagingEvent } from '@/lib/socket-client';
 
 export interface ConversationSummary {
   id: string;
@@ -71,6 +71,8 @@ export const useConversation = (userId?: string | null, params?: { page?: number
     queryFn: async () => {
       const { data } = await api.get(`/messages/conversation/${userId}`, { params });
       return data.data as {
+        /** Viewer-side block state for this thread (composer lock). */
+        blockedByMe?: boolean;
         otherUser: { id: string; name: string; photo: string | null; role: string; email: string };
         job: { id: string; title: string; company: string } | null;
         messages: DirectMessage[];
@@ -79,6 +81,7 @@ export const useConversation = (userId?: string | null, params?: { page?: number
     },
     enabled: Boolean(userId),
     staleTime: 10_000,
+    retry: false,
   });
 };
 
@@ -130,6 +133,9 @@ export const useMarkAllAsRead = (userId?: string | null) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
       queryClient.invalidateQueries({ queryKey: ['unreadMessageCount'] });
+      // Refetch the open thread too, so its messages show as read (and any
+      // "seen" guard in the page effects converges instead of re-firing).
+      queryClient.invalidateQueries({ queryKey: ['directConversation'] });
     },
   });
 };
@@ -208,6 +214,8 @@ export const useBlockUser = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['blockedUsers'] });
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      // Refresh the open thread so its composer locks right after blocking.
+      queryClient.invalidateQueries({ queryKey: ['directConversation'] });
     },
   });
 };
@@ -223,6 +231,7 @@ export const useUnblockUser = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['blockedUsers'] });
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      queryClient.invalidateQueries({ queryKey: ['directConversation'] });
     },
   });
 };
@@ -261,6 +270,9 @@ export const useGetUnreadCount = () => {
       return (data.data?.unreadCount ?? 0) as number;
     },
     staleTime: 30_000,
+    // Safety net: socket reconnection gives up after 5 attempts, so if the
+    // realtime bridge dies the "(1)" pill still refreshes once a minute.
+    refetchInterval: 60_000,
   });
 };
 
@@ -283,6 +295,46 @@ export const useBlockedUsers = () => {
 };
 
 /**
+ * A hard refresh never dials the socket on its own (AuthContext only connects
+ * on login/OAuth handoff), and `onMessagingEvent` silently no-ops without one.
+ * Realtime surfaces call this first so their subscriptions actually fire.
+ */
+export function ensureMessagingSocket() {
+  let socket = getSocket();
+  if (!socket && typeof window !== 'undefined') {
+    const token = window.localStorage.getItem('token');
+    if (token) socket = connectSocket(token);
+  }
+  return socket;
+}
+
+/**
+ * Keeps the "(1)" unread pill live on every authenticated surface.
+ *
+ * `useSocket` only mounts on the messages pages, so without this the sidebar
+ * badge would sit stale until the next refetch when a student/employer message
+ * arrives while you are on the dashboard. It invalidates the same queries
+ * `new_message` touches so the nav pill and the conversation rows always agree.
+ */
+export function useUnreadBadgeRealtime() {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    ensureMessagingSocket();
+    const invalidate = () => {
+      queryClient.invalidateQueries({ queryKey: ['unreadMessageCount'] });
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+    };
+    const subs = [
+      onMessagingEvent('new_message', invalidate),
+      onMessagingEvent('message_read', invalidate),
+      onMessagingEvent('conversation_read', invalidate),
+    ];
+    return () => subs.forEach((off) => off());
+  }, [queryClient]);
+}
+
+/**
  * useSocket() (spec §FRONTEND HOOKS) — mounts the direct-messaging server
  * event listeners for the current session:
  *   new_message → invalidate thread + list + badge
@@ -298,6 +350,9 @@ export function useSocket(otherUserId?: string | null) {
   const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
 
   useEffect(() => {
+    // Hard refreshes never dial the socket by themselves — subscriptions made
+    // before it exists would silently no-op.
+    ensureMessagingSocket();
     const subs: Array<() => void> = [];
 
     subs.push(

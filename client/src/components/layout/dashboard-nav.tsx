@@ -19,6 +19,7 @@ export const dashboardNav: DashboardNavItem[] = [
   { href: '/dashboard/saved', label: 'Saved', icon: <BookmarkIcon /> },
   { href: '/dashboard/cv-ats', label: 'CV & ATS', icon: <FileCheckIcon /> },
   { href: '/reviews', label: 'Reviews', icon: <StarIcon /> },
+  { href: '/social', label: 'Community', icon: <UsersIcon /> },
   { href: '/messages', label: 'Messages', icon: <MessageSquareIcon /> },
   { href: '/settings', label: 'Account Settings', icon: <SettingsIcon /> },
 ];

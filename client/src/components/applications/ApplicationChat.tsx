@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useConversation, useSendMessage } from '@/hooks/useNotificationsAndMessages';
+import { ensureMessagingSocket } from '@/hooks/useMessages';
 import { useAuth } from '@/hooks/useAuth';
-import { getSocket } from '@/lib/socket-client';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -35,7 +35,9 @@ export function ApplicationChat({ applicationId }: { applicationId: string }) {
   const messages: ChatMessage[] = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
 
   useEffect(() => {
-    const socket = getSocket();
+    // After a hard refresh no socket exists yet (AuthContext only dials one on
+    // login) — dial it here or this handler would silently never register.
+    const socket = ensureMessagingSocket();
     if (!socket) return;
     const handler = (payload: any) => {
       if (payload?.applicationId === applicationId) {
@@ -47,6 +49,15 @@ export function ApplicationChat({ applicationId }: { applicationId: string }) {
       socket.off('new_message', handler);
     };
   }, [applicationId, queryClient]);
+
+  // The legacy GET marks the whole thread read server-side the moment it loads
+  // (and on every refetch triggered by a live `new_message`) — mirror that into
+  // the badge queries so the "(1)" disappears immediately, not on refresh.
+  useEffect(() => {
+    if (!data) return;
+    queryClient.invalidateQueries({ queryKey: ['unreadMessageCount'] });
+    queryClient.invalidateQueries({ queryKey: ['conversations'] });
+  }, [data, queryClient]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
