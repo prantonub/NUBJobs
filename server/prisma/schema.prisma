@@ -100,6 +100,10 @@ model User {
   postCount         Int       @default(0)
   notificationsMuted Boolean  @default(false)
 
+  // Messaging (spec): presence for "Active 2h ago" + notification preferences
+  lastSeenAt       DateTime?
+  notifSettings    Json?      // { enableMessages, enableSound, enableEmail }
+
   // Social feed relations
   posts             Post[]           @relation("PostAuthor")
   pollVotes         PollVote[]      @relation("PollVoter")
@@ -424,6 +428,12 @@ model Message {
   messageType       String    @default("DIRECT")
   tags              String[]  @default([])
 
+  // Thread integration, pin & reactions (spec: sourceType/sourceId/isPin)
+  sourceType        String?   // "POST" when opened from a community post
+  sourceId          String?   // postId when sourceType = "POST"
+  isPin             Boolean   @default(false)
+  reactions         Json?     // { "👍": [userId, ...], ... }
+
   // Read Status ()
   isRead            Boolean   @default(false)
   readAt            DateTime?
@@ -471,6 +481,11 @@ model Conversation {
   // Block state mirrored from BlockedUser for fast thread checks
   user1BlockedUser2 Boolean   @default(false)
   user2BlockedUser1 Boolean   @default(false)
+
+  // Spec: lastMessageType + per-user mute (each side mutes independently)
+  lastMessageType   String?
+  user1Muted        Boolean   @default(false)
+  user2Muted        Boolean   @default(false)
 
   messages          Message[]
 

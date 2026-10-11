@@ -17,6 +17,7 @@ import { AuthorRow, type SocialUser } from './SocialUsers';
 import { useDeletePost, useLikePost, useVotePoll, type SocialPoll } from '@/hooks/useSocial';
 import { BarChart3, Heart, MessageCircle, MoreHorizontal, Pencil } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 export interface SocialPost {
@@ -110,8 +111,11 @@ export function PollBlock({ postId, poll }: { postId: string; poll: SocialPoll }
 export function PostCard({ post, hideActions = false }: { post: SocialPost; hideActions?: boolean }) {
   const like = useLikePost();
   const remove = useDeletePost();
+  const router = useRouter();
   const [liking, setLiking] = useState(false);
   const [lightbox, setLightbox] = useState(false);
+  // Hide the photo entirely if the URL 404s (no broken-image icon in the feed).
+  const [photoBroken, setPhotoBroken] = useState(false);
 
   const onLike = async () => {
     if (liking) return;
@@ -157,11 +161,21 @@ export function PostCard({ post, hideActions = false }: { post: SocialPost; hide
         )}
       </div>
 
-      <Link href={`/social/posts/${post.id}`} className="mt-1 block whitespace-pre-wrap text-sm">
+      {/* Click-to-open as a <div> — a wrapping <Link> would nest an <a>
+          inside the inline #hashtag / @mention / URL anchors (hydration error). */}
+      <div
+        onClick={() => router.push(`/social/posts/${post.id}`)}
+        className="mt-1 block cursor-pointer whitespace-pre-wrap text-sm hover:opacity-80"
+        role="link"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') router.push(`/social/posts/${post.id}`);
+        }}
+      >
         {renderRichContent(post.content)}
-      </Link>
+      </div>
 
-      {post.photoUrl && (
+      {post.photoUrl && !photoBroken && (
         <button
           type="button"
           onClick={() => setLightbox(true)}
@@ -169,7 +183,13 @@ export function PostCard({ post, hideActions = false }: { post: SocialPost; hide
           aria-label="View full photo"
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={post.photoUrl} alt="" className="max-h-[480px] w-full object-contain bg-muted/30" loading="lazy" />
+          <img
+            src={post.photoUrl}
+            alt=""
+            className="max-h-[480px] w-full object-contain bg-muted/30"
+            loading="lazy"
+            onError={() => setPhotoBroken(true)}
+          />
         </button>
       )}
 

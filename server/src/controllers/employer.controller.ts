@@ -715,7 +715,7 @@ export async function getEmployerMessages(req: AuthRequest, res: Response, next:
     });
     if (!employer) return responses.notFound(res, 'Employer profile not found');
 
-    const [applications, unreadGroups] = await Promise.all([
+    const [applications, unreadGroups, directUnreadGroups] = await Promise.all([
       prisma.application.findMany({
         where: { job: { employerId: employer.id } },
         orderBy: { updatedAt: 'desc' },
@@ -744,6 +744,18 @@ export async function getEmployerMessages(req: AuthRequest, res: Response, next:
         },
         _count: { _all: true },
       }),
+      // Direct-DM unread (students writing via /messages): Conversation has no
+      // applicationId, so group by conversation and map it back to the student.
+      prisma.message.groupBy({
+        by: ['conversationId'],
+        where: {
+          isRead: false,
+          senderId: { not: userId },
+          conversationId: { not: null },
+          applicationId: null,
+        },
+        _count: { _all: true },
+      }),
     ]);
 
     const unreadByApplication = new Map<string, number>();
@@ -752,6 +764,29 @@ export async function getEmployerMessages(req: AuthRequest, res: Response, next:
       // those unread counts belong to /messages, not this employer thread list.
       if (!row.applicationId) continue;
       unreadByApplication.set(row.applicationId, row._count._all);
+    }
+
+    // Map direct-conversation unread (students writing via /messages) onto the
+    // students on the other side of those Conversation rows (employer = viewer).
+    const directUnreadByStudent = new Map<string, number>();
+    const directConvIds = directUnreadGroups
+      .map((g) => g.conversationId)
+      .filter(Boolean) as string[];
+    if (directConvIds.length) {
+      const directConvs = await prisma.conversation.findMany({
+        where: { id: { in: directConvIds } },
+        include: { user1: { select: { id: true } }, user2: { select: { id: true } } },
+      });
+      const unreadByConv = new Map(
+        directUnreadGroups.map((g) => [g.conversationId, g._count._all])
+      );
+      for (const conv of directConvs) {
+        const peerId = conv.user1Id === userId ? conv.user2Id : conv.user1Id;
+        directUnreadByStudent.set(
+          peerId,
+          (directUnreadByStudent.get(peerId) ?? 0) + (unreadByConv.get(conv.id) ?? 0)
+        );
+      }
     }
 
     // One row per student; extra applications only fold in their unread counts.
@@ -776,6 +811,52 @@ export async function getEmployerMessages(req: AuthRequest, res: Response, next:
         lastMessageTime: last?.createdAt ?? application.updatedAt,
         unreadCount: unread,
       });
+    }
+
+    // Direct-DM partners who never applied have no application row — surface
+    // them too (identity resolved from the users on their Conversation rows),
+    // with direct-DM unread attached so the new message is visible.
+    if (directConvIds.length) {
+      const directConvs = await prisma.conversation.findMany({
+        where: { id: { in: directConvIds } },
+        include: { user1: { select: { id: true } }, user2: { select: { id: true } } },
+      });
+      const directLast = await prisma.message.findMany({
+        where: { conversationId: { in: directConvIds } },
+        orderBy: { createdAt: 'desc' },
+        distinct: ['conversationId'],
+        select: { conversationId: true, content: true, createdAt: true },
+      });
+      const lastByConv = new Map(directLast.map((m) => [m.conversationId, m]));
+      for (const conv of directConvs) {
+        const peerId = conv.user1Id === userId ? conv.user2Id : conv.user1Id;
+        if (byStudent.has(peerId)) {
+          const row = byStudent.get(peerId);
+          row.unreadCount += directUnreadByStudent.get(peerId) ?? 0;
+          continue;
+        }
+        const peer = await prisma.user.findUnique({
+          where: { id: peerId },
+          select: {
+            id: true,
+            name: true,
+            studentProfile: { select: { id: true, photoUrl: true } },
+          },
+        });
+        if (!peer) continue;
+        const last = lastByConv.get(conv.id);
+        byStudent.set(peerId, {
+          studentId: peer.studentProfile?.id ?? null,
+          studentUserId: peer.id,
+          studentName: peer.name,
+          studentPhoto: peer.studentProfile?.photoUrl ?? null,
+          applicationId: null,
+          jobTitle: 'Direct message',
+          lastMessage: last?.content ?? null,
+          lastMessageTime: last?.createdAt ?? new Date(),
+          unreadCount: directUnreadByStudent.get(peerId) ?? 0,
+        });
+      }
     }
 
     const conversations = Array.from(byStudent.values()).sort(
@@ -808,31 +889,88 @@ export async function getEmployerMessageThread(req: AuthRequest, res: Response, 
       ? String(req.params.studentId[0])
       : String(req.params.studentId ?? '');
     const primary = await findMyApplicationWithStudent(employer.id, rawParam);
-    if (!primary) return responses.notFound(res, 'No conversation with this student');
+
+    // Student param always addresses one user — direct DMs (POST /messages/send)
+    // share Conversation rows keyed by user pair, so the thread merges BOTH
+    // shapes: application messages + direct-conversation messages.
+    const studentUserId =
+      primary?.student?.user?.id ??
+      (await prisma.user.findUnique({ where: { id: rawParam }, select: { id: true } }))?.id ??
+      (await prisma.studentProfile.findUnique({ where: { id: rawParam }, select: { userId: true } }))?.userId;
+
+    if (!primary && !studentUserId) return responses.notFound(res, 'No conversation with this student');
 
     const ownedApps = await prisma.application.findMany({
-      where: { job: { employerId: employer.id }, studentId: primary.studentId },
+      where: { job: { employerId: employer.id }, studentId: primary?.studentId ?? '__none__' },
       select: { id: true },
     });
     const applicationIds = ownedApps.map((application) => application.id);
 
-    const messages = await prisma.message.findMany({
-      where: { applicationId: { in: applicationIds } },
-      include: { sender: { select: { id: true, name: true, email: true } } },
-      orderBy: { createdAt: 'asc' },
-    });
+    // App messages + the shared direct-conversation messages (same pair).
+    const directConv = studentUserId
+      ? await prisma.conversation.findUnique({
+          where: {
+            user1Id_user2Id:
+              studentUserId < userId
+                ? { user1Id: studentUserId, user2Id: userId }
+                : { user1Id: userId, user2Id: studentUserId },
+          },
+        })
+      : null;
+    const where: any = {
+      OR: [
+        ...(applicationIds.length ? [{ applicationId: { in: applicationIds } }] : []),
+        ...(directConv ? [{ conversationId: directConv.id }] : []),
+      ],
+    };
 
-    // Opening the thread marks the student's messages as read.
-    await prisma.message.updateMany({
-      where: { applicationId: { in: applicationIds }, senderId: { not: userId }, isRead: false },
-      data: { isRead: true },
-    });
+    const messages = where.OR.length
+      ? await prisma.message.findMany({
+          where,
+          include: { sender: { select: { id: true, name: true, email: true } } },
+          orderBy: { createdAt: 'asc' },
+        })
+      : [];
+
+    // Opening the thread marks messages as read — application ones via their
+    // application ids, direct-DM ones via their shared Conversation row.
+    const readWhere: any[] = [];
+    if (applicationIds.length) {
+      readWhere.push({ applicationId: { in: applicationIds }, senderId: { not: userId }, isRead: false });
+    }
+    if (directConv) {
+      readWhere.push({ conversationId: directConv.id, senderId: { not: userId }, isRead: false });
+    }
+    if (readWhere.length) {
+      await prisma.message.updateMany({
+        where: { OR: readWhere },
+        data: { isRead: true },
+      });
+    }
+
+    // Student profile for the header: from the application, or resolved from
+    // the direct-DM partner when they never applied to this company's jobs.
+    let studentProfile: any = primary?.student ?? null;
+    if (!studentProfile && studentUserId) {
+      studentProfile = await prisma.studentProfile.findFirst({
+        where: { user: { id: studentUserId } },
+        select: {
+          id: true,
+          photoUrl: true,
+          cgpa: true,
+          department: true,
+          skills: true,
+          resumeUrl: true,
+          user: { select: { id: true, name: true, email: true } },
+        },
+      });
+    }
 
     return responses.ok(res, 'Thread fetched', {
       messages,
-      applicationId: primary.id,
-      jobTitle: primary.job.title,
-      studentProfile: primary.student,
+      applicationId: primary?.id ?? null,
+      jobTitle: primary?.job?.title ?? 'Direct message',
+      studentProfile,
     });
   } catch (error) {
     next(error);
@@ -875,6 +1013,25 @@ export async function sendEmployerMessage(req: AuthRequest, res: Response, next:
     const message = await prisma.message.create({
       data: { applicationId: application.id, senderId: userId, content, isRead: false },
       include: { sender: { select: { id: true, name: true, email: true } } },
+    });
+
+    // Mirror into the shared direct-messaging Conversation so BOTH inboxes
+    // (/messages + /employer/messages) and both thread readers see it —
+    // direct sends already land here, so legacy-shaped sends must too.
+    const [user1Id, user2Id] =
+      application.student.user.id < userId
+        ? [application.student.user.id, userId]
+        : [userId, application.student.user.id];
+    const conv =
+      (await prisma.conversation.findUnique({
+        where: { user1Id_user2Id: { user1Id, user2Id } },
+      })) ??
+      (await prisma.conversation.create({
+        data: { user1Id, user2Id, jobId: application.jobId ?? undefined },
+      }));
+    await prisma.conversation.update({
+      where: { id: conv.id },
+      data: { lastMessage: content.slice(0, 500), lastMessageTime: message.createdAt },
     });
 
     // Real-time delivery to the student (their socket joins `user_<id>`).

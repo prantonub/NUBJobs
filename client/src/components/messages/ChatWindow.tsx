@@ -166,8 +166,8 @@ export const ChatWindow: FC<{
             <MessageBubble
               key={m.id}
               message={m}
-              isOwn={m.senderId === currentUserId}
-              canDelete={m.senderId === currentUserId}
+              isOwn={m.isOwn ?? m.senderId === currentUserId}
+              canDelete={m.isOwn ?? m.senderId === currentUserId}
               onDelete={onDeleteMessage}
             />
           ))

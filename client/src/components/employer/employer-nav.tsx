@@ -23,6 +23,6 @@ export const employerNav: DashboardNavItem[] = [
   { href: '/employer/applications', label: 'Applications', icon: <FileTextIcon /> },
   { href: '/employer/pipeline', label: 'Pipeline', icon: <TargetIcon /> },
   { href: '/employer/analytics', label: 'Analytics', icon: <BarChart3Icon /> },
-  { href: '/employer/messages', label: 'Messages', icon: <MessageSquareIcon /> },
+  { href: '/messages', label: 'Messages', icon: <MessageSquareIcon /> },
   { href: '/employer/settings', label: 'Settings', icon: <SettingsIcon /> },
 ];

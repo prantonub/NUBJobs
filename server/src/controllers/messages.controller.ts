@@ -80,10 +80,13 @@ function rateLimited(userId: string, max = 100, windowMs = 60_000): number | nul
 }
 
 /** API shape for one message (spec §GET conversation history). */
-function formatMessage(msg: any, sender?: { name: string; avatarUrl: string | null } | null) {
+function formatMessage(msg: any, sender?: { name: string; avatarUrl: string | null } | null, viewerId?: string) {
   return {
     id: msg.id,
     senderId: msg.senderId,
+    // Server-computed side flag — the client renders "mine → right" from this
+    // even when its auth cache has no user id (null/stale currentUserId).
+    ...(viewerId ? { isOwn: msg.senderId === viewerId } : {}),
     ...(msg.recipientId ? { recipientId: msg.recipientId } : {}),
     senderName: sender?.name ?? msg.sender?.name ?? null,
     senderPhoto: sender?.avatarUrl ?? msg.sender?.avatarUrl ?? null,
@@ -512,7 +515,7 @@ export async function getConversation(req: AuthRequest, res: Response, next: Nex
         email: otherUser.email,
       },
       job: job ? { id: job.id, title: job.title, company: job.employer.companyName } : null,
-      messages: messages.map((m) => formatMessage(m)),
+      messages: messages.map((m) => formatMessage(m, undefined, userId)),
       pagination: {
         hasMore,
         cursor: hasMore ? messages[0]?.id ?? null : null,

@@ -1,114 +1,82 @@
 'use client';
 
-import { SocialNav, SocialShell } from '@/components/social/SocialNav';
-import { PostCard } from '@/components/social/PostCard';
-import { UserCard } from '@/components/social/SocialUsers';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Textarea } from '@/components/ui/textarea';
-import { useMessageHistory, useReadMessage, useSendMessage } from '@/hooks/useSocial';
 import { use, useEffect, useState } from 'react';
-import { toast } from 'sonner';
+import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
+import { ArrowLeftIcon, ExternalLinkIcon } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { ChatWindow } from '@/components/social/ChatWindow';
+import { useMessages, useHistoryMeta, flattenHistory } from '@/hooks/useSocialMessages';
 
-/** /social/messages/[userId] — DM history with one user. */
-export default function MessageHistoryPage({ params }: { params: Promise<{ userId: string }> }) {
+/**
+ * /social/messages/:userId — DM thread. `?post=` carries the post the chat
+ * was started from (spec §DATABASE sourceType/sourceId) so the sender knows
+ * the context and the message links back to it.
+ */
+export default function SocialMessageThreadPage({ params }: { params: Promise<{ userId: string }> }) {
   const { userId } = use(params);
-  const [draft, setDraft] = useState('');
-  const history = useMessageHistory(userId, 1);
-  const send = useSendMessage(userId);
-  const readMessage = useReadMessage();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const postId = searchParams.get('post');
+  const [sourceId, setSourceId] = useState<string | null>(postId);
 
-  const messages: any[] = (history.data as any)?.messages ?? [];
-  const otherUser = (history.data as any)?.otherUser ?? null;
+  const { data, isLoading } = useMessages(userId);
+  const { otherUser } = useHistoryMeta(data);
+  const loaded = otherUser !== null || !isLoading;
 
-  // Mark incoming unread messages read once the thread loads (badge clears).
+  // Once the thread loads, keep the post chip visible only for this visit.
   useEffect(() => {
-    for (const m of messages) {
-      if (!m.isMine && !m.isRead && m.id) {
-        readMessage.mutate(m.id, {
-          onError: () => {
-            /* receipt is best-effort — the thread still renders */
-          },
-        });
-      }
+    if (loaded && postId) {
+      const timer = setTimeout(() => router.replace(`/social/messages/${userId}`, { scroll: false }), 30_000);
+      return () => clearTimeout(timer);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [history.dataUpdatedAt]);
+  }, [loaded, postId, router, userId]);
 
-  const sendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!draft.trim()) return;
-    try {
-      await send.mutateAsync({ content: draft.trim() });
-      setDraft('');
-      toast.success('Message sent');
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message ?? 'Failed to send');
-    }
-  };
+  if (isLoading && flattenHistory(data).length === 0) {
+    return (
+      <div className="flex h-full flex-col">
+        <div className="flex items-center gap-2 border-b border-border px-4 py-3">
+          <Button variant="ghost" size="icon" className="lg:hidden" asChild aria-label="Back to list">
+            <Link href="/social/messages">
+              <ArrowLeftIcon className="size-4" />
+            </Link>
+          </Button>
+          <Skeleton className="size-10 rounded-full" />
+          <div className="flex-1 space-y-1.5">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-3 w-20" />
+          </div>
+        </div>
+        <div className="flex-1 p-4">
+          <Skeleton className="h-24 w-full" />
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <SocialShell>
-      <SocialNav
-        title={otherUser?.name ?? `@${userId}`}
-        subtitle="Direct messages"
-      />
-
-      <div className="mb-4 flex gap-3">
-        <UserCard user={otherUser ?? { name: 'Loading…', username: userId, photo: null }} compact />
-        <form onSubmit={sendMessage} className="flex-1">
-          <div className="flex gap-2">
-            <Input
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              placeholder="Write a message…"
-              aria-label="Message content"
-            />
-            <Button type="submit" disabled={!draft.trim() || send.isPending}>
-              Send
+    <div className="flex h-full min-h-0 flex-col">
+      {sourceId && (
+        <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border bg-muted/50 px-3 py-1.5 text-xs sm:px-4">
+          <span className="truncate text-muted-foreground">
+            💬 Chatting about a post — your first message will link back to it.
+          </span>
+          <div className="flex shrink-0 items-center gap-1">
+            <Button variant="ghost" size="sm" asChild className="h-7 text-xs">
+              <Link href={`/social/posts/${sourceId}`}>
+                <ExternalLinkIcon className="mr-1 size-3" /> View post
+              </Link>
             </Button>
-          </div>
-        </form>
-      </div>
-
-      {/* Message list — loading placeholder only while fetching */}
-      {history.isLoading ? (
-        <Skeleton className="h-32 w-full" />
-      ) : messages.length === 0 ? (
-        <p className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
-          No messages yet. Say hello!
-        </p>
-      ) : (
-        <div className="rounded-lg border border-border bg-card p-4">
-          <div className="space-y-3">
-            {messages.map((m: any) => (
-              <div key={m.id} className={`flex ${m.isMine ? 'justify-end' : 'justify-start'}`}>
-                <div
-                  className={`max-w-xs rounded-lg px-3 py-2 text-sm ${
-                    m.isMine ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground'
-                  }`}
-                >
-                  {m.photoUrl && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={m.photoUrl} alt="attachment" className="mb-1 max-w-full rounded" />
-                  )}
-                  {m.content ? (
-                    <p>{m.content}</p>
-                  ) : (
-                    <p className="italic text-muted-foreground">📷 Photo</p>
-                  )}
-                  {m.createdAt && (
-                    <p className="mt-1 text-right text-[11px] opacity-70">
-                      {new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </p>
-                  )}
-                </div>
-              </div>
-            ))}
+            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setSourceId(null)}>
+              Dismiss
+            </Button>
           </div>
         </div>
       )}
-    </SocialShell>
+      <div className="min-h-0 flex-1">
+        <ChatWindow userId={userId} sourceId={sourceId} />
+      </div>
+    </div>
   );
 }

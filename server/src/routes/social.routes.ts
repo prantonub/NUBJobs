@@ -31,10 +31,17 @@ import {
 } from '../controllers/social-profile.controller';
 import {
   listConversations,
+  searchConversations,
+  globalSearch,
   getHistory,
   sendMessage,
   markRead,
   deleteMessage,
+  pinMessage,
+  reactToMessage,
+  updateConversationFlags,
+  getNotificationSettings,
+  updateNotificationSettings,
   unreadCount,
 } from '../controllers/social-messages.controller';
 import {
@@ -97,13 +104,23 @@ router.get('/users/:username/followers', wrap(listFollowers));
 router.get('/users/:username/following', wrap(listFollowing));
 router.get('/suggestions', wrap(getSuggestions));
 
-// F. Messaging (literal /messages/unread-count before /messages/:userId)
+// F. Messaging (literal paths MUST register before /messages/:userId)
 router.get('/messages', wrap(listConversations));
 router.get('/messages/unread-count', wrap(unreadCount));
+router.get('/messages/search', wrap(searchConversations));
+router.get('/messages/search/global', wrap(globalSearch));
+router.post('/messages/photo', ...singleImage('photo'), wrap(uploadPostPhoto));
 router.get('/messages/:userId', wrap(getHistory));
 router.post('/messages/:userId', wrap(sendMessage));
+router.patch('/messages/:userId/conversation', wrap(updateConversationFlags));
 router.patch('/messages/:messageId/read', wrap(markRead));
+router.patch('/messages/:messageId/pin', wrap(pinMessage));
+router.patch('/messages/:messageId/reaction', wrap(reactToMessage));
 router.delete('/messages/:messageId', wrap(deleteMessage));
+
+// Notification preferences (spec #11)
+router.get('/settings/notifications', wrap(getNotificationSettings));
+router.patch('/settings/notifications', wrap(updateNotificationSettings));
 
 // G. Notifications (literal paths first)
 router.get('/notifications', wrap(listNotifications));

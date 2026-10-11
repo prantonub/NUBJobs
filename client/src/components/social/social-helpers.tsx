@@ -17,13 +17,21 @@ export function timeAgo(date: string | Date): string {
 
 /** Render post/comment content with #hashtags, @mentions and links made clickable. */
 export function renderRichContent(content: string, basePath = '/social'): React.ReactNode {
+  // Inline anchors may sit inside a click-to-open post wrapper (PostCard div) —
+  // stopping propagation keeps THEIR navigation (not the wrapper's post route).
+  // Inert where no click wrapper exists (comments, legacy pages).
+  const stop = (e: React.MouseEvent) => e.stopPropagation();
   const parts = String(content ?? '').split(/(\s+)/);
   return parts.map((part, i) => {
     const tag = part.match(/^#([A-Za-z0-9_]+)([.,!?;:]*)$/);
     if (tag) {
       return (
         <React.Fragment key={i}>
-          <a href={`${basePath}/explore?tag=${tag[1].toLowerCase()}`} className="font-medium text-primary hover:underline">
+          <a
+            href={`${basePath}/explore?tag=${tag[1].toLowerCase()}`}
+            className="font-medium text-primary hover:underline"
+            onClick={stop}
+          >
             #{tag[1]}
           </a>
           {tag[2]}
@@ -34,7 +42,11 @@ export function renderRichContent(content: string, basePath = '/social'): React.
     if (mention) {
       return (
         <React.Fragment key={i}>
-          <a href={`${basePath}/${mention[1].toLowerCase()}`} className="font-medium text-primary hover:underline">
+          <a
+            href={`${basePath}/profile/${mention[1].toLowerCase()}`}
+            className="font-medium text-primary hover:underline"
+            onClick={stop}
+          >
             @{mention[1]}
           </a>
           {mention[2]}
@@ -43,7 +55,14 @@ export function renderRichContent(content: string, basePath = '/social'): React.
     }
     if (/^https?:\/\/[^\s]+$/.test(part)) {
       return (
-        <a key={i} href={part} target="_blank" rel="noreferrer" className="text-primary hover:underline">
+        <a
+          key={i}
+          href={part}
+          target="_blank"
+          rel="noreferrer"
+          className="text-primary hover:underline"
+          onClick={stop}
+        >
           {part}
         </a>
       );

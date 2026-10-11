@@ -35,6 +35,8 @@ export interface DirectMessage {
   id: string;
   senderId: string;
   recipientId?: string;
+  /** Server-computed "is this the viewer's message" — authoritative for bubble side. */
+  isOwn?: boolean;
   senderName: string | null;
   senderPhoto: string | null;
   content: string | null;

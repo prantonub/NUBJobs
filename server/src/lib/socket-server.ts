@@ -1,7 +1,8 @@
-import { createServer } from 'http';
+﻿import { createServer } from 'http';
 import { Server, Socket } from 'socket.io';
 import jwt from 'jsonwebtoken';
 import prisma from './prisma';
+import { classifyMessage, consumeMessageQuota } from '../utils/message-tagging.util';
 
 // Track online users
 const onlineUsers = new Map<string, string>(); // userId -> socketId
@@ -10,7 +11,7 @@ const onlineUsers = new Map<string, string>(); // userId -> socketId
  * Module-level handle to the Socket.io server.
  *
  * HTTP controllers need to push events (new application, status change) to a
- * specific user, and they only ever see `req`/`res` — not the socket server. A
+ * specific user, and they only ever see `req`/`res` â€” not the socket server. A
  * module-level reference (set in `initializeSocket`) is the standard way to
  * bridge that gap without threading `io` through every controller.
  */
@@ -22,7 +23,7 @@ export const userRoom = (userId: string) => `user_${userId}`;
 /** Room that both participants of an application (conversation) join. */
 export const conversationRoom = (applicationId: string) => `conversation_${applicationId}`;
 
-/** Social feed broadcast room — every socket joins on connect (spec: feed-live). */
+/** Social feed broadcast room â€” every socket joins on connect (spec: feed-live). */
 export const feedRoom = 'feed_live';
 
 /** Per-post room for granular updates (spec: post-{postId}). */
@@ -123,7 +124,7 @@ export function initializeSocket(app: any) {
     // Social feed: everyone receives feed broadcasts (spec: feed-live room).
     socket.join(feedRoom);
 
-    // Granular post rooms — clients ask to watch/unwatch a single post.
+    // Granular post rooms â€” clients ask to watch/unwatch a single post.
     socket.on('join_post', (postId?: string) => {
       if (typeof postId === 'string' && postId) socket.join(postRoom(postId));
     });
@@ -139,8 +140,8 @@ export function initializeSocket(app: any) {
     // ===== MESSAGE EVENTS =====
 
     /**
-     * Direct-messaging send (spec §EMIT send_message).
-     * Payload: { recipientId, content, jobId? } — dispatched by payload shape
+     * Direct-messaging send (spec Â§EMIT send_message).
+     * Payload: { recipientId, content, jobId? } â€” dispatched by payload shape
      * so the legacy applicationId handler below keeps working unchanged.
      */
     socket.on(
@@ -155,6 +156,18 @@ export function initializeSocket(app: any) {
             socket.emit('error', { message: 'Invalid message' });
             return;
           }
+
+          // Quota: 10/min + 100/hour per user (spec §SECURITY) — shares the
+          // bucket with the REST path so no transport can bypass the limit.
+          const retryAfter = consumeMessageQuota(senderId);
+          if (retryAfter !== null) {
+            socket.emit('message_error', {
+              message: `Too many messages — wait ${retryAfter}s`,
+              retryAfter,
+            });
+            return;
+          }
+          const tag = classifyMessage(content);
 
           // Reuse the HTTP pipeline so validation, block checks, rate limit,
           // conversation update, new_message emit and offline notification are
@@ -203,11 +216,18 @@ export function initializeSocket(app: any) {
               recipientId,
               content,
               isRead: false,
+              messageType: tag.messageType,
+              tags: tag.tags,
+              sourceType: 'GENERAL',
             },
           });
           await prisma.conversation.update({
             where: { id: conv.id },
-            data: { lastMessage: content.slice(0, 500), lastMessageTime: message.createdAt },
+            data: {
+              lastMessage: content.slice(0, 500),
+              lastMessageTime: message.createdAt,
+              lastMessageType: tag.messageType,
+            },
           });
 
           const payload = {
@@ -217,6 +237,9 @@ export function initializeSocket(app: any) {
               senderId,
               recipientId,
               content,
+              messageType: tag.messageType,
+              tags: tag.tags,
+              photoUrl: null as string | null,
               timestamp: message.createdAt,
               isRead: false,
             },
@@ -227,8 +250,17 @@ export function initializeSocket(app: any) {
           io.to(userRoom(recipientId)).emit('new_message', payload);
           // Echo to the sender's other tabs so they stay in sync.
           socket.emit('new_message', payload);
+          // Keep both inbox lists fresh without a refetch.
+          const convUpdate = {
+            id: conv.id,
+            lastMessage: content.slice(0, 500),
+            lastMessageTime: message.createdAt,
+            lastMessageType: tag.messageType,
+          };
+          io.to(userRoom(recipientId)).emit('conversation:update', { ...convUpdate, otherUserId: senderId });
+          io.to(userRoom(senderId)).emit('conversation:update', { ...convUpdate, otherUserId: recipientId });
 
-          // Offline → DB notification + notification event (spec §side effects).
+          // Offline â†’ DB notification + notification event (spec Â§side effects).
           if (!onlineUsers.has(recipientId)) {
             await prisma.notification
               .create({
@@ -254,8 +286,8 @@ export function initializeSocket(app: any) {
     );
 
     /**
-     * Read receipt (spec §EMIT message_read).
-     * Payload: { messageId } — the legacy handler below takes { applicationId }.
+     * Read receipt (spec Â§EMIT message_read).
+     * Payload: { messageId } â€” the legacy handler below takes { applicationId }.
      */
     socket.on('message_read', async (data: { messageId?: string }) => {
       if (!data?.messageId) return; // legacy application flow
@@ -331,7 +363,7 @@ export function initializeSocket(app: any) {
       const ack = typeof callback === 'function' ? callback : () => {};
       try {
         const { applicationId, content } = data;
-        if (!applicationId) return; // spec payload ({ recipientId }) — other listener's job
+        if (!applicationId) return; // spec payload ({ recipientId }) â€” other listener's job
 
         // Validate user is participant
         const application = await prisma.application.findUnique({
@@ -400,7 +432,7 @@ export function initializeSocket(app: any) {
             userId: otherUserId,
             type: 'NEW_MESSAGE',
             message: `New message from ${senderName}`,
-            link: `/messages/${applicationId}`,
+            link: `/messages?user=${userId}`,
           },
         });
 
@@ -422,8 +454,8 @@ export function initializeSocket(app: any) {
 
     /**
      * typing_start - User started typing.
-     * Spec payload: { recipientId } → direct-messaging `typing_indicator`.
-     * Legacy payload: { applicationId } → room-based `user_typing`.
+     * Spec payload: { recipientId } â†’ direct-messaging `typing_indicator`.
+     * Legacy payload: { applicationId } â†’ room-based `user_typing`.
      */
     socket.on('typing_start', (data: { recipientId?: string; applicationId?: string }) => {
       if (data?.recipientId) {
@@ -442,7 +474,7 @@ export function initializeSocket(app: any) {
 
     /**
      * typing_stop - User stopped typing.
-     * Spec payload: { recipientId } → `stop_typing`; legacy: { applicationId }.
+     * Spec payload: { recipientId } â†’ `stop_typing`; legacy: { applicationId }.
      */
     socket.on('typing_stop', (data: { recipientId?: string; applicationId?: string }) => {
       if (data?.recipientId) {
@@ -495,6 +527,11 @@ export function initializeSocket(app: any) {
     socket.on('disconnect', () => {
       onlineUsers.delete(userId);
       console.log(`User disconnected: ${userId}`);
+
+      // Presence: remember when this user was last seen (spec "Active 2h ago").
+      prisma.user
+        .update({ where: { id: userId }, data: { lastSeenAt: new Date() } })
+        .catch(() => undefined);
 
       // Broadcast user offline status
       io.emit('user_offline', { userId, isOnline: false });
