@@ -1,71 +1,74 @@
 import { spawn } from 'child_process';
+import fs from 'fs';
 
 const EDGE = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe';
-const PORT = 9333;
-const API = 'http://localhost:5000/api';
+const OUT = 'C:\\temp\\edge-chat';
+fs.rmSync(OUT, { recursive: true, force: true });
+
+const args = [
+  '--remote-debugging-port=9333',
+  '--user-data-dir=' + OUT,
+  '--headless=new',
+  '--no-first-run',
+  '--disable-gpu',
+  '--window-size=1280,900',
+  'http://localhost:3000/login',
+];
+const proc = spawn(EDGE, args, { detached: true, stdio: 'ignore' });
+proc.unref();
+
+let wsUrl = null;
+for (let i = 0; i < 40; i++) {
+  try {
+    const list = await (await fetch('http://localhost:9333/json/list')).json();
+    const page = list.find((t) => t.type === 'page');
+    if (page) { wsUrl = page.webSocketDebuggerUrl; break; }
+  } catch {}
+  await new Promise((r) => setTimeout(r, 500));
+}
+if (!wsUrl) { console.log('CDP_NOT_UP'); process.exit(1); }
+
+const ws = new WebSocket(wsUrl);
+await new Promise((r) => (ws.onopen = r));
+let id = 1;
+const pending = new Map();
+ws.onmessage = (ev) => {
+  const msg = JSON.parse(ev.data);
+  if (msg.id && pending.has(msg.id)) { pending.get(msg.id)(msg); pending.delete(msg.id); }
+};
+function cdp(method, params) {
+  return new Promise((resolve) => {
+    const myId = id++;
+    pending.set(myId, resolve);
+    ws.send(JSON.stringify({ id: myId, method, params: params || {} }));
+  });
+}
+async function evalJs(expr) {
+  const r = await cdp('Runtime.evaluate', { expression: expr, returnByValue: true, awaitPromise: true });
+  if (r.result?.exceptionDetails) return 'ERR:' + JSON.stringify(r.result.exceptionDetails.text);
+  return r.result?.result?.value;
+}
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+await cdp('Runtime.enable');
+await cdp('Page.enable');
 
-async function login(email) {
-  const r = await fetch(`${API}/auth/login`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password: 'Password123!' }),
-  });
-  const j = await r.json();
-  return { token: (j.data || j).accessToken, id: (j.data || j).user.id };
+async function login(email, password) {
+  await cdp('Page.navigate', { url: 'http://localhost:3000/login' });
+  await sleep(2800);
+  await evalJs(`(()=>{const s=(el,v)=>{el.value=v;el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));};const ins=[...document.querySelectorAll('input')];const e=ins.find(i=>i.type==='email'||/email/i.test(i.placeholder||''));const p=ins.find(i=>i.type==='password');if(e)s(e,'${email}');if(p)s(p,'${password}');return {e:!!e,p:!!p};})()`);
+  await sleep(400);
+  await evalJs(`(()=>{const b=[...document.querySelectorAll('button')].find(x=>/log ?in|sign ?in/i.test(x.textContent));if(b){b.click();return 'clicked';}return 'no-btn';})()`);
+  await sleep(4000);
 }
 
-async function seedThread(st, em) {
-  await fetch(`${API}/social/messages/${em.id}`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${st.token}` },
-    body: JSON.stringify({ content: 'ui-probe from student #Job' }),
-  });
-  await fetch(`${API}/social/messages/${st.id}`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${em.token}` },
-    body: JSON.stringify({ content: 'ui-probe from employer' }),
-  });
-}
+console.log('LOGIN:', await login('thecrazyboy1595@gmail.com', 'Password123!'));
+console.log('PATH:', await evalJs('location.pathname'));
 
-(async () => {
-  const st = await login('seed.student1@nubjobs.test');
-  const em = await login('hr@brainstation23.test');
-  await seedThread(st, em);
+await cdp('Page.navigate', { url: 'http://localhost:3000/messages' });
+await sleep(4000);
+console.log('MSGS_H1:', await evalJs(`document.querySelector('h1')?.textContent || 'none'`));
 
-  const child = spawn(EDGE, [
-    '--headless=new', `--remote-debugging-port=${PORT}`,
-    `--user-data-dir=C:\\Temp\\edge-cdp-${Date.now()}`,
-    '--no-first-run', '--no-default-browser-check', '--window-size=1280,900', 'about:blank',
-  ], { stdio: 'ignore', detached: false });
+const hrefs = await evalJs(`[...document.querySelectorAll('a[href*="?user="]')].map(a=>a.getAttribute('href')).slice(0,5)`);
+console.log('HREFS:', JSON.stringify(hrefs));
 
-  let wsUrl = null;
-  for (let i = 0; i < 40 && !wsUrl; i++) {
-    await sleep(500);
-    try {
-      const list = await (await fetch(`http://127.0.0.1:${PORT}/json/list`)).json();
-      const page = list.find((t) => t.type === 'page');
-      if (page) wsUrl = page.webSocketDebuggerUrl;
-    } catch { /* not up yet */ }
-  }
-  if (!wsUrl) { console.log('FATAL no CDP target'); child.kill(); process.exit(1); }
-
-  const ws = new WebSocket(wsUrl);
-  let msgId = 0;
-  const pending = new Map();
-  const consoleErrors = [];
-  ws.onmessage = (e) => {
-    const m = JSON.parse(e.data);
-    if (m.id && pending.has(m.id)) { pending.get(m.id)(m.result); pending.delete(m.id); }
-    if (m.method === 'Runtime.consoleAPICalled' && m.params.type === 'error') {
-      consoleErrors.push(JSON.stringify(m.params.args?.map((a) => a.value ?? a.description).slice(0, 2)));
-    }
-  };
-  const cdp = (method, params = {}) => new Promise((res) => { const id = ++msgId; pending.set(id, res); ws.send(JSON.stringify({ id, method, params })); });
-  const ev = async (expression) => {
-    const r = await cdp('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true });
-    return r?.result?.value;
-  };
-  await new Promise((r) => { ws.onopen = r; });
-  await cdp('Page.enable'); await cdp('Runtime.enable');
-
-  await ev(`localStorage.setItem('token','${st.token}'); localStorage.setItem('refreshToken','r');`);
-  await cdp('Page.navigate', { url: `http://localhost:3000/social/messages/${em.id}` });
-  await sleep(9000);
+process.exit(0);
