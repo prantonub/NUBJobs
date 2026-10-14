@@ -7,13 +7,13 @@ import {
   Building2Icon,
   MapPinIcon,
   SearchIcon,
-  ShieldCheckIcon,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { CompanyLogo } from "@/components/ui/CompanyLogo";
+import { VerifiedBadge } from "@/components/ui/verified-badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import api from "@/lib/axios";
@@ -176,8 +176,8 @@ export default function CompaniesPage() {
                     <h2 className="truncate font-semibold text-foreground">{company.name}</h2>
 
                     {company.isVerified ? (
-                      <Badge className="mt-1 gap-1 bg-emerald-100 text-emerald-700">
-                        <ShieldCheckIcon className="size-3" />
+                      <Badge className="mt-1 gap-1 bg-blue-100 text-blue-700">
+                        <VerifiedBadge />
                         Verified
                       </Badge>
                     ) : null}

@@ -41,6 +41,15 @@ export async function createJob(req: AuthRequest, res: Response, next: NextFunct
       return responses.notFound(res, 'Employer profile not found');
     }
 
+    // Verified companies only — drafts included (spec: unverified employers
+    // cannot post jobs on NUBJobs).
+    if (!employer.isVerified) {
+      return responses.forbidden(
+        res,
+        'Your company profile is not verified yet. Complete your company profile, submit it for verification and wait for admin approval before posting jobs.'
+      );
+    }
+
     const job = await prisma.job.create({
       data: {
         employerId: employer.id,
@@ -154,6 +163,15 @@ export async function publishJob(req: AuthRequest, res: Response, next: NextFunc
 
     if (job.employerId !== employer.id) {
       return responses.forbidden(res);
+    }
+
+    // Blue verified badge gates publishing (spec: unverified employers
+    // cannot post jobs on NUBJobs).
+    if (!employer.isVerified) {
+      return responses.forbidden(
+        res,
+        'Your company profile is not verified yet. Complete your company profile, submit it for verification and wait for admin approval before posting jobs.'
+      );
     }
 
     // Validate job has required fields

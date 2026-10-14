@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeftIcon, BanIcon, MoreVerticalIcon, FlagIcon } from 'lucide-react';
+import { ArrowLeftIcon, BanIcon, MoreVerticalIcon, FlagIcon, UserIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -167,6 +167,11 @@ export function ChatWindow({ userId, sourceId }: ChatWindowProps) {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
+            <DropdownMenuItem asChild>
+              <Link href={otherUser?.username ? `/social/profile/${otherUser.username}` : `/social/messages?user=${userId}`}>
+                <UserIcon className="size-4" /> View profile
+              </Link>
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => void handleReport('thread')}>
               <FlagIcon className="size-4" /> Report user
             </DropdownMenuItem>

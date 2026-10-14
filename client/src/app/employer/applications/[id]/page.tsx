@@ -1,6 +1,6 @@
 'use client';
 
-import { FC, useEffect, useState } from 'react';
+import { FC, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import {
@@ -18,6 +18,7 @@ import StatusTimeline from '@/components/applications/StatusTimeline';
 import ApplicationChat from '@/components/applications/ApplicationChat';
 import { toast } from 'sonner';
 import { ArrowLeft, Check, ExternalLink, Loader2, Mail, X } from 'lucide-react';
+import { VerifiedBadge } from '@/components/ui/verified-badge';
 import { getErrorMessage } from '@/lib/utils';
 
 /**
@@ -36,10 +37,14 @@ const EmployerApplicationDetailPage: FC = () => {
 
   const [nextStatus, setNextStatus] = useState('');
   const [notes, setNotes] = useState('');
+  // Render-phase sync: seed private notes once per loaded application instead
+  // of calling setState inside an effect (react-hooks/set-state-in-effect).
+  const [syncedApplicationId, setSyncedApplicationId] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (application) setNotes(application.notes ?? '');
-  }, [application]);
+  if (applicationId && application && application.id !== syncedApplicationId) {
+    setSyncedApplicationId(application.id);
+    setNotes(application.notes ?? '');
+  }
 
   if (isLoading) {
     return <p className="p-8 text-center text-sm text-muted-foreground">Loading application…</p>;
@@ -107,7 +112,10 @@ const EmployerApplicationDetailPage: FC = () => {
               </span>
             )}
             <div className="min-w-0">
-              <p className="truncate font-semibold">{student.user?.name}</p>
+              <p className="flex items-center gap-1 truncate font-semibold">
+                {student.user?.name}
+                {student.isVerified ? <VerifiedBadge /> : null}
+              </p>
               <p className="truncate text-xs text-muted-foreground">{student.user?.email}</p>
             </div>
           </div>

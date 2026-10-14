@@ -686,6 +686,18 @@ export async function submitCompanyVerification(
       return responses.badRequest(res, 'Company is already verified');
     }
 
+    // Spec: verification review happens after the company profile is complete.
+    const missing: string[] = [];
+    if (!employer.companyName || employer.companyName.trim().length < 3) missing.push('companyName');
+    if (!employer.about || employer.about.trim().length < 50) missing.push('about (min 50 chars)');
+    if (!employer.email) missing.push('email');
+    if (!employer.location) missing.push('location');
+    if (missing.length > 0) {
+      return responses.badRequest(
+        res,
+        `Complete your company profile before requesting verification. Missing: ${missing.join(', ')}`
+      );
+    }
     // The document is either a Cloudinary URL (uploaded via
     // POST /api/company/verification-document) or a free-form explanation.
     const document =
@@ -717,6 +729,7 @@ export async function submitCompanyVerification(
       data: {
         verificationDocument: document ?? employer.verificationDocument,
         verificationRequest: JSON.stringify(requestPayload),
+        verificationStatus: 'PENDING', // surfaces in the admin review queue
       },
       select: {
         id: true,

@@ -2,14 +2,15 @@
 
 import { FC, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useCreateJob, usePostJob, useImproveDescription, useUpdateJob } from '@/hooks/useEmployer';
+import Link from 'next/link';
+import { useCreateJob, usePostJob, useImproveDescription, useUpdateJob, useCompanyProfile } from '@/hooks/useEmployer';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { ChevronRight, ChevronLeft, Wand2, Plus, Trash2, Loader2, CircleAlert } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Wand2, Plus, Trash2, Loader2, CircleAlert, ShieldAlert } from 'lucide-react';
 import {
   buildJobPayload,
   firstError,
@@ -27,6 +28,9 @@ const JobPostingWizard: FC = () => {
   // Publish → POST /api/jobs (status PENDING + admin approval notification)
   const postJobMutation = usePostJob();
   const improveDescMutation = useImproveDescription();
+  // Spec: only a blue verified company may post jobs (server enforces too).
+  const { data: company } = useCompanyProfile();
+  const companyUnverified = Boolean(company) && company?.isVerified !== true;
 
   const [formData, setFormData] = useState({
     title: '',
@@ -87,6 +91,10 @@ const JobPostingWizard: FC = () => {
    * the endpoint (and therefore the resulting status).
    */
   const submitJob = async (mode: 'draft' | 'publish') => {
+    if (companyUnverified) {
+      toast.error('Your company profile is not verified yet — get admin approval before posting jobs.');
+      return;
+    }
     const payload = buildJobPayload(formData);
     const clientErrors = validateJobPayload(payload);
 
@@ -124,6 +132,7 @@ const JobPostingWizard: FC = () => {
   // "Save as Draft" button is where real validation errors surface.
   const updateDraftMutation = useUpdateJob();
   const formDataRef = useRef(formData);
+  const companyUnverifiedRef = useRef(companyUnverified);
   const saveDraftRef = useRef(saveDraftMutation);
   const updateDraftRef = useRef(updateDraftMutation);
   const autoDraftIdRef = useRef<string | null>(null);
@@ -134,11 +143,14 @@ const JobPostingWizard: FC = () => {
     formDataRef.current = formData;
     saveDraftRef.current = saveDraftMutation;
     updateDraftRef.current = updateDraftMutation;
+    companyUnverifiedRef.current = companyUnverified;
   });
 
   useEffect(() => {
     const interval = window.setInterval(() => {
       if (autoSavingRef.current) return;
+      // Unverified companies can't create drafts server-side — skip the auto-save.
+      if (companyUnverifiedRef.current) return;
       if (Date.now() - lastAutoSavedRef.current < 30_000) return;
 
       const current = formDataRef.current;
@@ -197,6 +209,23 @@ const JobPostingWizard: FC = () => {
             ))}
           </div>
         </div>
+
+        {/* Verification gate banner */}
+        {companyUnverified ? (
+          <div className="mt-6 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+            <ShieldAlert className="mt-0.5 size-4 shrink-0" />
+            <div>
+              <p className="font-medium">Your company profile is not verified yet</p>
+              <p className="mt-1 text-xs">
+                Complete your company profile, submit it for verification and get admin approval before posting
+                jobs.{' '}
+                <Link href="/employer/company?tab=settings" className="font-semibold underline underline-offset-2">
+                  Go to company profile
+                </Link>
+              </p>
+            </div>
+          </div>
+        ) : null}
 
         <Card className="p-8">
           {/* Step 1: Basic Info */}
@@ -483,7 +512,7 @@ const JobPostingWizard: FC = () => {
                     type="button"
                     variant="outline"
                     onClick={handleSaveDraft}
-                    disabled={saveDraftMutation.isPending || postJobMutation.isPending}
+                    disabled={saveDraftMutation.isPending || postJobMutation.isPending || companyUnverified}
                   >
                     {saveDraftMutation.isPending ? (
                       <>
@@ -497,7 +526,7 @@ const JobPostingWizard: FC = () => {
                   <Button
                     type="button"
                     onClick={handlePublish}
-                    disabled={saveDraftMutation.isPending || postJobMutation.isPending}
+                    disabled={saveDraftMutation.isPending || postJobMutation.isPending || companyUnverified}
                   >
                     {postJobMutation.isPending && (
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />

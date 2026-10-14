@@ -17,7 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
-import { Check, CircleAlert, Loader2, X } from 'lucide-react';
+import { Check, CircleAlert, Loader2, ShieldAlert, X } from 'lucide-react';
 import { getErrorMessage } from '@/lib/utils';
 
 const MAX_COVER_LETTER = 500;
@@ -90,6 +90,8 @@ const ApplyModal: FC<ApplyModalProps> = ({ open, onOpenChange, jobId, jobTitle, 
 
   const applyMutation = useApplyJob();
   const { data: profile } = useProfile();
+  // Spec: only the blue verified badge may apply to jobs (server enforces too).
+  const needsVerification = Boolean(profile) && profile?.isVerified !== true;
   // `useJobDetail('')` is disabled, so this only fetches when the caller has no job.
   const { data: fetchedJob } = useJobDetail(jobProp ? '' : jobId);
   const job = jobProp ?? fetchedJob;
@@ -109,6 +111,10 @@ const ApplyModal: FC<ApplyModalProps> = ({ open, onOpenChange, jobId, jobTitle, 
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (needsVerification) {
+      toast.error('Your profile is not verified yet — get admin approval before applying.');
+      return;
+    }
     try {
       await applyMutation.mutateAsync({ jobId, coverLetter: coverLetter.trim() || undefined });
       toast.success('Application submitted');
@@ -132,6 +138,29 @@ const ApplyModal: FC<ApplyModalProps> = ({ open, onOpenChange, jobId, jobTitle, 
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Verification gate banner */}
+          {needsVerification ? (
+            <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+              <ShieldAlert className="mt-0.5 size-4 shrink-0" />
+              <div>
+                <p className="font-medium">Your profile is not verified yet</p>
+                <p className="mt-1 text-xs">
+                  Complete 100% of your profile and get admin approval before applying.{' '}
+                  <button
+                    type="button"
+                    className="font-semibold underline underline-offset-2"
+                    onClick={() => {
+                      onOpenChange(false);
+                      router.push('/profile');
+                    }}
+                  >
+                    Go to profile
+                  </button>
+                </p>
+              </div>
+            </div>
+          ) : null}
+
           {/* Match score */}
           <div className="rounded-xl border bg-muted/40 p-4">
             <div className="mb-2 flex items-center justify-between">
@@ -212,9 +241,9 @@ const ApplyModal: FC<ApplyModalProps> = ({ open, onOpenChange, jobId, jobTitle, 
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={applyMutation.isPending}>
+            <Button type="submit" disabled={applyMutation.isPending || needsVerification}>
               {applyMutation.isPending && <Loader2 className="size-4 animate-spin" />}
-              Apply Now
+              {needsVerification ? 'Verification required' : 'Apply Now'}
             </Button>
           </DialogFooter>
         </form>

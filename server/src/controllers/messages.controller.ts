@@ -89,7 +89,7 @@ function formatMessage(msg: any, sender?: { name: string; avatarUrl: string | nu
     ...(viewerId ? { isOwn: msg.senderId === viewerId } : {}),
     ...(msg.recipientId ? { recipientId: msg.recipientId } : {}),
     senderName: sender?.name ?? msg.sender?.name ?? null,
-    senderPhoto: sender?.avatarUrl ?? msg.sender?.avatarUrl ?? null,
+    senderPhoto: bestPhoto(sender ?? msg.sender ?? null),
     content: msg.isDeleted ? null : msg.content,
     timestamp: msg.createdAt,
     isRead: msg.isRead,
@@ -98,14 +98,24 @@ function formatMessage(msg: any, sender?: { name: string; avatarUrl: string | nu
   };
 }
 
-/** The other participant's public profile fields. */
+/** The other participant's public profile fields (+ photo sources). */
 const otherUserSelect = {
   id: true,
   name: true,
+  username: true,
   avatarUrl: true,
   role: true,
   email: true,
+  studentProfile: { select: { photoUrl: true } },
+  employerProfile: { select: { logoUrl: true } },
 } as const;
+
+/** Best available profile photo: Google avatar → student photo → company logo. */
+function bestPhoto(
+  u: { avatarUrl?: string | null; studentProfile?: { photoUrl?: string | null } | null; employerProfile?: { logoUrl?: string | null } | null } | null | undefined
+): string | null {
+  return u?.avatarUrl ?? u?.studentProfile?.photoUrl ?? u?.employerProfile?.logoUrl ?? null;
+}
 
 /**
  * Push `new_message` to the recipient's personal room and create a DB +
@@ -157,6 +167,7 @@ interface InboxItem {
   applicationId: string | null;
   otherUserId: string;
   otherUserName: string;
+  otherUserUsername: string | null;
   otherUserPhoto: string | null;
   otherUserRole: string;
   lastMessage: string | null;
@@ -208,7 +219,7 @@ async function legacyApplicationThreads(userId: string, search: string): Promise
                 userId: true,
                 companyName: true,
                 logoUrl: true,
-                user: { select: { name: true, email: true, avatarUrl: true, role: true } },
+                user: { select: { name: true, username: true, email: true, avatarUrl: true, role: true } },
               },
             },
           },
@@ -241,6 +252,7 @@ async function legacyApplicationThreads(userId: string, search: string): Promise
         applicationId: app.id,
         otherUserId: emp.userId,
         otherUserName: emp.companyName || emp.user.name,
+        otherUserUsername: emp.user.username ?? null,
         otherUserPhoto: emp.logoUrl || emp.user.avatarUrl,
         otherUserRole: String(emp.user.role),
         lastMessage,
@@ -269,7 +281,7 @@ async function legacyApplicationThreads(userId: string, search: string): Promise
         student: {
           select: {
             photoUrl: true,
-            user: { select: { id: true, name: true, email: true, avatarUrl: true, role: true } },
+            user: { select: { id: true, name: true, username: true, email: true, avatarUrl: true, role: true } },
           },
         },
       },
@@ -300,6 +312,7 @@ async function legacyApplicationThreads(userId: string, search: string): Promise
         applicationId: app.id,
         otherUserId: stu.user.id,
         otherUserName: stu.user.name,
+        otherUserUsername: stu.user.username ?? null,
         otherUserPhoto: stu.photoUrl || stu.user.avatarUrl,
         otherUserRole: String(stu.user.role),
         lastMessage,
@@ -378,7 +391,8 @@ export async function getConversations(req: AuthRequest, res: Response, next: Ne
           applicationId: null as string | null,
           otherUserId: other.id,
           otherUserName: other.name,
-          otherUserPhoto: other.avatarUrl,
+          otherUserUsername: other.username ?? null,
+          otherUserPhoto: bestPhoto(other as any),
           otherUserRole: other.role,
           lastMessage: conv.lastMessage,
           lastMessageTime: conv.lastMessageTime.toISOString(),
@@ -490,7 +504,17 @@ export async function getConversation(req: AuthRequest, res: Response, next: Nex
         ? { cursor: { id: String(req.query.cursor) }, skip: 1 }
         : { skip: (page - 1) * limit }),
       take: limit + 1, // probe for hasMore
-      include: { sender: { select: { id: true, name: true, avatarUrl: true } } },
+      include: {
+        sender: {
+          select: {
+            id: true,
+            name: true,
+            avatarUrl: true,
+            studentProfile: { select: { photoUrl: true } },
+            employerProfile: { select: { logoUrl: true } },
+          },
+        },
+      },
     });
     const hasMore = rows.length > limit;
     const pageRows = hasMore ? rows.slice(0, limit) : rows;
@@ -510,7 +534,8 @@ export async function getConversation(req: AuthRequest, res: Response, next: Nex
       otherUser: {
         id: otherUser.id,
         name: otherUser.name,
-        photo: otherUser.avatarUrl,
+        username: otherUser.username ?? null,
+        photo: bestPhoto(otherUser as any),
         role: otherUser.role,
         email: otherUser.email,
       },
@@ -598,7 +623,17 @@ async function processSend(
 
   const message = await prisma.message.create({
     data: { conversationId: conv.id, senderId, recipientId, content, isRead: false },
-    include: { sender: { select: { id: true, name: true, avatarUrl: true } } },
+    include: {
+      sender: {
+        select: {
+          id: true,
+          name: true,
+          avatarUrl: true,
+          studentProfile: { select: { photoUrl: true } },
+          employerProfile: { select: { logoUrl: true } },
+        },
+      },
+    },
   });
 
   await prisma.conversation.update({
@@ -617,6 +652,10 @@ async function processSend(
       content: message.content,
       timestamp: message.createdAt,
       isRead: false,
+      // Sender identity for avatar + side rendering (mirrors formatMessage).
+      senderName: message.sender?.name ?? null,
+      senderPhoto: bestPhoto(message.sender as any),
+      isOwn: true,
     },
   });
 }

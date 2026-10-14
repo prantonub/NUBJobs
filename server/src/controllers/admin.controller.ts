@@ -4,6 +4,8 @@ import { Request, Response, NextFunction } from 'express';
 import prisma from '../lib/prisma';
 import { responses } from '../utils/response.utils';
 import { hashPassword } from '../utils/password.utils';
+import { logAdminAction, notifyUser, parsePageLimit, paginationMeta } from './admin-spec.helpers';
+import { sendVerificationDecisionEmail } from '../services/email.service';
 
 export interface AdminRequest extends Request {
   userId?: string;
@@ -726,4 +728,237 @@ export async function rejectEmployerVerification(req: AdminRequest, res: Respons
   } catch (error) {
     next(error);
   }
+}
+// ============================================
+// PROFILE VERIFICATIONS - system-admin review queue (students + employers)
+// ============================================
+
+/** Same 8 sections as GET /api/profile/completion - shown in the admin queue. */
+function studentCompletionPct(profile: {
+  photoUrl: string | null; phone: string | null; location: string | null; bio: string | null;
+  nubId: string | null; cgpa: number | null; skills: string[]; linkedinUrl: string | null;
+  portfolioUrl: string | null; githubUrl: string | null; resumeUrl: string | null;
+}): number {
+  const sections = [
+    !!profile.photoUrl,
+    !!(profile.phone && profile.location && profile.bio),
+    !!(profile.nubId && profile.cgpa),
+    (profile.skills?.length ?? 0) > 0,
+    !!profile.linkedinUrl,
+    !!profile.portfolioUrl,
+    !!profile.githubUrl,
+    !!profile.resumeUrl,
+  ];
+  return Math.round((sections.filter(Boolean).length / sections.length) * 100);
+}
+
+/**
+ * GET /api/admin/verifications?status=PENDING|APPROVED|REJECTED&role=ALL|STUDENT|EMPLOYER
+ * One review queue for both profile types (admin has no direct DB access - spec).
+ */
+export async function listProfileVerifications(req: Request, res: Response, next: NextFunction) {
+  try {
+    const status = String(req.query.status ?? 'PENDING').toUpperCase();
+    const role = String(req.query.role ?? 'ALL').toUpperCase();
+    const search = String(req.query.search ?? '').trim();
+    const { page, limit, skip } = parsePageLimit(req.query);
+
+    type Row = {
+      id: string; userId: string; kind: 'STUDENT' | 'EMPLOYER'; name: string; email: string;
+      photo: string | null; isVerified: boolean; submittedAt: string | null; verifiedAt: string | null;
+      rejectReason: string | null; completion: number | null; detail: Record<string, unknown>;
+    };
+    const rows: Row[] = [];
+
+    if (role === 'ALL' || role === 'STUDENT') {
+      const where: any = {
+        ...(status === 'PENDING'
+          ? { isVerified: false, verificationRequest: { not: null } }
+          : status === 'APPROVED'
+            ? { isVerified: true }
+            : { isVerified: false, verificationRequest: null, verificationRejectReason: { not: null } }),
+        ...(search
+          ? { user: { OR: [{ name: { contains: search, mode: 'insensitive' as const } }, { email: { contains: search, mode: 'insensitive' as const } }] } }
+          : {}),
+      };
+      const students = await prisma.studentProfile.findMany({
+        where,
+        include: { user: { select: { id: true, name: true, email: true, avatarUrl: true } } },
+      });
+      for (const s of students) {
+        rows.push({
+          id: s.id,
+          userId: s.user.id,
+          kind: 'STUDENT',
+          name: s.user.name,
+          email: s.user.email,
+          photo: s.photoUrl ?? s.user.avatarUrl,
+          isVerified: s.isVerified,
+          submittedAt: s.verificationRequest?.toISOString() ?? null,
+          verifiedAt: s.verifiedAt?.toISOString() ?? null,
+          rejectReason: s.verificationRejectReason,
+          completion: studentCompletionPct(s),
+          detail: {
+            nubId: s.nubId, cgpa: s.cgpa, department: s.department, location: s.location,
+            bio: s.bio, phone: s.phone, skills: s.skills, resumeUrl: s.resumeUrl, photoUrl: s.photoUrl,
+            linkedinUrl: s.linkedinUrl, githubUrl: s.githubUrl, portfolioUrl: s.portfolioUrl,
+          },
+        });
+      }
+    }
+
+    if (role === 'ALL' || role === 'EMPLOYER') {
+      const where: any = {
+        ...(status === 'PENDING'
+          ? { isVerified: false, verificationRequest: { not: null } }
+          : status === 'APPROVED'
+            ? { isVerified: true }
+            : { isVerified: false, verificationStatus: 'REJECTED' }),
+        ...(search
+          ? { OR: [{ companyName: { contains: search, mode: 'insensitive' as const } }, { user: { email: { contains: search, mode: 'insensitive' as const } } }] }
+          : {}),
+      };
+      const employers = await prisma.employerProfile.findMany({
+        where,
+        include: { user: { select: { id: true, name: true, email: true, avatarUrl: true } } },
+      });
+      for (const e of employers) {
+        let submittedAt: string | null = null;
+        let reqDoc = '';
+        let reqReason: string | null = null;
+        let reqReg: string | null = null;
+        if (e.verificationRequest) {
+          try {
+            const parsed = JSON.parse(e.verificationRequest) as {
+              requestedAt?: string; documentType?: string; reason?: string | null; registrationNumber?: string | null;
+            };
+            submittedAt = parsed.requestedAt ? new Date(parsed.requestedAt).toISOString() : null;
+            reqDoc = parsed.documentType ?? '';
+            reqReason = parsed.reason ?? null;
+            reqReg = parsed.registrationNumber ?? null;
+          } catch {
+            submittedAt = null;
+          }
+        }
+        rows.push({
+          id: e.id,
+          userId: e.user.id,
+          kind: 'EMPLOYER',
+          name: e.companyName,
+          email: e.email ?? e.user.email,
+          photo: e.logoUrl,
+          isVerified: e.isVerified,
+          submittedAt,
+          verifiedAt: e.verifiedAt?.toISOString() ?? null,
+          rejectReason: e.verificationRejectReason,
+          completion: null,
+          detail: {
+            location: e.location, industry: e.industry, website: e.website, about: e.about,
+            email: e.email ?? e.user.email, phone: e.phone, logoUrl: e.logoUrl,
+            employees: e.employees, foundedYear: e.foundedYear,
+            linkedinUrl: e.linkedinUrl, twitterUrl: e.twitterUrl, facebookUrl: e.facebookUrl,
+            verificationDocument: e.verificationDocument, verificationStatus: e.verificationStatus,
+            requestDocumentType: reqDoc || null, requestReason: reqReason, requestRegistrationNumber: reqReg,
+          },
+        });
+      }
+    }
+
+    rows.sort((a, b) => (b.submittedAt ?? '').localeCompare(a.submittedAt ?? ''));
+    const total = rows.length;
+    return responses.ok(res, 'Verification queue', {
+      data: rows.slice(skip, skip + limit),
+      pagination: paginationMeta(total, page, limit),
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/** Shared approve/reject impl for both profile kinds. */
+async function decideVerification(req: Request, res: Response, next: NextFunction, approved: boolean) {
+  try {
+    const kindRaw = Array.isArray(req.params.kind) ? req.params.kind[0] : req.params.kind;
+    const kind = String(kindRaw ?? '').toLowerCase();
+    const id = String(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id ?? '');
+    const reason = String((req.body as any)?.reason ?? '').trim() || null;
+
+    if (!['student', 'employer'].includes(kind)) {
+      return responses.badRequest(res, 'Kind must be student or employer');
+    }
+    if (!id) return responses.badRequest(res, 'Profile id is required');
+    if (!approved && !reason) return responses.badRequest(res, 'A rejection reason is required');
+    if (kind === 'student') {
+      const profile = await prisma.studentProfile.findUnique({
+        where: { id },
+        include: { user: { select: { id: true, name: true, email: true } } },
+      });
+      if (!profile) return responses.notFound(res, 'Student profile not found');
+
+      const updated = await prisma.studentProfile.update({
+        where: { id },
+        data: {
+          isVerified: approved,
+          verifiedAt: approved ? new Date() : null,
+          verificationRequest: null,
+          verificationRejectReason: approved ? null : reason,
+        },
+      });
+
+      await sendVerificationDecisionEmail(profile.user.email, profile.user.name, approved, reason ?? undefined).catch(() => {});
+      await notifyUser(
+        profile.user.id,
+        'JOB_ALERT',
+        approved
+          ? 'Your profile is now verified - the blue badge is live on NUBJobs'
+          : ('Profile verification was rejected' + (reason ? ': ' + reason : '')),
+        '/profile'
+      );
+      emitToUser(profile.user.id, approved ? 'profile_verified' : 'profile_verification_rejected', { role: 'STUDENT' });
+      await logAdminAction(req, approved ? 'verify_profile' : 'reject_profile', 'user', profile.user.id, reason);
+      return responses.ok(res, approved ? 'Profile verified' : 'Profile verification rejected', updated);
+    }
+
+    const employer = await prisma.employerProfile.findUnique({
+      where: { id },
+      include: { user: { select: { id: true, name: true, email: true } } },
+    });
+    if (!employer) return responses.notFound(res, 'Company profile not found');
+
+    const updated = await prisma.employerProfile.update({
+      where: { id },
+      data: {
+        isVerified: approved,
+        verifiedAt: approved ? new Date() : null,
+        verificationRequest: null,
+        verificationStatus: approved ? 'APPROVED' : 'REJECTED',
+        verificationRejectReason: approved ? null : reason,
+      },
+    });
+
+    await sendVerificationDecisionEmail(employer.user.email, employer.companyName, approved, reason ?? undefined).catch(() => {});
+    await notifyUser(
+      employer.user.id,
+      approved ? 'COMPANY_VERIFIED' : 'COMPANY_VERIFICATION_REJECTED',
+      approved
+        ? ('Your company "' + employer.companyName + '" is now verified - the blue badge is live on NUBJobs')
+        : ('Company verification was rejected' + (reason ? ': ' + reason : '')),
+      '/employer/company'
+    );
+    emitToUser(employer.user.id, approved ? 'company_verified' : 'company_verification_rejected', { companyName: employer.companyName, reason });
+    await logAdminAction(req, approved ? 'verify_company' : 'reject_company', 'company', id, reason);
+    return responses.ok(res, approved ? 'Company verified' : 'Company verification rejected', updated);
+  } catch (error) {
+    next(error);
+  }
+}
+
+/** PATCH /api/admin/verifications/:kind/:id/approve */
+export async function approveProfileVerification(req: Request, res: Response, next: NextFunction) {
+  return decideVerification(req, res, next, true);
+}
+
+/** PATCH /api/admin/verifications/:kind/:id/reject */
+export async function rejectProfileVerification(req: Request, res: Response, next: NextFunction) {
+  return decideVerification(req, res, next, false);
 }

@@ -1,8 +1,8 @@
 'use client';
 
-import { FC, useState, useCallback, useEffect } from 'react';
+import { FC, useState, useCallback } from 'react';
 import Link from 'next/link';
-import { useProfile, useUpdateProfile, useAnalyzeResume } from '@/hooks/useProfile';
+import { useProfile, useUpdateProfile, useAnalyzeResume, useProfileCompletion, useRequestProfileVerification } from '@/hooks/useProfile';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -12,9 +12,10 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Loader2, Plus, Trash2 } from 'lucide-react';
+import { Loader2, Plus, ClockIcon, ShieldAlertIcon } from 'lucide-react';
 import { getErrorMessage } from '@/lib/utils';
 import { FileUploadZone } from '@/components/ui/FileUploadZone';
+import { VerifiedBadge } from '@/components/ui/verified-badge';
 import { DOCUMENT_MIME_TYPES, IMAGE_MIME_TYPES } from '@/hooks/useFileUpload';
 
 const profileSchema = z.object({
@@ -33,32 +34,43 @@ type ProfileFormData = z.infer<typeof profileSchema>;
 
 const ProfilePage: FC = () => {
   const { data: profile, isLoading } = useProfile();
+  const { data: completion } = useProfileCompletion();
   const updateProfileMutation = useUpdateProfile();
   const analyzeResumeMutation = useAnalyzeResume();
+  const requestVerification = useRequestProfileVerification();
+
+  const handleSubmitVerification = () => {
+    requestVerification.mutate(undefined, {
+      onSuccess: () => toast.success('Profile submitted for admin review'),
+      onError: (error) => toast.error(getErrorMessage(error, 'Failed to submit for verification')),
+    });
+  };
 
   const [skills, setSkills] = useState<string[]>([]);
   const [skillInput, setSkillInput] = useState('');
+  // Render-phase sync: when the server profile (re)loads, seed the form + skills
+  // once per profile instead of calling setState inside an effect.
+  const [syncedProfileId, setSyncedProfileId] = useState<string | null>(null);
 
   const { register, handleSubmit, formState: { errors }, reset } = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
   });
 
-  useEffect(() => {
-    if (profile) {
-      reset({
-        name: profile.user?.name || '',
-        nubId: profile.nubId || '',
-        cgpa: profile.cgpa || undefined,
-        phone: profile.phone || '',
-        location: profile.location || '',
-        bio: profile.bio || '',
-        linkedinUrl: profile.linkedinUrl || '',
-        githubUrl: profile.githubUrl || '',
-        portfolioUrl: profile.portfolioUrl || '',
-      });
-      setSkills(profile.skills || []);
-    }
-  }, [profile, reset]);
+  if (profile && profile.id !== syncedProfileId) {
+    setSyncedProfileId(profile.id);
+    reset({
+      name: profile.user?.name || '',
+      nubId: profile.nubId || '',
+      cgpa: profile.cgpa || undefined,
+      phone: profile.phone || '',
+      location: profile.location || '',
+      bio: profile.bio || '',
+      linkedinUrl: profile.linkedinUrl || '',
+      githubUrl: profile.githubUrl || '',
+      portfolioUrl: profile.portfolioUrl || '',
+    });
+    setSkills(profile.skills || []);
+  }
 
   const handleAddSkill = () => {
     if (skillInput.trim()) {
@@ -102,7 +114,10 @@ const ProfilePage: FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-4xl mx-auto px-4">
-        <h1 className="text-3xl font-bold mb-8">My Profile</h1>
+        <div className="mb-8 flex items-center gap-2">
+          <h1 className="text-3xl font-bold">My Profile</h1>
+          {profile?.isVerified ? <VerifiedBadge label /> : null}
+        </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           {/* Photo Upload */}
@@ -264,6 +279,59 @@ const ProfilePage: FC = () => {
                   </Button>
                 </div>
               )}
+            </div>
+          </Card>
+
+          {/* Verification status (blue verified badge gate) */}
+          <Card className="p-6">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="min-w-0 flex-1">
+                <h2 className="text-xl font-semibold">Profile Verification</h2>
+                {profile?.isVerified ? (
+                  <p className="mt-2 flex items-start gap-2 text-sm text-muted-foreground">
+                    <VerifiedBadge />
+                    <span>
+                      <span className="font-medium text-foreground">Your profile is verified.</span>{' '}
+                      The blue badge is shown across NUBJobs and you can apply to jobs.
+                      {profile?.verifiedAt ? ` Approved ${new Date(profile.verifiedAt).toLocaleDateString()}.` : ''}
+                    </span>
+                  </p>
+                ) : profile?.verificationRequest ? (
+                  <p className="mt-2 flex items-start gap-2 text-sm text-muted-foreground">
+                    <ClockIcon className="mt-0.5 size-4 shrink-0 text-amber-500" />
+                    <span>
+                      <span className="font-medium text-amber-600">Verification pending review.</span>{' '}
+                      A system admin will review your profile — you can apply to jobs once approved.
+                    </span>
+                  </p>
+                ) : (
+                  <>
+                    <p className="mt-2 flex items-start gap-2 text-sm text-muted-foreground">
+                      <ShieldAlertIcon className="mt-0.5 size-4 shrink-0" />
+                      <span>
+                        Your profile must be <span className="font-medium text-foreground">100% complete</span> and
+                        approved by an admin before you can apply to jobs. Completion:{' '}
+                        <span className="font-medium text-foreground">{profile?.completionPercentage ?? completion?.percentage ?? 0}%</span>
+                      </span>
+                    </p>
+                    {profile?.verificationRejectReason ? (
+                      <p className="mt-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+                        Last review rejected: {profile.verificationRejectReason} — fix the issue and re-submit.
+                      </p>
+                    ) : null}
+                  </>
+                )}
+              </div>
+              {!profile?.isVerified && !profile?.verificationRequest ? (
+                <Button
+                  type="button"
+                  onClick={handleSubmitVerification}
+                  disabled={requestVerification.isPending || (profile?.completionPercentage ?? completion?.percentage ?? 0) < 100}
+                >
+                  {requestVerification.isPending && <Loader2 className="mr-2 size-4 animate-spin" />}
+                  Submit for verification
+                </Button>
+              ) : null}
             </div>
           </Card>
 

@@ -1,4 +1,4 @@
-import { Router } from 'express';
+﻿import { Router } from 'express';
 import { z } from 'zod';
 import {
   getAdminStats,
@@ -17,6 +17,9 @@ import {
   createAdminCompany,
   deleteAdminCompany,
   updateEmployerVerification,
+  listProfileVerifications,
+  approveProfileVerification,
+  rejectProfileVerification,
   rejectEmployerVerification,
 } from '../controllers/admin.controller';
 import {
@@ -109,10 +112,10 @@ router.get('/database', getAdminDatabaseOverview);
 router.use(authenticate);
 router.use(requireRole('ADMIN'));
 
-// ── Spec dashboard (#1) ───────────────────────────────────────────────────
+// â”€â”€ Spec dashboard (#1) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 router.get('/dashboard', getAdminDashboard);
 
-// ── Spec users (#2–#5) ────────────────────────────────────────────────────
+// â”€â”€ Spec users (#2â€“#5) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 router.get('/users/all', listAllUsers);
 router.get('/users/:id/detail', getUserDetail);
 router.patch(
@@ -123,7 +126,7 @@ router.patch(
 );
 router.post('/users/:id/reset-password', requirePermission('reset_password'), resetUserPassword);
 
-// ── Spec jobs (#7–#12) ────────────────────────────────────────────────────
+// â”€â”€ Spec jobs (#7â€“#12) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 router.get('/jobs/all', listAllJobs);
 router.get('/jobs/:id/detail', getAdminJobDetail);
 router.patch('/jobs/:id/approve', requirePermission('approve_job'), validate(z.object({ notes: z.string().optional() })), approveJob);
@@ -132,14 +135,26 @@ router.patch('/jobs/:id/feature', requirePermission('feature_job'), validate(z.o
 router.patch('/jobs/:id/request-changes', requirePermission('reject_job'), validate(z.object({ reason: z.string().min(3) })), requestJobChanges);
 router.delete('/jobs/:id/remove', requirePermission('delete_job'), validate(z.object({ reason: z.string().min(3) })), deleteAdminJob);
 
-// ── Spec companies (#13–#16) ──────────────────────────────────────────────
+// â”€â”€ Spec companies (#13â€“#16) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 router.get('/companies', listAllCompanies);
 router.get('/companies/verification-requests', listVerificationRequests);
+
+// Profile verification queue — students + employers (blue verified badge).
+// approve/reject reuse the company-verify permission tiers (SUPER_ADMIN +
+// CONTENT_MODERATOR); the Support tier can only view the queue.
+router.get('/verifications', requirePermission('view'), listProfileVerifications);
+router.patch('/verifications/:kind/:id/approve', requirePermission('verify_company'), approveProfileVerification);
+router.patch(
+  '/verifications/:kind/:id/reject',
+  requirePermission('reject_company'),
+  validate(z.object({ reason: z.string().min(3) })),
+  rejectProfileVerification
+);
 router.patch('/companies/:id/verify', requirePermission('verify_company'), validate(z.object({ notes: z.string().optional() })), verifyCompany);
 router.patch('/companies/:id/reject-verification', requirePermission('reject_company'), validate(z.object({ reason: z.string().min(3) })), rejectCompanyVerification);
 router.patch('/companies/:id/revoke', requirePermission('verify_company'), validate(z.object({ reason: z.string().optional() })), revokeCompanyVerification);
 
-// ── Spec applications (#17–#18) + pipeline ────────────────────────────────
+// â”€â”€ Spec applications (#17â€“#18) + pipeline â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 router.get('/applications', listAllApplications);
 router.get('/applications/:id', getAdminApplicationDetail);
 router.patch(
@@ -150,7 +165,7 @@ router.patch(
 );
 router.get('/pipeline', getAdminPipeline);
 
-// ── Spec disputes (#19–#21) ───────────────────────────────────────────────
+// â”€â”€ Spec disputes (#19â€“#21) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 router.get('/disputes', listDisputes);
 router.get('/disputes/:id', getDisputeDetail);
 router.patch(
@@ -160,7 +175,7 @@ router.patch(
   resolveDispute
 );
 
-// ── Spec analytics (#22), audit (#23–#24), settings, messaging (#25) ──────
+// â”€â”€ Spec analytics (#22), audit (#23â€“#24), settings, messaging (#25) â”€â”€â”€â”€â”€â”€
 router.get('/analytics/detailed', getAdminDetailedAnalytics);
 router.get('/audit-logs', requirePermission('*'), listAuditLogs);
 router.get('/activity-logs/:userId', getUserActivityLogs);

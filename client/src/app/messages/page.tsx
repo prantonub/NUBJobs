@@ -12,7 +12,6 @@ import {
   useConversation,
   useSendMessage,
   useMarkAllAsRead,
-  useDeleteMessage,
   useArchiveConversation,
   usePinConversation,
   useBlockUser,
@@ -57,7 +56,6 @@ const MessagesPage: FC = () => {
 
   const sendMutation = useSendMessage(selectedUserId, thread?.job?.id ?? undefined);
   const markAllMutation = useMarkAllAsRead(selectedUserId);
-  const deleteMutation = useDeleteMessage(selectedUserId);
   const archiveMutation = useArchiveConversation();
   const pinMutation = usePinConversation();
   const blockMutation = useBlockUser();
@@ -302,9 +300,6 @@ const MessagesPage: FC = () => {
           onSend={handleSend}
           onTyping={typing.start}
           onStopTyping={typing.stop}
-          onDeleteMessage={(messageId) =>
-            deleteMutation.mutate(messageId, { onSuccess: () => toast.success('Message deleted') })
-          }
           onMarkAllRead={() => !markAllMutation.isPending && markAllMutation.mutate()}
           onArchive={() => selectedUserId && selectedConversation && handleArchive(selectedConversation)}
           onBlock={handleBlock}

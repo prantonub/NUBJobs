@@ -2,9 +2,7 @@
 
 import { FC } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { Trash2Icon } from 'lucide-react';
 import type { DirectMessage } from '@/hooks/useMessages';
 
 const formatTime = (iso: string) => {
@@ -18,14 +16,12 @@ const formatTime = (iso: string) => {
 /**
  * One chat bubble (spec §4 MessageBubble).
  * Own → right/blue with ✓ sent / ✓✓ read; other → left/gray.
- * Timestamp shows on hover; delete button appears on hover for own messages.
+ * Timestamp shows on hover.
  */
 export const MessageBubble: FC<{
   message: DirectMessage;
   isOwn: boolean;
-  onDelete?: (messageId: string) => void;
-  canDelete?: boolean;
-}> = ({ message, isOwn, onDelete, canDelete = true }) => {
+}> = ({ message, isOwn }) => {
   if (message.isDeleted) {
     return (
       <div className={cn('flex', isOwn ? 'justify-end' : 'justify-start')}>
@@ -37,7 +33,7 @@ export const MessageBubble: FC<{
   return (
     <div className={cn('group relative flex', isOwn ? 'justify-end' : 'justify-start')}>
       {!isOwn && (
-        <Avatar className="mr-2 mt-1 size-7 self-end">
+        <Avatar className="mr-2 mt-1 size-7 shrink-0 self-end">
           {message.senderPhoto && <AvatarImage src={message.senderPhoto} alt={message.senderName ?? ''} />}
           <AvatarFallback>{(message.senderName ?? '?').charAt(0).toUpperCase()}</AvatarFallback>
         </Avatar>
@@ -62,18 +58,6 @@ export const MessageBubble: FC<{
           {isOwn && <span aria-label={message.isRead ? 'Read' : 'Sent'}>{message.isRead ? '✓✓' : '✓'}</span>}
         </div>
       </div>
-
-      {isOwn && canDelete && onDelete && (
-        <Button
-          variant="ghost"
-          size="icon"
-          className="ml-1 size-7 opacity-0 transition-opacity group-hover:opacity-100"
-          onClick={() => onDelete(message.id)}
-          aria-label="Delete message"
-        >
-          <Trash2Icon className="size-3.5 text-muted-foreground" />
-        </Button>
-      )}
     </div>
   );
 };

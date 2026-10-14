@@ -19,6 +19,7 @@ export interface ConversationSummary {
   applicationId: string | null;
   otherUserId: string;
   otherUserName: string;
+  otherUserUsername?: string | null;
   otherUserPhoto: string | null;
   otherUserRole: string;
   lastMessage: string | null;
@@ -75,7 +76,7 @@ export const useConversation = (userId?: string | null, params?: { page?: number
       return data.data as {
         /** Viewer-side block state for this thread (composer lock). */
         blockedByMe?: boolean;
-        otherUser: { id: string; name: string; photo: string | null; role: string; email: string };
+        otherUser: { id: string; name: string; username: string | null; photo: string | null; role: string; email: string };
         job: { id: string; title: string; company: string } | null;
         messages: DirectMessage[];
         pagination: { hasMore: boolean; cursor: string | null; page: number; limit: number };

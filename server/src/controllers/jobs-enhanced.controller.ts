@@ -215,6 +215,16 @@ export async function createJob(req: AuthRequest, res: Response, next: NextFunct
       return responses.forbidden(res, 'Employer profile not found');
     }
 
+    // The blue verified badge gates job posting — complete the company
+    // profile and get admin approval before posting (spec: no unverified
+    // employer may post jobs on NUBJobs).
+    if (!employer.isVerified) {
+      return responses.forbidden(
+        res,
+        'Your company profile is not verified yet. Complete your company profile, submit it for verification and wait for admin approval before posting jobs.'
+      );
+    }
+
     const job = await prisma.job.create({
       data: {
         title,

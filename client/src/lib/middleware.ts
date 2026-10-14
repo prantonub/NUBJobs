@@ -23,7 +23,9 @@ export function RequireAuth({
   }
 
   if (allowedRoles && !allowedRoles.includes(user.role)) {
-    redirect("/");
+    // Keep each role on its own home: students stay on /dashboard,
+    // employers (and everyone else) go to their own dashboard.
+    redirect(user.role === 'STUDENT' ? '/dashboard' : user.role === 'EMPLOYER' ? '/employer/dashboard' : '/');
     return null;
   }
 

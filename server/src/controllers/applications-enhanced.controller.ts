@@ -51,6 +51,7 @@ const STUDENT_PUBLIC_SELECT = {
   department: true,
   location: true,
   resumeUrl: true,
+  isVerified: true, // blue verified badge shown to employers
 } as const;
 
 /** Empty counts for every status — keeps the dashboard cards stable. */
@@ -79,7 +80,7 @@ export async function createApplication(req: AuthRequest, res: Response, next: N
     // Student profile feeds the match score and provides the resume snapshot.
     const student = await prisma.studentProfile.findUnique({
       where: { userId },
-      select: { id: true, cgpa: true, skills: true, resumeUrl: true },
+      select: { id: true, cgpa: true, skills: true, resumeUrl: true, isVerified: true },
     });
 
     if (!student) {
@@ -111,6 +112,15 @@ export async function createApplication(req: AuthRequest, res: Response, next: N
     });
     if (account?.isBanned) {
       return responses.forbidden(res, 'Your account is banned. You cannot apply for jobs.');
+    }
+
+    // Validation 0.5: the profile must carry the blue verified badge —
+    // unverified profiles cannot apply until a system admin approves them.
+    if (!student.isVerified) {
+      return responses.forbidden(
+        res,
+        'Your profile is not verified yet. Complete 100% of your profile, submit it for verification and wait for admin approval before applying.'
+      );
     }
 
     // Validation 1: job must be open for applications

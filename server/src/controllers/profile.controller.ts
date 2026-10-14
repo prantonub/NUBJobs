@@ -4,6 +4,7 @@ import prisma from '../lib/prisma';
 import { removeStoredFile } from '../lib/cloudinary';
 import { storeProfilePhoto, storeResume } from '../services/upload.service';
 import { analyzeResume } from '../services/ai.service';
+import { emitToUser } from '../lib/socket-server';
 
 /** String columns of `StudentProfile` that the profile form may send. */
 const PROFILE_STRING_FIELDS = [
@@ -431,6 +432,38 @@ export const getEligibleJobsCount = async (req: Request, res: Response, next: Ne
   }
 };
 
+/** The 8 sections that make up a complete student profile (shared by the
+ *  completion endpoint and the verification-request gate). */
+function studentCompletion(profile: {
+  photoUrl: string | null;
+  phone: string | null;
+  location: string | null;
+  bio: string | null;
+  nubId: string | null;
+  cgpa: number | null;
+  skills: string[];
+  linkedinUrl: string | null;
+  portfolioUrl: string | null;
+  githubUrl: string | null;
+  resumeUrl: string | null;
+}) {
+  return {
+    photo: !!profile.photoUrl,
+    personal: !!(profile.phone && profile.location && profile.bio),
+    education: !!(profile.nubId && profile.cgpa),
+    skills: profile.skills && profile.skills.length > 0,
+    experience: !!profile.linkedinUrl,
+    projects: !!profile.portfolioUrl,
+    certifications: !!profile.githubUrl,
+    resume: !!profile.resumeUrl,
+  };
+}
+
+function studentCompletionPercentage(sections: Record<string, boolean>): number {
+  const done = Object.values(sections).filter(Boolean).length;
+  return Math.round((done / Object.keys(sections).length) * 100);
+}
+
 /**
  * GET /api/profile/completion
  * Get profile completion status
@@ -451,24 +484,88 @@ export const getProfileCompletion = async (req: Request, res: Response, next: Ne
       return res.status(404).json({ error: 'Profile not found' });
     }
 
-    const completionData = {
-      photo: !!profile.photoUrl,
-      personal: !!(profile.phone && profile.location && profile.bio),
-      education: !!(profile.nubId && profile.cgpa),
-      skills: profile.skills && profile.skills.length > 0,
-      experience: !!profile.linkedinUrl,
-      projects: !!profile.portfolioUrl,
-      certifications: !!profile.githubUrl,
-      resume: !!profile.resumeUrl,
-    };
-
-    const completedFields = Object.values(completionData).filter(Boolean).length;
-    const percentage = Math.round((completedFields / Object.keys(completionData).length) * 100);
+    const completionData = studentCompletion(profile);
+    const percentage = studentCompletionPercentage(completionData);
 
     res.json({
       data: {
         percentage,
         sections: completionData,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * POST /api/profile/verification/request
+ * Submit the profile for system-admin verification. Only allowed at 100%
+ * completion; the admin review then flips `isVerified` (blue badge) which
+ * unlocks job applications (POST /api/applications gate).
+ */
+export const requestProfileVerification = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = (req as any).userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    const profile = await prisma.studentProfile.findUnique({ where: { userId } });
+    if (!profile) {
+      return res.status(404).json({ error: 'Profile not found' });
+    }
+
+    if (profile.isVerified) {
+      return res.status(400).json({ error: 'Your profile is already verified' });
+    }
+    if (profile.verificationRequest) {
+      return res
+        .status(400)
+        .json({ error: 'Your verification request is already pending admin review' });
+    }
+
+    const sections = studentCompletion(profile);
+    const percentage = studentCompletionPercentage(sections);
+    if (percentage < 100) {
+      const missing = Object.entries(sections)
+        .filter(([, done]) => !done)
+        .map(([key]) => key);
+      return res.status(400).json({
+        error: `Complete 100% of your profile before requesting verification. Missing: ${missing.join(', ')}`,
+      });
+    }
+
+    await prisma.studentProfile.update({
+      where: { id: profile.id },
+      data: { verificationRequest: new Date(), verificationRejectReason: null },
+    });
+
+    // Alert every admin (in-app notification + real-time socket).
+    const [admins, me] = await Promise.all([
+      prisma.user.findMany({ where: { role: 'ADMIN' }, select: { id: true } }),
+      prisma.user.findUnique({ where: { id: userId }, select: { name: true } }),
+    ]);
+    const name = me?.name ?? 'A student';
+    if (admins.length > 0) {
+      await prisma.notification.createMany({
+        data: admins.map((admin) => ({
+          userId: admin.id,
+          type: 'JOB_ALERT' as const,
+          message: `${name} submitted their profile for verification`,
+          link: '/admin/verifications',
+        })),
+      });
+      for (const admin of admins) {
+        emitToUser(admin.id, 'profile_verification_request', { userId, name });
+      }
+    }
+
+    res.json({
+      data: {
+        status: 'PENDING',
+        message: 'Your profile was submitted for admin review',
+        percentage,
       },
     });
   } catch (error) {

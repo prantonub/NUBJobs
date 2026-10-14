@@ -1,4 +1,5 @@
 import {
+  BadgeCheckIcon,
   BarChart3Icon,
   BriefcaseBusinessIcon,
   Building2Icon,
@@ -19,6 +20,7 @@ const adminNav = [
   { href: '/admin/users', label: 'Users', icon: <UsersIcon className="size-4" /> },
   { href: '/admin/jobs', label: 'Jobs', icon: <BriefcaseBusinessIcon className="size-4" /> },
   { href: '/admin/companies', label: 'Companies', icon: <Building2Icon className="size-4" /> },
+  { href: '/admin/verifications', label: 'Verifications', icon: <BadgeCheckIcon className="size-4" /> },
   { href: '/admin/applications', label: 'Applications', icon: <InboxIcon className="size-4" /> },
   { href: '/admin/pipeline', label: 'Pipeline', icon: <KanbanSquareIcon className="size-4" /> },
   { href: '/admin/disputes', label: 'Disputes', icon: <ScaleIcon className="size-4" /> },

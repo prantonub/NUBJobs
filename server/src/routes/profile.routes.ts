@@ -9,6 +9,7 @@ import {
   analyzeProfileResume,
   getEligibleJobsCount,
   getProfileCompletion,
+  requestProfileVerification,
 } from '../controllers/profile.controller';
 import { authenticate } from '../middleware/auth.middleware';
 import { singleDocument, singleImage } from '../middleware/upload.middleware';
@@ -21,6 +22,9 @@ const router = Router();
 router.get('/', authenticate, getProfile);
 router.get('/completion', authenticate, getProfileCompletion);
 router.get('/eligible-jobs', authenticate, getEligibleJobsCount);
+
+// Profile verification (system-admin review after 100% completion → blue badge)
+router.post('/verification/request', authenticate, requestProfileVerification);
 
 router.patch('/', authenticate, updateProfile);
 

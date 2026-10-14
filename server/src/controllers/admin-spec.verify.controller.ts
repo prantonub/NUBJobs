@@ -15,7 +15,7 @@ export async function verifyCompany(req: AdminRequest, res: Response, next: Next
     });
     if (!existing) return responses.notFound(res, 'Company not found');
     const company = await prisma.employerProfile.update({
-      where: { id }, data: { isVerified: true, verificationStatus: 'APPROVED', verifiedAt: new Date() },
+      where: { id }, data: { isVerified: true, verificationStatus: 'APPROVED', verifiedAt: new Date(), verificationRejectReason: null },
     });
     await sendVerificationDecisionEmail(existing.user.email, existing.companyName, true, notes).catch(() => {});
     await notifyUser(existing.user.id, 'COMPANY_VERIFIED', `Your company "${existing.companyName}" is now verified`, '/employer/company');
@@ -38,7 +38,7 @@ export async function rejectCompanyVerification(req: AdminRequest, res: Response
     });
     if (!existing) return responses.notFound(res, 'Company not found');
     const company = await prisma.employerProfile.update({
-      where: { id }, data: { isVerified: false, verificationStatus: 'REJECTED', verifiedAt: null },
+      where: { id }, data: { isVerified: false, verificationStatus: 'REJECTED', verifiedAt: null, verificationRejectReason: reason.trim() },
     });
     await sendVerificationDecisionEmail(existing.user.email, existing.companyName, false, reason).catch(() => {});
     await notifyUser(existing.user.id, 'COMPANY_VERIFICATION_REJECTED', `Company verification rejected: ${reason}`, '/employer/company');

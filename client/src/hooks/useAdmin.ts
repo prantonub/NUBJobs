@@ -186,3 +186,26 @@ export const useUpdatePlatformSettings = () =>
 /** POST /api/admin/admins — SUPER_ADMIN creates an admin account. */
 export const useCreateAdminAccount = () =>
   useAdminMutation<Record<string, unknown>>((payload) => api.post('/admin/admins', payload), [['admin', 'accounts']]);
+
+// ─── Profile verification queue (blue verified badge) ───────────────────────
+
+/** GET /api/admin/verifications — pending/approved/rejected student+employer profiles. */
+export const useProfileVerifications = (params: Record<string, any> = {}) =>
+  useQuery({
+    queryKey: ['admin', 'profile-verifications', params],
+    queryFn: () => api.get('/admin/verifications', { params }).then(unwrap),
+  });
+
+/** PATCH /api/admin/verifications/:kind/:id/approve — blue badge goes live. */
+export const useApproveProfileVerification = () =>
+  useAdminMutation<{ kind: string; id: string }>(
+    ({ kind, id }) => api.patch(`/admin/verifications/${kind}/${id}/approve`),
+    [['admin', 'profile-verifications']]
+  );
+
+/** PATCH /api/admin/verifications/:kind/:id/reject — reason required. */
+export const useRejectProfileVerification = () =>
+  useAdminMutation<{ kind: string; id: string; reason: string }>(
+    ({ kind, id, reason }) => api.patch(`/admin/verifications/${kind}/${id}/reject`, { reason }),
+    [['admin', 'profile-verifications']]
+  );

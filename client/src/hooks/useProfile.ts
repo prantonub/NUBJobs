@@ -89,3 +89,17 @@ export const useAnalyzeResume = () => {
     },
   });
 };
+/** POST /api/profile/verification/request — submit for admin review (100% only). */
+export const useRequestProfileVerification = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const { data } = await api.post('/profile/verification/request');
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['profile'] });
+      queryClient.invalidateQueries({ queryKey: ['profileCompletion'] });
+    },
+  });
+};

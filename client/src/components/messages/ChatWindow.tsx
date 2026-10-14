@@ -1,7 +1,8 @@
 'use client';
 
 import { FC, useEffect, useRef, useState } from 'react';
-import { MoreVerticalIcon, ArrowLeftIcon, ArchiveIcon, BanIcon, ShieldOffIcon } from 'lucide-react';
+import Link from 'next/link';
+import { UserIcon, MoreVerticalIcon, ArrowLeftIcon, ArchiveIcon, BanIcon, ShieldOffIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -12,13 +13,22 @@ import { TypingIndicator } from './TypingIndicator';
 import { UserProfileCard } from './UserProfileCard';
 
 /**
+ * Peer's public profile link. Everyone gets the social username route
+ * (/social/profile/<username> — the same page social chat links to); without
+ * a username we stay on the thread instead of a 404ing /profile/<id> page.
+ */
+export function getProfileHref(peer: { id: string; username?: string | null }): string {
+  return peer.username ? `/social/profile/${peer.username}` : '/messages';
+}
+
+/**
  * Right-hand chat pane (spec §3 ChatWindow): header with identity + actions,
  * scrollable history with auto-scroll, typing row, composer.
  * `onBack` enables the mobile slide-back (sidebar ↔ full-width chat).
  */
 export const ChatWindow: FC<{
   conversation: ConversationSummary | null;
-  otherUser?: { id: string; name: string; photo?: string | null; role: string; email?: string } | null;
+  otherUser?: { id: string; name: string; username?: string | null; photo?: string | null; role: string; email?: string } | null;
   job?: { id: string; title: string; company: string } | null;
   messages: DirectMessage[];
   loading?: boolean;
@@ -27,7 +37,6 @@ export const ChatWindow: FC<{
   onSend: (content: string) => Promise<void> | void;
   onTyping?: () => void;
   onStopTyping?: () => void;
-  onDeleteMessage?: (messageId: string) => void;
   onMarkAllRead?: () => void;
   onArchive?: () => void;
   onBlock?: () => void;
@@ -47,7 +56,6 @@ export const ChatWindow: FC<{
   onSend,
   onTyping,
   onStopTyping,
-  onDeleteMessage,
   onMarkAllRead,
   onArchive,
   onBlock,
@@ -61,11 +69,12 @@ export const ChatWindow: FC<{
   const [autoScroll, setAutoScroll] = useState(true);
 
   const identity = otherUser
-    ? { id: otherUser.id, name: otherUser.name, photo: otherUser.photo, role: otherUser.role, email: otherUser.email }
+    ? { id: otherUser.id, name: otherUser.name, username: otherUser.username ?? null, photo: otherUser.photo, role: otherUser.role, email: otherUser.email }
     : conversation
       ? {
           id: conversation.otherUserId,
           name: conversation.otherUserName,
+          username: conversation.otherUserUsername ?? null,
           photo: conversation.otherUserPhoto,
           role: conversation.otherUserRole,
         }
@@ -126,6 +135,11 @@ export const ChatWindow: FC<{
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              <DropdownMenuItem asChild>
+                <Link href={identity ? getProfileHref(identity) : '/messages'}>
+                  <UserIcon className="mr-2 size-4" /> View profile
+                </Link>
+              </DropdownMenuItem>
               {onArchive && (
                 <DropdownMenuItem onClick={onArchive}>
                   <ArchiveIcon className="mr-2 size-4" /> Archive
@@ -167,8 +181,6 @@ export const ChatWindow: FC<{
               key={m.id}
               message={m}
               isOwn={m.isOwn ?? m.senderId === currentUserId}
-              canDelete={m.isOwn ?? m.senderId === currentUserId}
-              onDelete={onDeleteMessage}
             />
           ))
         )}

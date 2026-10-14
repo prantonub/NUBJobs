@@ -2,7 +2,7 @@
 
 import type { ReactNode } from 'react';
 import Link from 'next/link';
-import { BadgeCheckIcon } from 'lucide-react';
+import { VerifiedBadge } from '@/components/ui/verified-badge';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { employerNav } from '@/components/employer/employer-nav';
 import { RequireAuth } from '@/lib/middleware';
@@ -28,9 +28,7 @@ function CompanySidebarBlock() {
         <p className="truncate text-sm font-semibold text-foreground">{name}</p>
         <p className="truncate text-xs text-muted-foreground">Employer workspace</p>
       </div>
-      {company?.isVerified ? (
-        <BadgeCheckIcon className="size-4 shrink-0 text-emerald-500" aria-label="Verified company" />
-      ) : null}
+      {company?.isVerified ? <VerifiedBadge /> : null}
     </Link>
   );
 }
