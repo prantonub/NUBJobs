@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { ChevronRight, ChevronLeft, Wand2, Plus, Trash2, Loader2, CircleAlert, ShieldAlert } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Wand2, Plus, Trash2, Loader2, CircleAlert, ShieldAlert, CheckIcon } from 'lucide-react';
 import {
   buildJobPayload,
   firstError,
@@ -469,10 +469,15 @@ const JobPostingWizard: FC = () => {
                 </div>
               </Card>
 
-              <div className="text-sm text-gray-600 p-4 bg-blue-50 rounded">
-                {Object.keys(fieldErrors).length === 0
-                  ? '✓ Review the details and publish when ready.'
-                  : 'Fix the highlighted problems below before publishing.'}
+              <div className="flex items-center gap-1.5 text-sm text-gray-600 p-4 bg-blue-50 rounded">
+                {Object.keys(fieldErrors).length === 0 ? (
+                  <>
+                    <CheckIcon className="size-4 shrink-0 text-emerald-600" />
+                    <span>Review the details and publish when ready.</span>
+                  </>
+                ) : (
+                  <span>Fix the highlighted problems below before publishing.</span>
+                )}
               </div>
             </div>
           )}

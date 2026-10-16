@@ -15,6 +15,7 @@ import employerRoutes from './routes/employer.routes'
 import jobPostingRoutes from './routes/job-posting.routes'
 import companyProfileRoutes from './routes/company-profile.routes'
 import adminRoutes from './routes/admin.routes'
+import contactRoutes from './routes/contact.routes'
 
 const app = express()
 
@@ -39,6 +40,7 @@ app.use('/api/employer', employerRoutes)
 app.use('/api/employer/jobs', jobPostingRoutes)
 app.use('/api/company', companyProfileRoutes)
 app.use('/api/admin', adminRoutes)
+app.use('/api/contact', contactRoutes)
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

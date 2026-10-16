@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { Calendar, MapPin, Users, Lock, Check } from 'lucide-react';
+import { Calendar, MapPin, Users, Lock, Check, X } from 'lucide-react';
 
 const CampusEventsPage: FC = () => {
   const [selectedStatus, setSelectedStatus] = useState<'UPCOMING' | 'PAST'>('UPCOMING');
@@ -150,8 +150,9 @@ const CampusEventsPage: FC = () => {
                 variant="ghost"
                 className="absolute top-4 right-4"
                 onClick={() => setShowDetail(false)}
+                aria-label="Close details"
               >
-                ✕
+                <X className="size-4" />
               </Button>
             </div>
 

@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { ApplicationStatusBadge, type ApplicationStatus } from '@/components/ui/ApplicationStatusBadge';
 import { toast } from 'sonner';
-import { ArrowLeft, Eye, Loader2, Users } from 'lucide-react';
+import { ArrowLeft, Eye, Loader2, Users, StarIcon } from 'lucide-react';
 import { getErrorMessage, formatSalary } from '@/lib/utils';
 
 /**
@@ -100,7 +100,11 @@ const EmployerJobDetailPage: FC = () => {
               </div>
               <div className="flex items-center gap-2">
                 <StatusBadge status={job.status} />
-                {job.featured ? <span className="text-amber-600">⭐ featured</span> : null}
+                {job.featured ? (
+                  <span className="inline-flex items-center gap-1 text-amber-600">
+                    <StarIcon className="size-3.5 fill-current" /> featured
+                  </span>
+                ) : null}
               </div>
             </div>
 

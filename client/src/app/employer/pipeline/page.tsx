@@ -17,7 +17,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { GripVertical } from 'lucide-react';
+import { GripVertical, XIcon } from 'lucide-react';
 import { getErrorMessage } from '@/lib/utils';
 
 const STATUSES = ['APPLIED', 'REVIEWED', 'SHORTLISTED', 'INTERVIEWED', 'HIRED', 'REJECTED'];
@@ -283,8 +283,9 @@ const ApplicantPipelinePage: FC = () => {
                   variant="ghost"
                   className="absolute top-4 right-4"
                   onClick={() => setSelectedApp(null)}
+                  aria-label="Close details"
                 >
-                  ✕
+                  <XIcon className="size-4" />
                 </Button>
               </div>
 

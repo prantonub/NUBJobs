@@ -23,7 +23,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { MoreVertical, Plus } from 'lucide-react';
+import { MoreVertical, Plus, StarIcon } from 'lucide-react';
 import { getErrorMessage } from '@/lib/utils';
 
 const STATUS_FILTERS = ['ALL', 'DRAFT', 'PENDING', 'ACTIVE', 'CLOSED'] as const;
@@ -153,7 +153,7 @@ export const EmployerJobsPanel: FC<{ showCreateButton?: boolean }> = ({
                       <Link href={`/employer/jobs/${job.id}`} className="font-medium hover:underline">
                         {job.title}
                       </Link>
-                      {job.featured ? <span className="ml-1 text-amber-600">⭐</span> : null}
+                      {job.featured ? <StarIcon className="ml-1 size-3.5 fill-current text-amber-600" aria-label="Featured" /> : null}
                     </td>
                     <td className="px-4 py-3">
                       <StatusBadge status={job.status} />

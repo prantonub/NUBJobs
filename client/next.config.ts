@@ -14,6 +14,9 @@ const nextConfig: NextConfig = {
     // (CompanyLogo). Allow any HTTPS host in development; tighten this to
     // specific hostnames before production.
     remotePatterns: [{ protocol: "https", hostname: "**" }],
+    // Next 16 only serves qualities listed here; the auth background asks for
+    // 100 (max sharpness), 90 as a mid step, 75 stays the default.
+    qualities: [75, 90, 100],
   },
 };
 

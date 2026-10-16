@@ -140,7 +140,11 @@ const ApplicationDetailPage: FC = () => {
             {breakdown.cgpaRequired ? (
               <p className="mt-4 text-xs text-muted-foreground">
                 CGPA {breakdown.cgpa ?? 'not set'} / required {breakdown.cgpaRequired}{' '}
-                {breakdown.meetsCgpa ? '✅' : '❌'}
+                {breakdown.meetsCgpa ? (
+                  <Check className="inline size-4 text-emerald-600" aria-label="Meets CGPA requirement" />
+                ) : (
+                  <X className="inline size-4 text-destructive" aria-label="Below CGPA requirement" />
+                )}
               </p>
             ) : null}
           </Card>

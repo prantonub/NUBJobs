@@ -5,7 +5,6 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   BellIcon,
-  GraduationCapIcon,
   LogOutIcon,
   MenuIcon,
   SearchIcon,
@@ -40,12 +39,14 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { BrandLogo } from "@/components/ui/BrandLogo";
 
 const NAV_LINKS = [
   { href: "/", label: "Home" },
   { href: "/jobs", label: "Jobs" },
   { href: "/companies", label: "Companies" },
   { href: "/social", label: "Community" },
+  { href: "/about", label: "About" },
   { href: "/dashboard", label: "Dashboard" },
 ];
 
@@ -186,7 +187,7 @@ function BrandMark({ className }: { className?: string }) {
   return (
     <Link href="/" className={cn("flex shrink-0 items-center gap-2", className)}>
       <span className="flex size-9 items-center justify-center rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 text-white">
-        <GraduationCapIcon className="size-5" />
+        <BrandLogo className="size-5" />
       </span>
       <span className="font-heading text-lg font-bold tracking-tight text-foreground">
         NUB<span className="text-brand-600">Jobs</span>

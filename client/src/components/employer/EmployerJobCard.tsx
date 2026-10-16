@@ -23,7 +23,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { Eye, MoreVertical, Users } from 'lucide-react';
+import { Eye, MoreVertical, Users, StarIcon } from 'lucide-react';
 import { getErrorMessage } from '@/lib/utils';
 
 export interface EmployerJobRow {
@@ -153,7 +153,11 @@ export const EmployerJobCard: FC<{ job: EmployerJobRow; className?: string }> = 
           {job.views ?? 0} views
         </span>
         {typeof topMatch === 'number' && <span>top match {topMatch}%</span>}
-        {job.featured && <span className="text-amber-600">⭐ featured</span>}
+        {job.featured && (
+          <span className="inline-flex items-center gap-1 text-amber-600">
+            <StarIcon className="size-3.5 fill-current" /> featured
+          </span>
+        )}
       </div>
 
       <div className="mt-3 flex gap-2">

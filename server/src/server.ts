@@ -24,6 +24,7 @@ import companyProfileRoutes from './routes/company-profile.routes';
 import eventsRoutes from './routes/events.routes';
 import aiRoutes from './routes/ai-features.routes';
 import adminRoutes from './routes/admin.routes';
+import contactRoutes from './routes/contact.routes';
 import companiesRoutes from './routes/companies.routes';
 import socialRoutes from './routes/social.routes';
 
@@ -67,6 +68,7 @@ app.use(`${apiPrefix}/admin`, adminRoutes);
 app.use(`${apiPrefix}/companies`, companiesRoutes);
 // Professional networking platform (feed, follows, DMs, notifications, search)
 app.use(`${apiPrefix}/social`, socialRoutes);
+app.use(`${apiPrefix}/contact`, contactRoutes);
 
 // 404 handler
 app.use((req, res) => {

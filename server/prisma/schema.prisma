@@ -1350,3 +1350,18 @@ model PollVote {
   @@unique([postId, userId])
   @@index([postId])
 }
+
+/** Message submitted via the public Contact form (/social/contact). */
+model ContactMessage {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  topic     String
+  subject   String
+  message   String
+  status    String   @default("NEW") // NEW, READ, RESOLVED
+  createdAt DateTime @default(now())
+
+  @@index([status])
+  @@index([createdAt])
+}

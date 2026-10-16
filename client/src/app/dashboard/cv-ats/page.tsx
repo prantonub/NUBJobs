@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { FileCheckIcon, UploadIcon } from 'lucide-react';
+import { CheckIcon, CircleDashedIcon, FileCheckIcon, UploadIcon } from 'lucide-react';
 import { useProfile } from '@/hooks/useProfile';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -26,10 +26,22 @@ export default function CvAtsPage() {
           <div className="mt-5 flex items-end justify-between"><span className="text-3xl font-bold">{isLoading ? '--' : `${score}%`}</span><span className="text-sm text-muted-foreground">based on your profile</span></div>
           <Progress value={score} className="mt-3" />
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
-            <p className="text-sm">{hasResume ? '✓ Resume uploaded' : '○ Upload your resume'}</p>
-            <p className="text-sm">{skills ? `✓ ${skills} skills added` : '○ Add relevant skills'}</p>
-            <p className="text-sm">{profile?.bio ? '✓ Professional summary added' : '○ Add a professional summary'}</p>
-            <p className="text-sm">{profile?.linkedinUrl || profile?.githubUrl ? '✓ Professional link added' : '○ Add LinkedIn or GitHub'}</p>
+            <p className="flex items-center gap-1.5 text-sm">
+              {hasResume ? <CheckIcon className="size-4 text-emerald-600" /> : <CircleDashedIcon className="size-4 text-muted-foreground" />}
+              {hasResume ? 'Resume uploaded' : 'Upload your resume'}
+            </p>
+            <p className="flex items-center gap-1.5 text-sm">
+              {skills ? <CheckIcon className="size-4 text-emerald-600" /> : <CircleDashedIcon className="size-4 text-muted-foreground" />}
+              {skills ? `${skills} skills added` : 'Add relevant skills'}
+            </p>
+            <p className="flex items-center gap-1.5 text-sm">
+              {profile?.bio ? <CheckIcon className="size-4 text-emerald-600" /> : <CircleDashedIcon className="size-4 text-muted-foreground" />}
+              {profile?.bio ? 'Professional summary added' : 'Add a professional summary'}
+            </p>
+            <p className="flex items-center gap-1.5 text-sm">
+              {profile?.linkedinUrl || profile?.githubUrl ? <CheckIcon className="size-4 text-emerald-600" /> : <CircleDashedIcon className="size-4 text-muted-foreground" />}
+              {profile?.linkedinUrl || profile?.githubUrl ? 'Professional link added' : 'Add LinkedIn or GitHub'}
+            </p>
           </div>
         </Card>
         <Card className="p-5"><h2 className="font-semibold">Next step</h2><p className="mt-2 text-sm text-muted-foreground">{hasResume ? 'Run the resume analysis to identify improvements.' : 'Upload a PDF or DOC resume from your profile.'}</p><Button asChild className="mt-5"><Link href={hasResume ? '/profile/resume-analysis' : '/profile'}><UploadIcon className="mr-2 size-4" />{hasResume ? 'Analyze CV' : 'Upload CV'}</Link></Button></Card>

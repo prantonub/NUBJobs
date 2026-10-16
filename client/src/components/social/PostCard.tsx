@@ -15,7 +15,7 @@ import {
 import { renderRichContent } from './social-helpers';
 import { AuthorRow, type SocialUser } from './SocialUsers';
 import { useDeletePost, useLikePost, useVotePoll, type SocialPoll } from '@/hooks/useSocial';
-import { BarChart3, Heart, MessageCircle, MoreHorizontal, Pencil } from 'lucide-react';
+import { BarChart3, CheckIcon, Heart, MessageCircle, MoreHorizontal, Pencil } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -91,7 +91,7 @@ export function PollBlock({ postId, poll }: { postId: string; poll: SocialPoll }
               <span className="relative flex items-center justify-between gap-2">
                 <span className="truncate font-medium">
                   {opt.text}
-                  {mine && <span className="ml-1.5 text-xs text-primary">✓</span>}
+                  {mine && <CheckIcon className="ml-1.5 size-3.5 text-primary" aria-label="Your vote" />}
                 </span>
                 <span className="shrink-0 text-xs text-muted-foreground">{pct}%</span>
               </span>

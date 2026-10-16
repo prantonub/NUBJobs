@@ -1,6 +1,7 @@
 'use client';
 
 import { FC } from 'react';
+import { CheckIcon, CheckCheckIcon } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import type { DirectMessage } from '@/hooks/useMessages';
@@ -55,7 +56,11 @@ export const MessageBubble: FC<{
           )}
         >
           <span className="group-hover:opacity-100">{formatTime(message.timestamp)}</span>
-          {isOwn && <span aria-label={message.isRead ? 'Read' : 'Sent'}>{message.isRead ? '✓✓' : '✓'}</span>}
+          {isOwn && (
+            <span aria-label={message.isRead ? 'Read' : 'Sent'}>
+              {message.isRead ? <CheckCheckIcon className="inline size-3.5" /> : <CheckIcon className="inline size-3.5" />}
+            </span>
+          )}
         </div>
       </div>
     </div>

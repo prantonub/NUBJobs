@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { toast } from 'sonner';
+import { BadgeCheckIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -119,7 +120,12 @@ export default function AdminJobDetailPage() {
               <p className="whitespace-pre-wrap text-muted-foreground">{job.description}</p>
             </div>
             <div className="rounded-lg border border-border p-3">
-              <p className="font-medium">Posted by {employer.companyName}{employer.isVerified ? ' ✅' : ''}</p>
+              <p className="flex items-center gap-1.5 font-medium">
+                Posted by {employer.companyName}
+                {employer.isVerified && (
+                  <BadgeCheckIcon className="size-4 text-primary" aria-label="Verified company" />
+                )}
+              </p>
               <p className="text-muted-foreground">{employer.user?.email} · {employer.location ?? '—'}</p>
             </div>
           </CardContent>

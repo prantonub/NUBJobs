@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { GraduationCapIcon } from "lucide-react";
 import { PageContainer } from "@/components/ui/PageContainer";
+import { BrandLogo } from "@/components/ui/BrandLogo";
 
 type FooterLink = { label: string; href: string };
 type FooterColumn = { title: string; links: FooterLink[] };
@@ -58,7 +58,7 @@ export function Footer() {
           <div className="col-span-2">
             <Link href="/" className="flex items-center gap-2">
               <span className="flex size-9 items-center justify-center rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 text-white">
-                <GraduationCapIcon className="size-5" />
+                <BrandLogo className="size-5" />
               </span>
               <span className="font-heading text-lg font-bold tracking-tight text-foreground">
                 NUB<span className="text-brand-600">Jobs</span>

@@ -7,6 +7,8 @@ import {
   Home as HomeIcon,
   User,
   Plus,
+  Mail as MailIcon,
+  Settings as SettingsIcon,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
@@ -30,9 +32,11 @@ export function SocialSidebar({
 
   const isHome = pathname === '/social' || pathname === '/social/home';
   const isProfile = Boolean(myUsername) && pathname.startsWith('/social/profile/' + myUsername);
+  const isContact = pathname === '/social/contact' || pathname.startsWith('/social/contact/');
 
   // Messages + Notifications live in the global top navbar (/messages + bell),
   // so the social sidebar stays focused on Feed / Profile / New Post.
+  // Contact sits after Settings (sidebar order: Feed / Profile / Settings / Contact).
   const menu = innerCollapsed ? [] : [
     { label: 'Feed', href: '/social', icon: <HomeIcon className="size-5" />, active: isHome },
     {
@@ -40,6 +44,18 @@ export function SocialSidebar({
       href: myUsername ? `/social/profile/${myUsername}` : '/social',
       icon: <User className="size-5" />,
       active: isProfile,
+    },
+    {
+      label: 'Settings',
+      href: '/social/settings',
+      icon: <SettingsIcon className="size-5" />,
+      active: pathname === '/social/settings' || pathname.startsWith('/social/settings/'),
+    },
+    {
+      label: 'Contact',
+      href: '/social/contact',
+      icon: <MailIcon className="size-5" />,
+      active: isContact,
     },
   ];
 
@@ -94,10 +110,6 @@ export function SocialSidebar({
             New Post
           </Link>
         </nav>
-
-        <div className="border-t border-border p-3">
-          <p className="truncate text-xs text-muted-foreground">v2.0 · Twitter-style social hub</p>
-        </div>
       </aside>
 
       {!innerCollapsed && (

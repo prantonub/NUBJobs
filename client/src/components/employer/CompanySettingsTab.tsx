@@ -373,9 +373,11 @@ export const CompanySettingsTab: FC = () => {
 
         {verified ? (
           <div className="space-y-2 text-sm">
-            <p className="text-emerald-700">
-              ✅ Verified
-              {profile?.verifiedAt ? ` on ${new Date(profile.verifiedAt).toLocaleDateString()}` : ''}
+            <p className="flex items-center gap-1.5 text-emerald-700">
+              <BadgeCheck className="size-4 shrink-0" />
+              <span>
+                Verified{profile?.verifiedAt ? ` on ${new Date(profile.verifiedAt).toLocaleDateString()}` : ''}
+              </span>
             </p>
             <ul className="list-inside list-disc text-muted-foreground">
               <li>Verified badge on every job posting</li>

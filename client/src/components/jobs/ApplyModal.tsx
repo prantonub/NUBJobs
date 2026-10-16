@@ -214,7 +214,11 @@ const ApplyModal: FC<ApplyModalProps> = ({ open, onOpenChange, jobId, jobTitle, 
                 <X className="size-4 text-red-500" />
               )}
               Your CGPA: {cgpa ?? 'not set'} (Required: {job.minCgpa})
-              {breakdown.meetsCgpa ? ' ✅' : ' ❌'}
+              {breakdown.meetsCgpa ? (
+                <Check className="inline size-4 text-emerald-600" aria-label="Meets CGPA requirement" />
+              ) : (
+                <X className="inline size-4 text-destructive" aria-label="Below CGPA requirement" />
+              )}
             </p>
           ) : null}
 
