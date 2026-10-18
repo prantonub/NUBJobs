@@ -83,6 +83,7 @@ model User {
   communityReports       Report[]
   marketInsights         MarketInsight[]
   eventReminders         EventReminder[]
+  cvChecks               CvCheck[]
 
   // Admin panel: audit trail of every privileged action (spec: AuditLog)
   adminActions      AuditLog[]        @relation("AuditLogAdmin")
@@ -234,6 +235,21 @@ model EmployerProfile {
 // ============================================
 // JOBS 
 // ============================================
+
+model CvCheck {
+  id            String   @id @default(cuid())
+  userId        String
+  fileName      String
+  extractedText String   @db.Text
+  score         Int
+  checks        Json
+  jobId         String?
+  matchScore    Int?
+  createdAt     DateTime @default(now())
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
 
 model Job {
   id                String    @id @default(cuid())

@@ -115,9 +115,11 @@ const ProfilePage: FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-4xl mx-auto px-4">
-        <div className="mb-8 flex items-center gap-2">
-          <h1 className="text-3xl font-bold">My Profile</h1>
-          {profile?.isVerified ? <VerifiedBadge label /> : null}
+        <div className="mb-8 flex flex-wrap items-center gap-3">
+          <h1 className="text-3xl font-bold">
+            {profile?.user?.name || 'My Profile'}
+          </h1>
+          {profile?.isVerified ? <VerifiedBadge size="lg" /> : null}
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">

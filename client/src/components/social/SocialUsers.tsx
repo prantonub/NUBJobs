@@ -2,6 +2,7 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { VerifiedBadge } from '@/components/ui/verified-badge';
 import { useAuth } from '@/hooks/useAuth';
 import { useFollow } from '@/hooks/useSocial';
 import { getInitials } from '@/lib/utils';
@@ -16,6 +17,7 @@ export interface SocialUser {
   photo?: string | null;
   bio?: string | null;
   isFollowing?: boolean;
+  isVerified?: boolean;
 }
 
 /** Toggle Follow / Following for any social user (spec Â§FollowButton). */
@@ -148,7 +150,7 @@ export function UserHeader({
   );
 }
 
-/** Author row used on posts and comments — name only (no @handle / role / timestamp). */
+/** Author row used on posts and comments — name + verified seal (verified users only). */
 export function AuthorRow({ user, compact = false }: { user: SocialUser; createdAt?: string | Date; compact?: boolean }) {
   return (
     <div className={`flex items-center gap-2.5 ${compact ? '' : 'mb-2'}`}>
@@ -156,12 +158,15 @@ export function AuthorRow({ user, compact = false }: { user: SocialUser; created
         <UserAvatar user={user} size={compact ? 'sm' : 'md'} />
       </Link>
       <div className="min-w-0">
-        <Link
-          href={user.username ? `/social/profile/${user.username}` : '#'}
-          className="block truncate text-sm font-semibold hover:underline"
-        >
-          {user.name}
-        </Link>
+        <span className="flex min-w-0 items-center gap-1">
+          <Link
+            href={user.username ? `/social/profile/${user.username}` : '#'}
+            className="block truncate text-sm font-semibold hover:underline"
+          >
+            {user.name}
+          </Link>
+          {user.isVerified ? <VerifiedBadge variant="seal" /> : null}
+        </span>
       </div>
     </div>
   );

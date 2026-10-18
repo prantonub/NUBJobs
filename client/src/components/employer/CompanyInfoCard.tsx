@@ -1,10 +1,11 @@
 'use client';
 
 import type { FC } from 'react';
-import { BadgeCheck, Building2, CalendarDays, MapPin, Users } from 'lucide-react';
+import { Building2, CalendarDays, MapPin, Users } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { VerifiedBadge } from '@/components/ui/verified-badge';
 import { FileUploadZone } from '@/components/ui/FileUploadZone';
 import { IMAGE_MIME_TYPES } from '@/hooks/useFileUpload';
 
@@ -66,10 +67,7 @@ export const CompanyInfoCard: FC<CompanyInfoCardProps> = ({
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="text-2xl font-bold">{profile?.companyName ?? 'Your company'}</h1>
             {verified ? (
-              <Badge className="flex items-center gap-1 border-emerald-200 bg-emerald-50 text-emerald-700">
-                <BadgeCheck className="size-3.5" />
-                Verified
-              </Badge>
+              <VerifiedBadge />
             ) : (
               <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">
                 {verificationStatus?.verificationBadge ?? 'Not verified'}

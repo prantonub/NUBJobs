@@ -9,7 +9,6 @@ import {
   SearchIcon,
 } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { CompanyLogo } from "@/components/ui/CompanyLogo";
@@ -173,14 +172,10 @@ export default function CompaniesPage() {
                   <CompanyLogo name={company.name} logoUrl={company.logo} size="lg" />
 
                   <div className="min-w-0 flex-1">
-                    <h2 className="truncate font-semibold text-foreground">{company.name}</h2>
-
-                    {company.isVerified ? (
-                      <Badge className="mt-1 gap-1 bg-blue-100 text-blue-700">
-                        <VerifiedBadge />
-                        Verified
-                      </Badge>
-                    ) : null}
+                    <h2 className="flex min-w-0 items-center gap-1.5 font-semibold text-foreground">
+                      <span className="truncate">{company.name}</span>
+                      {company.isVerified ? <VerifiedBadge variant="seal" /> : null}
+                    </h2>
 
                     <dl className="mt-2 space-y-1 text-sm text-muted-foreground">
                       {company.industry ? (

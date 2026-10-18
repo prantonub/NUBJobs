@@ -1,0 +1,11 @@
+const fs = require('fs');
+const p = 'src/routes/cv.routes.ts';
+let s = fs.readFileSync(p, 'utf8');
+const startDup = s.indexOf('function multerErrors');
+const endDup = s.indexOf('function multerErrors', startDup + 1);
+const matchMarker = s.indexOf('/** POST /api/cv/match', startDup);
+console.log('DUP ' + startDup + ' to ' + matchMarker);
+s = s.slice(0, startDup) + s.slice(matchMarker);
+s = s.replace('checks,\n      },', 'checks: checks as unknown as import("@prisma/client").Prisma.InputJsonValue,\n      },');
+fs.writeFileSync(p, s);
+console.log('LINES:' + s.split('\n').length);

@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { differenceInCalendarDays, format } from 'date-fns';
 import {
   ArrowRightIcon,
-  BadgeCheckIcon,
   BookmarkIcon,
   CalendarClockIcon,
   ClockIcon,
@@ -18,6 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { CompanyLogo } from '@/components/ui/CompanyLogo';
 import { SkillTag } from '@/components/ui/SkillTag';
+import { VerifiedBadge as SharedVerifiedBadge } from '@/components/ui/verified-badge';
 import { cn, formatDate } from '@/lib/utils';
 
 /* ── Types ────────────────────────────────────────────────────────────────── */
@@ -221,14 +221,10 @@ function SaveButton({
   );
 }
 
-/** Trust signal for admin-approved employers (`employer.isVerified`). */
+/** Trust signal for admin-approved employers (`employer.isVerified`).
+ * Same inline blue seal as the Companies page — icon only, no text. */
 function VerifiedBadge() {
-  return (
-    <span className="inline-flex shrink-0 items-center" title="Verified employer">
-      <BadgeCheckIcon className="size-3.5 text-brand-600" aria-hidden="true" />
-      <span className="sr-only">Verified employer</span>
-    </span>
-  );
+  return <SharedVerifiedBadge variant="seal" iconClassName="size-3.5" />;
 }
 
 /** Secondary footer info: how many students have applied so far. */

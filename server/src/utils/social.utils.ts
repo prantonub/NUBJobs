@@ -16,7 +16,7 @@ export const publicUserSelect = {
   followingCount: true,
   postCount: true,
   createdAt: true,
-  studentProfile: { select: { photoUrl: true } },
+  studentProfile: { select: { photoUrl: true, isVerified: true } },
   employerProfile: { select: { companyName: true, logoUrl: true, isVerified: true } },
 } satisfies Prisma.UserSelect;
 
@@ -43,7 +43,7 @@ export function toPublicUser(u: PublicUserRow, isFollowing?: boolean) {
     postCount: u.postCount,
     joinedAt: u.createdAt,
     company: u.employerProfile?.companyName ?? null,
-    isVerified: u.employerProfile?.isVerified ?? false,
+    isVerified: (u.studentProfile?.isVerified ?? false) || (u.employerProfile?.isVerified ?? false),
     ...(typeof isFollowing === 'boolean' ? { isFollowing } : {}),
   };
 }
