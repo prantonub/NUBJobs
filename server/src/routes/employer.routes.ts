@@ -26,9 +26,11 @@ import {
 // PATCH /api/applications/:id/status — pipeline rules, student email,
 // notification and the Socket.io event all live there.
 import { updateApplicationStatus } from '../controllers/applications-enhanced.controller';
-import { authenticate, requireRole, validate } from '../middleware/auth.middleware';
+import { authenticate, requireRole, validate, AuthRequest } from '../middleware/auth.middleware';
 import { singleDocument, singleImage } from '../middleware/upload.middleware';
 import { z } from 'zod';
+import prisma from '../lib/prisma';
+import { responses, sendError, sendValidationError } from '../utils/response.utils';
 
 const router = Router();
 
@@ -98,6 +100,119 @@ router.get('/applications', getEmployerApplications);
 router.get('/applications/:id', getApplicationDetail);
 router.patch('/applications/:id/status', updateApplicationStatus);
 router.post('/applications/:id/schedule-interview', scheduleInterview);
+
+// ── Search Talent (students who opted in to discovery) ────────────────────────
+// Privacy: only `visibleToEmployers = true` profiles are searchable and the
+// SELECT never includes email, phone, CV or date of birth. Auth + EMPLOYER
+// role come from the router-level middleware above (401/403 otherwise).
+
+/** GET query params arrive as strings; `skills` is checked again after split. */
+const talentQuerySchema = z.object({
+  program: z.string().trim().max(120).optional(),
+  gradYear: z.string().regex(/^\d{4}$/, 'gradYear must be a 4-digit year').optional(),
+  skills: z.string().trim().max(200).optional(),
+  page: z.string().regex(/^\d+$/, 'page must be a positive integer').optional(),
+  limit: z.string().regex(/^\d+$/, 'limit must be a positive integer').optional(),
+});
+
+// Per-user rate limit: 60 talent searches / 60s (spec §GET /employer/talent).
+const talentSearchWindow = new Map<string, { count: number; resetAt: number }>();
+
+function talentSearchLimited(userId: string, max = 60, windowMs = 60_000): number | null {
+  const now = Date.now();
+  const record = talentSearchWindow.get(userId);
+  if (!record || now > record.resetAt) {
+    talentSearchWindow.set(userId, { count: 1, resetAt: now + windowMs });
+    return null;
+  }
+  if (record.count >= max) return Math.ceil((record.resetAt - now) / 1000);
+  record.count += 1;
+  return null;
+}
+
+router.get('/talent', async (req, res, next) => {
+  try {
+    const userId = (req as AuthRequest).userId;
+    if (!userId) return responses.unauthorized(res, 'Unauthorized');
+
+    const retryAfter = talentSearchLimited(userId);
+    if (retryAfter !== null) {
+      res.set('Retry-After', String(retryAfter));
+      return sendError(res, 429, 'Too many talent searches — try again shortly');
+    }
+
+    const parsed = talentQuerySchema.safeParse(req.query);
+    if (!parsed.success) {
+      const errors: Record<string, string> = {};
+      parsed.error.issues.forEach((issue) => {
+        errors[issue.path.join('.')] = issue.message;
+      });
+      return sendValidationError(res, errors);
+    }
+    const { program, gradYear, skills, page, limit } = parsed.data;
+
+    // Comma separated: at most 5 values, each 1–30 chars.
+    const skillList = (skills ?? '')
+      .split(',')
+      .map((skill) => skill.trim())
+      .filter(Boolean);
+    if (skillList.length > 5) {
+      return responses.badRequest(res, 'Search by at most 5 skills');
+    }
+    if (skillList.some((skill) => skill.length > 30)) {
+      return responses.badRequest(res, 'Each skill must be 1 to 30 characters');
+    }
+
+    const currentPage = Math.max(1, Number(page ?? 1));
+    const pageSize = Math.min(20, Math.max(1, Number(limit ?? 12)));
+
+    const where = {
+      visibleToEmployers: true,
+      user: { isBanned: false },
+      ...(program ? { department: { equals: program, mode: 'insensitive' as const } } : {}),
+      ...(gradYear ? { gradYear: Number(gradYear) } : {}),
+      ...(skillList.length ? { skills: { hasSome: skillList } } : {}),
+    };
+
+    const [total, rows] = await Promise.all([
+      prisma.studentProfile.count({ where }),
+      prisma.studentProfile.findMany({
+        where,
+        // Privacy-safe projection ONLY — no email/phone/resume/DOB.
+        select: {
+          id: true,
+          department: true,
+          gradYear: true,
+          skills: true,
+          photoUrl: true,
+          user: { select: { username: true, name: true } },
+        },
+        orderBy: { updatedAt: 'desc' },
+        skip: (currentPage - 1) * pageSize,
+        take: pageSize,
+      }),
+    ]);
+
+    const students = rows.map((row) => ({
+      id: row.id,
+      username: row.user.username,
+      fullName: row.user.name,
+      program: row.department,
+      gradYear: row.gradYear,
+      skills: row.skills,
+      photoUrl: row.photoUrl,
+    }));
+
+    return responses.ok(res, 'Talent search results', {
+      students,
+      total,
+      page: currentPage,
+      limit: pageSize,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
 
 export default router;
 

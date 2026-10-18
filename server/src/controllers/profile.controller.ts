@@ -163,6 +163,11 @@ export const updateProfile = async (req: Request, res: Response, next: NextFunct
         .filter(Boolean);
     }
 
+    // Employer discovery opt-in (Search Talent) — plain boolean; absent = untouched.
+    if (body.visibleToEmployers !== undefined) {
+      data.visibleToEmployers = body.visibleToEmployers === true;
+    }
+
     // ── Make sure the row exists, then update ────────────────────────────────
     // (a first-time save on a fresh account must not fail with P2025)
     await prisma.studentProfile.upsert({

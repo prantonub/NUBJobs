@@ -3,7 +3,10 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRightIcon, BriefcaseIcon, SearchIcon } from "lucide-react";
+import { ArrowRightIcon, BriefcaseIcon, GraduationCapIcon, SearchIcon } from "lucide-react";
+import Image from "next/image";
+
+import homeBanner from "@/bg-image/home-page-banner.jpg";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -63,22 +66,30 @@ export function HeroSection() {
   };
 
   return (
-    <section className="relative isolate overflow-hidden bg-gradient-to-br from-brand-600 via-brand-700 to-navy text-white">
-      {/* decorative glows */}
-      <div
+    <section className="relative isolate overflow-hidden bg-neutral-900 text-white">
+      {/* Banner photo — fills the hero at native quality; a neutral dark
+          scrim keeps the white headline readable without tinting the photo. */}
+      <Image
+        src={homeBanner}
+        alt=""
+        fill
+        priority
+        quality={100}
+        sizes="2048px"
+        className="object-cover"
         aria-hidden
-        className="pointer-events-none absolute -top-24 -right-24 size-96 rounded-full bg-brand-500/30 blur-3xl"
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute -bottom-32 -left-24 size-96 rounded-full bg-brand-900/40 blur-3xl"
+        className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/45 to-black/65"
       />
 
-      <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 sm:py-24 lg:px-8 lg:py-32">
+      <div className="relative z-10 mx-auto max-w-7xl px-4 py-20 sm:px-6 sm:py-24 lg:px-8 lg:py-32">
         <div className="mx-auto max-w-3xl text-center">
           <Reveal animateOnMount delay={0.05}>
             <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-medium backdrop-blur">
-              🎓 Exclusively for Northern University Bangladesh students
+              <GraduationCapIcon className="size-3.5" aria-hidden />
+              Exclusively for Northern University Bangladesh students
             </span>
           </Reveal>
 
@@ -89,6 +100,14 @@ export function HeroSection() {
                 NUB Student
               </span>
             </h1>
+          </Reveal>
+
+          <Reveal animateOnMount delay={0.25}>
+            <p className="mx-auto mt-5 max-w-2xl text-base text-white/85 sm:text-lg">
+              Discover internships, entry-level jobs and graduate roles from
+              verified employers across Bangladesh — apply in one click and get
+              hired faster, built exclusively for Northern University students.
+            </p>
           </Reveal>
 
           <Reveal animateOnMount delay={0.25}>
@@ -121,9 +140,9 @@ export function HeroSection() {
               <Select value={location} onValueChange={setLocation}>
                 <SelectTrigger
                   aria-label="Location"
-                  className="h-11 w-full border-0 shadow-none focus-visible:ring-0 sm:w-40"
+                  className="h-11 w-full border-0 text-foreground shadow-none focus-visible:ring-0 sm:w-40"
                 >
-                  <SelectValue placeholder="Location" />
+                  <SelectValue placeholder="Location" className="text-foreground" />
                 </SelectTrigger>
                 <SelectContent>
                   {JOB_LOCATIONS.map((loc) => (
@@ -139,9 +158,9 @@ export function HeroSection() {
               <Select value={category} onValueChange={setCategory}>
                 <SelectTrigger
                   aria-label="Category"
-                  className="h-11 w-full border-0 shadow-none focus-visible:ring-0 sm:w-48"
+                  className="h-11 w-full border-0 text-foreground shadow-none focus-visible:ring-0 sm:w-48"
                 >
-                  <SelectValue placeholder="Category" />
+                  <SelectValue placeholder="Category" className="text-foreground" />
                 </SelectTrigger>
                 <SelectContent>
                   {categoryOptions.map((cat) => (

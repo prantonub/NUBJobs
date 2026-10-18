@@ -599,3 +599,53 @@ export const useSendEmployerMessage = () => {
     },
   });
 };
+
+// ── Search Talent ─────────────────────────────────────────────────────────────
+
+export type TalentFilters = {
+  program?: string;
+  gradYear?: string;
+  skills?: string;
+};
+
+/** One student row from GET /api/employer/talent — privacy-safe fields only. */
+export interface TalentStudent {
+  id: string;
+  username: string | null;
+  fullName: string | null;
+  program: string | null;
+  gradYear: number | null;
+  skills: string[];
+  photoUrl: string | null;
+}
+
+/**
+ * GET /api/employer/talent — students who opted in to employer discovery
+ * (`visibleToEmployers = true`). The filter values form the query key so each
+ * filter combination is cached separately.
+ */
+export const useTalentSearch = (
+  filters: TalentFilters = {},
+  options: { enabled?: boolean } = {}
+) => {
+  const { program = '', gradYear = '', skills = '' } = filters;
+
+  return useQuery({
+    queryKey: ['employerTalent', program, gradYear, skills],
+    queryFn: async () => {
+      const params: Record<string, string> = { limit: '20' };
+      if (program) params.program = program;
+      if (gradYear) params.gradYear = gradYear;
+      if (skills) params.skills = skills;
+      const { data } = await api.get('/employer/talent', { params });
+      return data.data as {
+        students: TalentStudent[];
+        total: number;
+        page: number;
+        limit: number;
+      };
+    },
+    enabled: options.enabled ?? true,
+    staleTime: 30 * 1000,
+  });
+};

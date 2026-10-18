@@ -223,6 +223,20 @@ export function Navbar({ className }: NavbarProps) {
   const [mounted, setMounted] = React.useState(false);
   React.useEffect(() => setMounted(true), []);
 
+  const router = useRouter();
+  const [searchQuery, setSearchQuery] = React.useState("");
+
+  const goSearch = () => {
+    const q = searchQuery.trim();
+    router.push(q ? `/jobs?q=${encodeURIComponent(q)}` : "/jobs");
+  };
+
+  /** Enter in the navbar search sends the query to the jobs list. */
+  const handleSearch = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    goSearch();
+  };
+
   if (pathname.startsWith("/admin")) return null;
 
   return (
@@ -253,15 +267,32 @@ export function Navbar({ className }: NavbarProps) {
         </nav>
 
         <div className="ml-auto flex items-center gap-2">
-          <div className="relative hidden w-56 lg:block xl:w-72">
-            <SearchIcon className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <form
+            onSubmit={handleSearch}
+            role="search"
+            className="relative hidden w-56 lg:block xl:w-72"
+          >
             <Input
               type="search"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
               placeholder="Search jobs, companies…"
-              className="pl-9"
-              aria-label="Search"
+              className="pl-3 pr-10"
+              aria-label="Search jobs and companies"
             />
-          </div>
+            <div className="absolute inset-y-0 right-1 flex items-center">
+              <Button
+                type="submit"
+                onClick={goSearch}
+                size="icon-sm"
+                variant="ghost"
+                className="text-muted-foreground hover:text-foreground"
+                aria-label="Submit search"
+              >
+                <SearchIcon className="size-4" />
+              </Button>
+            </div>
+          </form>
 
           {!mounted || isLoading ? (
             <Skeleton className="size-9 rounded-full" />

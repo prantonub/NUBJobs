@@ -27,7 +27,6 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
   Select,
@@ -134,7 +133,7 @@ export default function ContactPage() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-2xl space-y-6">
+    <div className="w-full max-w-3xl space-y-6">
       {/* 1. HEADER */}
       <section aria-labelledby="contact-heading">
         <Badge variant="outline">Support</Badge>
@@ -391,14 +390,6 @@ export default function ContactPage() {
           </CardContent>
         </Card>
       </section>
-
-      {/* 5. FOOTER */}
-      <footer>
-        <Separator />
-        <p className="py-4 text-center text-xs text-muted-foreground">
-          {CONTACT.university} · {CONTACT.email}
-        </p>
-      </footer>
     </div>
   );
 }

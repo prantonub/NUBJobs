@@ -151,6 +151,11 @@ model StudentProfile {
   // Academic Info
   cgpa              Float?
   skills            String[]  @default([])
+  gradYear          Int?
+
+  // Employer discovery — students opt in to appear in Search Talent.
+  // Employers can only ever see profiles with this flag set to true.
+  visibleToEmployers Boolean  @default(false)
   
   // URLs
   linkedinUrl       String?

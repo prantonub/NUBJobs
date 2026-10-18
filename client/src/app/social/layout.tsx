@@ -7,9 +7,9 @@ export default function SocialLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex min-h-screen flex-col bg-background lg:flex-row">
       <SocialSidebar />
-      <main className="flex-1 pl-0 lg:pl-64">
+      <main className="min-w-0 flex-1 pl-0 lg:pl-64">
         <div className="mx-auto px-4 py-6">{children}</div>
       </main>
     </div>

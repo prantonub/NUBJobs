@@ -10,6 +10,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { Loader2, Plus, ClockIcon, ShieldAlertIcon } from 'lucide-react';
@@ -279,6 +280,39 @@ const ProfilePage: FC = () => {
                   </Button>
                 </div>
               )}
+            </div>
+          </Card>
+
+          {/* Employer discovery */}
+          <Card className="p-6">
+            <div className="flex items-center justify-between gap-4">
+              <div className="min-w-0 flex-1">
+                <h2 className="text-base font-semibold">Show my profile to employers</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Employers can find you in Search Talent when this is on. Your email,
+                  phone, CV and date of birth are never shown — only your name, program,
+                  graduation year, skills and photo.
+                </p>
+              </div>
+              <Switch
+                checked={profile?.visibleToEmployers ?? false}
+                onCheckedChange={(checked) =>
+                  updateProfileMutation.mutate(
+                    { visibleToEmployers: checked },
+                    {
+                      onSuccess: () =>
+                        toast.success(
+                          checked
+                            ? 'Your profile is visible to employers'
+                            : 'Your profile is hidden from employers'
+                        ),
+                      onError: (error) =>
+                        toast.error(getErrorMessage(error, 'Could not update visibility')),
+                    }
+                  )
+                }
+                aria-label="Show my profile to employers"
+              />
             </div>
           </Card>
 

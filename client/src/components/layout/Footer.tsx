@@ -1,52 +1,40 @@
 import Link from "next/link";
+import Image from "next/image";
 import { PageContainer } from "@/components/ui/PageContainer";
+import { Separator } from "@/components/ui/separator";
 import { BrandLogo } from "@/components/ui/BrandLogo";
+import universityLogo from "@/bg-image/Northern University Logo.png";
 
-type FooterLink = { label: string; href: string };
-type FooterColumn = { title: string; links: FooterLink[] };
-
-const COLUMNS: FooterColumn[] = [
-  {
-    title: "For Students",
-    links: [
-      { label: "Browse Jobs", href: "/jobs" },
-      { label: "Internships", href: "/jobs?type=INTERNSHIP" },
-      { label: "Companies", href: "/companies" },
-      { label: "My Applications", href: "/dashboard/applications" },
-    ],
-  },
-  {
-    title: "For Employers",
-    links: [
-      { label: "Post a Job", href: "/employer/jobs/new" },
-      { label: "Search Talent", href: "/employer/candidates" },
-      { label: "Pricing", href: "/pricing" },
-      { label: "Employer Dashboard", href: "/employer" },
-    ],
-  },
-  {
-    title: "Resources",
-    links: [
-      { label: "Career Blog", href: "/blog" },
-      { label: "Resume Tips", href: "/resources/resume" },
-      { label: "FAQ", href: "/faq" },
-      { label: "Help Center", href: "/help" },
-    ],
-  },
-  {
-    title: "Company",
-    links: [
-      { label: "About NUBJobs", href: "/about" },
-      { label: "Contact", href: "/contact" },
-      { label: "Privacy Policy", href: "/privacy" },
-      { label: "Terms of Service", href: "/terms" },
-    ],
-  },
-];
+const FOOTER_LINKS: Record<string, Array<{ label: string; href: string }>> = {
+  "For Students": [
+    { label: "Browse Jobs", href: "/jobs" },
+    { label: "Internships", href: "/jobs?type=internship" },
+    { label: "Companies", href: "/companies" },
+    { label: "My Applications", href: "/my-applications" },
+  ],
+  "For Employers": [
+    { label: "Post a Job", href: "/employer/post-job" },
+    { label: "Search Talent", href: "/employer/search-talent" },
+    { label: "Pricing", href: "/pricing" },
+    { label: "Employer Dashboard", href: "/employer/dashboard" },
+  ],
+  Resources: [
+    { label: "Career Blog", href: "/blog" },
+    { label: "Resume Tips", href: "/resources/resume-tips" },
+    { label: "FAQ", href: "/faq" },
+    { label: "Help Center", href: "/help" },
+  ],
+  Company: [
+    { label: "About NUBJobs", href: "/about" },
+    { label: "Contact", href: "/social/contact" },
+    { label: "Privacy Policy", href: "/privacy" },
+    { label: "Terms of Service", href: "/terms" },
+  ],
+};
 
 /**
- * Site footer: brand blurb, four link columns, and a bottom bar with copyright
- * and legal links.
+ * Shared site footer: brand blurb, four link columns, and a bottom bar with
+ * copyright and the support email.
  */
 export function Footer() {
   const year = new Date().getFullYear();
@@ -64,6 +52,11 @@ export function Footer() {
                 NUB<span className="text-brand-600">Jobs</span>
               </span>
             </Link>
+            <Image
+              src={universityLogo}
+              alt="Northern University Bangladesh logo"
+              className="mt-4 h-10 w-auto"
+            />
             <p className="mt-3 max-w-xs text-sm text-muted-foreground">
               The job & internship portal for Northern University Bangladesh
               students — find opportunities, track applications, and launch your
@@ -71,17 +64,15 @@ export function Footer() {
             </p>
           </div>
 
-          {COLUMNS.map((column) => (
-            <div key={column.title}>
-              <h3 className="text-sm font-semibold text-foreground">
-                {column.title}
-              </h3>
+          {Object.entries(FOOTER_LINKS).map(([title, links]) => (
+            <div key={title}>
+              <h3 className="text-sm font-semibold">{title}</h3>
               <ul className="mt-3 space-y-2">
-                {column.links.map((link) => (
+                {links.map((link) => (
                   <li key={link.href}>
                     <Link
                       href={link.href}
-                      className="text-sm text-muted-foreground transition-colors hover:text-brand-600"
+                      className="text-sm text-muted-foreground hover:text-foreground"
                     >
                       {link.label}
                     </Link>
@@ -92,29 +83,18 @@ export function Footer() {
           ))}
         </div>
 
-        <div className="mt-10 flex flex-col items-center justify-between gap-4 border-t border-border pt-6 sm:flex-row">
-          <p className="text-sm text-muted-foreground">
-            © {year} NUBJobs. All rights reserved.
-          </p>
-          <div className="flex items-center gap-6">
-            <Link
-              href="/privacy"
-              className="text-sm text-muted-foreground hover:text-foreground"
+        <div className="mt-10">
+          <Separator />
+          <div className="flex flex-col items-center justify-between gap-2 pt-6 sm:flex-row">
+            <p className="text-sm text-muted-foreground">
+              © {year} NUBJobs · Northern University Bangladesh
+            </p>
+            <a
+              href="mailto:support@nubjobs.online"
+              className="rounded-sm text-sm text-muted-foreground underline-offset-4 outline-none hover:text-foreground hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
             >
-              Privacy
-            </Link>
-            <Link
-              href="/terms"
-              className="text-sm text-muted-foreground hover:text-foreground"
-            >
-              Terms
-            </Link>
-            <Link
-              href="/contact"
-              className="text-sm text-muted-foreground hover:text-foreground"
-            >
-              Contact
-            </Link>
+              support@nubjobs.online
+            </a>
           </div>
         </div>
       </PageContainer>
