@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { Navbar } from "@/components/layout/Navbar";
+import ChatbotWidget from "@/components/chatbot/ChatbotWidget";
 import Providers from "../app/provider";
 
 const inter = Inter({
@@ -43,6 +44,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             <Navbar />
             {children}
           </Providers>
+
+          <ChatbotWidget />
 
           <Toaster />
         </ThemeProvider>

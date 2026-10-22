@@ -17,6 +17,7 @@ import companyProfileRoutes from './routes/company-profile.routes'
 import adminRoutes from './routes/admin.routes'
 import contactRoutes from './routes/contact.routes'
 import cvRoutes from './routes/cv.routes'
+import chatbotRoutes from './routes/chatbot.routes'
 
 const app = express()
 
@@ -43,6 +44,7 @@ app.use('/api/company', companyProfileRoutes)
 app.use('/api/admin', adminRoutes)
 app.use('/api/contact', contactRoutes)
 app.use('/api/cv', cvRoutes)
+app.use('/api/chatbot', chatbotRoutes)
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

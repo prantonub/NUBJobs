@@ -27,6 +27,7 @@ import adminRoutes from './routes/admin.routes';
 import contactRoutes from './routes/contact.routes';
 import companiesRoutes from './routes/companies.routes';
 import socialRoutes from './routes/social.routes';
+import chatbotRoutes from './routes/chatbot.routes';
 
 const app: Express = express();
 const port = process.env.PORT || 5000;
@@ -69,6 +70,7 @@ app.use(`${apiPrefix}/companies`, companiesRoutes);
 // Professional networking platform (feed, follows, DMs, notifications, search)
 app.use(`${apiPrefix}/social`, socialRoutes);
 app.use(`${apiPrefix}/contact`, contactRoutes);
+app.use(`${apiPrefix}/chatbot`, chatbotRoutes);
 
 // 404 handler
 app.use((req, res) => {
