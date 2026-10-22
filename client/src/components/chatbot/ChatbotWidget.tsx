@@ -2,11 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
-import { MessageCircle, X, Send, StopCircle } from "lucide-react";
+import { X, Send, StopCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Alert,
@@ -47,13 +46,22 @@ export default function ChatbotWidget() {
   return (
     <>
       {!isOpen && (
-        <Button
-          className="fixed bottom-5 right-5 z-50 rounded-full shadow-lg"
+        <div
+          className="fixed bottom-5 right-5 z-50 cursor-pointer"
           onClick={() => setIsOpen(true)}
           aria-label="Open NUBJobs Assistant"
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e: React.KeyboardEvent) => {
+            if (e.key === "Enter") setIsOpen(true);
+          }}
         >
-          <MessageCircle className="w-5 h-5" />
-        </Button>
+          <img
+            src="/images/chatbot.png"
+            alt="NUBJobs Assistant"
+            className="w-16 h-16 object-contain"
+          />
+        </div>
       )}
 
       {isOpen && (
@@ -61,9 +69,11 @@ export default function ChatbotWidget() {
           <Card className="flex flex-col h-[520px] max-h-[80vh] md:h-[520px] shadow-2xl border border-border">
             <CardHeader className="flex items-center justify-between px-4 py-3">
               <div className="flex items-center gap-2">
-                <Badge variant="outline" className="text-xs">
-                  AI
-                </Badge>
+                <img
+                  src="/images/chatbot.png"
+                  alt="NUBJobs Assistant"
+                  className="w-8 h-8 object-contain"
+                />
                 <CardTitle className="text-sm">NUBJobs Assistant</CardTitle>
               </div>
               <Button
@@ -102,7 +112,7 @@ export default function ChatbotWidget() {
                         key={q}
                         variant="outline"
                         size="sm"
-                        className="text-xs text-left"
+                        className="text-xs text-left whitespace-normal break-words leading-normal py-2.5 min-h-[52px]"
                         onClick={() => sendMessage(q)}
                       >
                         {q}

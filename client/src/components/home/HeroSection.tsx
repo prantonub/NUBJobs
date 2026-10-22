@@ -84,7 +84,7 @@ export function HeroSection() {
         className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/45 to-black/65"
       />
 
-      <div className="relative z-10 mx-auto max-w-7xl px-4 py-20 sm:px-6 sm:py-24 lg:px-8 lg:py-32">
+      <div className="relative z-10 mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8 lg:py-12">
         <div className="mx-auto max-w-3xl text-center">
           <Reveal animateOnMount delay={0.05}>
             <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-medium backdrop-blur">
