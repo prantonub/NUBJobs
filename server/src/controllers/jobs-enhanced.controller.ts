@@ -593,3 +593,38 @@ export async function updateJobStatus(req: AuthRequest, res: Response, next: Nex
     next(error);
   }
 }
+
+/**
+ * GET /api/jobs/:id/applied
+ * Check if the current student has already applied to this job.
+ */
+export async function checkJobApplied(req: AuthRequest, res: Response, next: NextFunction) {
+  try {
+    const userId = req.userId;
+    const userIdStr = Array.isArray(userId) ? userId[0] : userId;
+    const { id } = req.params;
+    const idStr = Array.isArray(id) ? id[0] : id;
+
+    if (!userIdStr) {
+      return res.json({ data: { applied: false } });
+    }
+
+    const student = await prisma.studentProfile.findUnique({
+      where: { userId: userIdStr },
+      select: { id: true },
+    });
+
+    if (!student) {
+      return res.json({ data: { applied: false } });
+    }
+
+    const existing = await prisma.application.findFirst({
+      where: { studentId: student.id, jobId: idStr },
+      select: { id: true, status: true },
+    });
+
+    return res.json({ data: { applied: !!existing, status: existing?.status || null } });
+  } catch (error) {
+    next(error);
+  }
+}

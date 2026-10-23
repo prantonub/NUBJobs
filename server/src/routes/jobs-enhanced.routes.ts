@@ -11,6 +11,7 @@ import {
   toggleSaveJob,
   getSavedJobs,
   getRecommendedJobs,
+  checkJobApplied,
 } from '../controllers/jobs-enhanced.controller';
 import { authenticate, optionalAuth, requireRole, validate } from '../middleware/auth.middleware';
 // Shared with POST/PATCH /api/employer/jobs so both endpoints accept exactly the
@@ -34,6 +35,7 @@ router.get('/categories', getJobCategories);
 router.get('/saved', authenticate, getSavedJobs);
 router.get('/recommended', authenticate, getRecommendedJobs);
 router.post('/:id/save', authenticate, toggleSaveJob);
+router.get('/:id/applied', authenticate, checkJobApplied);
 
 // Single job (keep last so it cannot shadow the routes above)
 router.get('/:id', optionalAuth, getJobDetail);

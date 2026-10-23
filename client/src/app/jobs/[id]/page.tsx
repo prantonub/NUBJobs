@@ -2,13 +2,13 @@
 
 import { FC, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { useJobDetail, useJobMatchScore, useCheckJobSaved, useSaveJob, useUnsaveJob } from '@/hooks/useJobs';
+import { useJobDetail, useJobMatchScore, useCheckJobSaved, useCheckJobApplied, useSaveJob, useUnsaveJob } from '@/hooks/useJobs';
 import ApplyModal from '@/components/jobs/ApplyModal';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Heart, Share2, Briefcase, MapPin, DollarSign, Users, Calendar } from 'lucide-react';
+import { Heart, Share2, Briefcase, MapPin, DollarSign, Users, Calendar, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 const JobDetailPage: FC = () => {
@@ -19,6 +19,8 @@ const JobDetailPage: FC = () => {
   const { data: job, isLoading: jobLoading } = useJobDetail(jobId);
   const { data: matchScore } = useJobMatchScore(jobId);
   const { data: isSaved } = useCheckJobSaved(jobId);
+  const { data: appliedStatus } = useCheckJobApplied(jobId);
+  const isAlreadyApplied = appliedStatus?.applied ?? false;
   const saveJobMutation = useSaveJob();
   const unsaveJobMutation = useUnsaveJob();
 
@@ -219,14 +221,25 @@ const JobDetailPage: FC = () => {
               )}
 
               {/* Apply Button */}
-              <Button
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                size="lg"
-                onClick={() => setApplyModalOpen(true)}
-              >
-                <Briefcase className="w-4 h-4 mr-2" />
-                Apply Now
-              </Button>
+              {isAlreadyApplied ? (
+                <Button
+                  className="w-full bg-green-600 hover:bg-green-700 text-white"
+                  size="lg"
+                  onClick={() => toast.success('You have already applied to this job')}
+                >
+                  <CheckCircle2 className="w-4 h-4 mr-2" />
+                  Applied
+                </Button>
+              ) : (
+                <Button
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                  size="lg"
+                  onClick={() => setApplyModalOpen(true)}
+                >
+                  <Briefcase className="w-4 h-4 mr-2" />
+                  Apply Now
+                </Button>
+              )}
 
               {/* Save Button */}
               <Button

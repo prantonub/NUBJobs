@@ -98,6 +98,17 @@ export const useCheckJobSaved = (jobId: string) => {
   });
 };
 
+export const useCheckJobApplied = (jobId: string) => {
+  return useQuery({
+    queryKey: ['jobApplied', jobId],
+    queryFn: async () => {
+      const { data } = await api.get(`/jobs/${jobId}/applied`);
+      return { applied: data.data.applied, status: data.data.status };
+    },
+    enabled: !!jobId,
+  });
+};
+
 export const useSavedJobs = () => {
   return useQuery({
     queryKey: ['savedJobs'],
