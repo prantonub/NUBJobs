@@ -13,7 +13,7 @@ import { useSearchMessages } from '@/hooks/useMessages';
 import { SearchBar } from '@/components/messages/SearchBar';
 
 /**
- * /messages/search — search message history (spec §FRONTEND PAGE 3).
+ * /messages/search - search message history (spec §FRONTEND PAGE 3).
  * Filters: keyword, sender (all/specific is implicit via conversation),
  * date range, unread-only. Clicking a hit opens the thread at that message.
  */

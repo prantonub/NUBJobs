@@ -41,7 +41,7 @@ export type EmployerJobsFilters = {
 };
 
 /**
- * GET /api/employer/jobs — the employer's OWN postings only.
+ * GET /api/employer/jobs - the employer's OWN postings only.
  * Accepts either `useEmployerJobs('ACTIVE', 2)` or `useEmployerJobs({ status, sort, page, limit })`.
  */
 export const useEmployerJobs = (
@@ -71,7 +71,7 @@ export const useEmployerJobs = (
   });
 };
 
-/** GET /api/employer/jobs/:id — one of the employer's own jobs (403 otherwise). */
+/** GET /api/employer/jobs/:id - one of the employer's own jobs (403 otherwise). */
 export const useEmployerJobDetail = (jobId?: string | null) => {
   return useQuery({
     queryKey: ['employerJob', jobId],
@@ -85,7 +85,7 @@ export const useEmployerJobDetail = (jobId?: string | null) => {
 };
 
 /**
- * GET /api/employer/applications — applications for the employer's OWN jobs.
+ * GET /api/employer/applications - applications for the employer's OWN jobs.
  * Without filters/with only `jobId` it returns the grouped kanban payload;
  * the applications table uses `useEmployerApplicationsList` (`?view=list`).
  */
@@ -127,7 +127,7 @@ export const useUpdateApplicationStatus = () => {
   });
 };
 
-/** PATCH /api/applications/:id/notes — private employer notes on a candidate. */
+/** PATCH /api/applications/:id/notes - private employer notes on a candidate. */
 export const useUpdateApplicationNotes = () => {
   const queryClient = useQueryClient();
   return useMutation({
@@ -390,7 +390,7 @@ export interface EmployerApplicationFilters {
 }
 
 /**
- * GET /api/employer/applications?view=list — flat, filterable, paginated list
+ * GET /api/employer/applications?view=list - flat, filterable, paginated list
  * (the kanban `useEmployerApplications` keeps the grouped shape).
  */
 export const useEmployerApplicationsList = (filters: EmployerApplicationFilters = {}) => {
@@ -409,7 +409,7 @@ export const useEmployerApplicationsList = (filters: EmployerApplicationFilters 
   });
 };
 
-/** GET /api/employer/applications/:id — candidate profile + timeline + chat. */
+/** GET /api/employer/applications/:id - candidate profile + timeline + chat. */
 export const useEmployerApplicationDetail = (applicationId?: string | null) => {
   return useQuery({
     queryKey: ['employerApplication', applicationId],
@@ -422,7 +422,7 @@ export const useEmployerApplicationDetail = (applicationId?: string | null) => {
   });
 };
 
-/** GET /api/applications/job/:jobId — every applicant of one posting. */
+/** GET /api/applications/job/:jobId - every applicant of one posting. */
 export const useJobApplicants = (
   jobId?: string | null,
   filters: { status?: string; page?: number; limit?: number } = {}
@@ -441,7 +441,7 @@ export const useJobApplicants = (
 // ── Job management (employer) ───────────────────────────────────────────────
 
 /**
- * POST /api/jobs — every posting goes to PENDING and notifies the admins.
+ * POST /api/jobs - every posting goes to PENDING and notifies the admins.
  * Pass `{ asDraft: true }` to save through the draft endpoint instead.
  *
  * NOTE: `useUpdateJob` / `useDeleteJob` above already cover the draft flow
@@ -465,7 +465,7 @@ export const usePostJob = () => {
   });
 };
 
-/** PATCH /api/jobs/:id/status — close or feature a posting. */
+/** PATCH /api/jobs/:id/status - close or feature a posting. */
 export const useUpdateJobStatus = () => {
   const queryClient = useQueryClient();
   return useMutation({
@@ -480,7 +480,7 @@ export const useUpdateJobStatus = () => {
   });
 };
 
-/** DELETE /api/jobs/:id — only DRAFT postings can be deleted. */
+/** DELETE /api/jobs/:id - only DRAFT postings can be deleted. */
 export const useDeleteJobPosting = () => {
   const queryClient = useQueryClient();
   return useMutation({
@@ -495,7 +495,7 @@ export const useDeleteJobPosting = () => {
   });
 };
 
-/** GET /api/employer/company/stats — overview, charts, top jobs and metrics. */
+/** GET /api/employer/company/stats - overview, charts, top jobs and metrics. */
 export const useCompanyAnalytics = () => {
   return useQuery({
     queryKey: ['companyAnalytics'],
@@ -521,7 +521,7 @@ export const useEmployerAnalytics = useCompanyAnalytics;
 // ── Spec endpoints ───────────────────────────────────────────────────────────
 
 /**
- * GET /api/employer/dashboard — spec-shaped overview
+ * GET /api/employer/dashboard - spec-shaped overview
  * `{ overview, recentJobs, recentApplications, stats, … }`.
  */
 export const useEmployerDashboard = () => {
@@ -534,11 +534,11 @@ export const useEmployerDashboard = () => {
   });
 };
 
-/** GET /api/employer/pipeline — grouped kanban payload (own jobs only). */
+/** GET /api/employer/pipeline - grouped kanban payload (own jobs only). */
 export const useEmployerPipeline = (jobId?: string) => useEmployerApplications({ jobId });
 
 /**
- * PATCH /api/jobs/:id/feature — toggle the featured flag on an ACTIVE job
+ * PATCH /api/jobs/:id/feature - toggle the featured flag on an ACTIVE job
  * (ownership enforced server-side).
  */
 export const useFeatureJob = () => {
@@ -561,7 +561,7 @@ export const useFeatureJob = () => {
   });
 };
 
-/** GET /api/employer/messages — conversation list for this company. */
+/** GET /api/employer/messages - conversation list for this company. */
 export const useEmployerMessages = () => {
   return useQuery({
     queryKey: ['employerMessages'],
@@ -573,7 +573,7 @@ export const useEmployerMessages = () => {
   });
 };
 
-/** GET /api/employer/messages/:studentId — full thread + student profile. */
+/** GET /api/employer/messages/:studentId - full thread + student profile. */
 export const useEmployerMessageThread = (studentId?: string | null) => {
   return useQuery({
     queryKey: ['employerMessageThread', studentId ?? null],
@@ -585,7 +585,7 @@ export const useEmployerMessageThread = (studentId?: string | null) => {
   });
 };
 
-/** POST /api/employer/messages/:studentId — send (server emits `new_message`). */
+/** POST /api/employer/messages/:studentId - send (server emits `new_message`). */
 export const useSendEmployerMessage = () => {
   const queryClient = useQueryClient();
   return useMutation({
@@ -608,7 +608,7 @@ export type TalentFilters = {
   skills?: string;
 };
 
-/** One student row from GET /api/employer/talent — privacy-safe fields only. */
+/** One student row from GET /api/employer/talent - privacy-safe fields only. */
 export interface TalentStudent {
   id: string;
   username: string | null;
@@ -620,7 +620,7 @@ export interface TalentStudent {
 }
 
 /**
- * GET /api/employer/talent — students who opted in to employer discovery
+ * GET /api/employer/talent - students who opted in to employer discovery
  * (`visibleToEmployers = true`). The filter values form the query key so each
  * filter combination is cached separately.
  */

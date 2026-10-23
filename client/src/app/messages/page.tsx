@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { FC, Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -28,7 +28,7 @@ import { SearchBar } from '@/components/messages/SearchBar';
 type Tab = 'all' | 'unread' | 'archived' | 'pinned';
 
 /**
- * /messages — left sidebar (list) + right chat pane.
+ * /messages â€” left sidebar (list) + right chat pane.
  * Deep-linkable via ?user=<userId>; on mobile the two panes swap
  * (hamburger/back) instead of sitting side by side.
  */
@@ -37,7 +37,7 @@ const MessagesPage: FC = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   // Selection: direct threads use ?user=<userId>, legacy application
-  // threads use ?app=<applicationId> — a pair can have BOTH, so one key
+  // threads use ?app=<applicationId> â€” a pair can have BOTH, so one key
   // cannot address them (`app:` rows have separate row ids too).
   const selectedUserId = searchParams.get('user');
   const selectedAppId = searchParams.get('app');
@@ -69,7 +69,7 @@ const MessagesPage: FC = () => {
 
   const selectedConversation: ConversationSummary | null = useMemo(() => {
     if (selectedAppId) {
-      // Legacy application thread — find the row, or synthesize for a deep link.
+      // Legacy application thread â€” find the row, or synthesize for a deep link.
       return (
         conversations.find((c) => c.applicationId === selectedAppId) ??
         ({
@@ -77,7 +77,7 @@ const MessagesPage: FC = () => {
           kind: 'application' as const,
           applicationId: selectedAppId,
           otherUserId: '',
-          otherUserName: '…',
+          otherUserName: 'â€¦',
           otherUserPhoto: null,
           otherUserRole: 'STUDENT',
           lastMessage: null,
@@ -93,13 +93,13 @@ const MessagesPage: FC = () => {
     if (!selectedUserId) return null;
     return (
       conversations.find((c) => c.kind === 'direct' && c.otherUserId === selectedUserId) ??
-      // Deep link to someone we haven't listed yet — synthesize a minimal row.
+      // Deep link to someone we haven't listed yet â€” synthesize a minimal row.
       ({
         id: selectedUserId,
         kind: 'direct' as const,
         applicationId: null,
         otherUserId: selectedUserId,
-        otherUserName: thread?.otherUser.name ?? '…',
+        otherUserName: thread?.otherUser.name ?? 'â€¦',
         otherUserPhoto: thread?.otherUser.photo ?? null,
         otherUserRole: thread?.otherUser.role ?? 'STUDENT',
         lastMessage: null,
@@ -129,8 +129,8 @@ const MessagesPage: FC = () => {
   }, [selectedUserId, selectedAppId]);
 
   // A message that arrives while this thread is already open is being read
-  // right now — mark it read so the "(1)" pill clears without a refresh. The
-  // `hasIncomingUnread` guard stops the invalidate → refetch → effect loop:
+  // right now â€” mark it read so the "(1)" pill clears without a refresh. The
+  // `hasIncomingUnread` guard stops the invalidate â†’ refetch â†’ effect loop:
   // once read-all lands, the refetched thread has no incoming unread left.
   useEffect(() => {
     if (!selectedUserId || !thread?.messages?.length) return;
@@ -144,7 +144,7 @@ const MessagesPage: FC = () => {
   const selectConversation = (conv: ConversationSummary) => {
     const params = new URLSearchParams(searchParams.toString());
     if (conv.kind === 'application' && conv.applicationId) {
-      // Legacy thread — keyed by application id.
+      // Legacy thread â€” keyed by application id.
       params.delete('user');
       params.set('app', conv.applicationId);
     } else {
@@ -180,7 +180,7 @@ const MessagesPage: FC = () => {
     if (!selectedUserId) return;
     if (
       !confirm(
-        'Block this user?\n\n· You won’t be able to message each other\n· Your chat history stays visible\n· You can unblock anytime from this chat menu'
+        'Block this user?\n\nÂ· You wonâ€™t be able to message each other\nÂ· Your chat history stays visible\nÂ· You can unblock anytime from this chat menu'
       )
     ) {
       return;
@@ -201,7 +201,7 @@ const MessagesPage: FC = () => {
 
   return (
     <div className="flex h-[calc(100vh-8rem)] min-h-[480px] overflow-hidden rounded-lg border bg-background shadow-sm">
-      {/* ── Left sidebar ─────────────────────────────────────────── */}
+      {/* â”€â”€ Left sidebar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <aside
         className={`${mobileChatOpen ? 'hidden md:flex' : 'flex'} w-full shrink-0 flex-col border-r md:w-80 lg:w-96`}
         aria-label="Conversation list"
@@ -255,20 +255,20 @@ const MessagesPage: FC = () => {
                 ? 'No archived conversations'
                 : search
                   ? 'No conversations match your search'
-                  : 'No conversations yet — start a new message'
+                  : 'No conversations yet â€” start a new message'
             }
           />
         </div>
 
         <div className="border-t px-4 py-2 text-[10px] text-muted-foreground">
-          {isConnected ? '● Connected — messages arrive instantly' : '○ Reconnecting…'}
+          {isConnected ? 'â- Connected â€” messages arrive instantly' : 'â-‹ Reconnectingâ€¦'}
         </div>
       </aside>
 
-      {/* ── Right chat pane ──────────────────────────────────────── */}
+      {/* â”€â”€ Right chat pane â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <section className={`${mobileChatOpen ? 'flex' : 'hidden md:flex'} min-w-0 flex-1 flex-col`} aria-label="Chat">
         {selectedAppId || selectedConversation?.kind === 'application' ? (
-          // Legacy application thread — the battle-tested ApplicationChat.
+          // Legacy application thread â€” the battle-tested ApplicationChat.
           <div className="flex h-full min-h-0 flex-col">
             <header className="flex items-center gap-2 border-b bg-background px-4 py-3">
               {selectedConversation && (
@@ -315,9 +315,10 @@ const MessagesPage: FC = () => {
 
 export default function MessagesPageWrapper() {
   return (
-    <Suspense fallback={<div className="flex h-64 items-center justify-center text-sm text-muted-foreground">Loading messages…</div>}>
+    <Suspense fallback={<div className="flex h-64 items-center justify-center text-sm text-muted-foreground">Loading messagesâ€¦</div>}>
       <MessagesPage />
     </Suspense>
   );
 }
+
 

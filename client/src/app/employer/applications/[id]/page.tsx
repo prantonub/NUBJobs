@@ -22,7 +22,7 @@ import { VerifiedBadge } from '@/components/ui/verified-badge';
 import { getErrorMessage } from '@/lib/utils';
 
 /**
- * /employer/applications/[id] — candidate review screen:
+ * /employer/applications/[id] - candidate review screen:
  * left = student profile, centre = application + match + timeline + notes,
  * right = status actions and the real-time message thread.
  */
@@ -123,15 +123,15 @@ const EmployerApplicationDetailPage: FC = () => {
           <dl className="mt-4 space-y-2 text-sm">
             <div className="flex justify-between">
               <dt className="text-muted-foreground">CGPA</dt>
-              <dd className="font-medium">{student.cgpa ?? '—'}</dd>
+              <dd className="font-medium">{student.cgpa ?? '-'}</dd>
             </div>
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Department</dt>
-              <dd className="font-medium">{student.department ?? '—'}</dd>
+              <dd className="font-medium">{student.department ?? '-'}</dd>
             </div>
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Location</dt>
-              <dd className="font-medium">{student.location ?? '—'}</dd>
+              <dd className="font-medium">{student.location ?? '-'}</dd>
             </div>
           </dl>
 
@@ -220,7 +220,7 @@ const EmployerApplicationDetailPage: FC = () => {
             <h2 className="mb-3 font-semibold">Update Status</h2>
             {transitions.length === 0 ? (
               <p className="text-sm text-muted-foreground">
-                This application is {String(application.status).toLowerCase()} — no further transitions.
+                This application is {String(application.status).toLowerCase()} no further transitions.
               </p>
             ) : (
               <div className="space-y-3">

@@ -62,7 +62,7 @@ interface NotificationItem {
   createdAt: string;
 }
 
-/** Compact relative timestamp — avoids pulling in a date library. */
+/** Compact relative timestamp - avoids pulling in a date library. */
 function timeAgo(value: string): string {
   const timestamp = new Date(value).getTime();
   if (Number.isNaN(timestamp)) return "";
@@ -210,13 +210,13 @@ export function Navbar({ className }: NavbarProps) {
   const pathname = usePathname() ?? "/";
   const { user, isAuthenticated, isLoading, logout } = useAuth();
   // `avatar` is returned by GET /api/auth/me (Cloudinary profile photo), so
-  // uploading a new photo — or saving a new name — shows up here as soon as the
+  // uploading a new photo - or saving a new name - shows up here as soon as the
   // `currentUser` query is refreshed.
   const avatarUrl: string | null = user?.avatar ?? user?.photoUrl ?? null;
   const [mobileOpen, setMobileOpen] = React.useState(false);
   // Auth state lives in localStorage, which the server cannot read, so the
   // server rendered the signed-out buttons while the first client render
-  // produced the skeleton — that mismatch is what raised
+  // produced the skeleton - that mismatch is what raised
   // "Hydration failed ... at Skeleton (Navbar.tsx)". Rendering the skeleton on
   // both sides until this effect runs makes the first client render identical
   // to the server HTML.

@@ -7,7 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useNotifications, useReadAllNotifications, useReadNotification, useSocialSocket } from '@/hooks/useSocial';
 import { useState } from 'react';
 
-/** /community/notifications — notification center. */
+/** /community/notifications - notification center. */
 export default function NotificationsPage() {
   useSocialSocket();
   const [page, setPage] = useState(1);

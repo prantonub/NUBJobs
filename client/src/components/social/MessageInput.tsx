@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useRef, useState } from 'react';
 import { ImageIcon, SendIcon, SmileIcon, XIcon } from 'lucide-react';
@@ -18,9 +18,9 @@ import {
 import { useSearchUsers, useUploadMessagePhoto } from '@/hooks/useSocialMessages';
 
 const EMOJI_SET = [
-  '😀', '😁', '😂', '🤣', '😊', '😍', '😘', '😎', '🤔', '😅',
-  '😭', '😡', '😱', '👍', '👎', '👏', '🙏', '❤️', '💯', '🎉',
-  '🔥', '✨', '👋', '🙌', '💪', '🤝', '👀', '💡', '📌', '✅',
+  'ðŸ˜€', 'ðŸ˜', 'ðŸ˜‚', 'ðŸ¤£', 'ðŸ˜Š', 'ðŸ˜', 'ðŸ˜˜', 'ðŸ˜Ž', 'ðŸ¤”', 'ðŸ˜…',
+  'ðŸ˜­', 'ðŸ˜¡', 'ðŸ˜±', 'ðŸ‘', 'ðŸ‘Ž', 'ðŸ‘', 'ðŸ™', 'â¤ï¸', 'ðŸ’¯', 'ðŸŽ‰',
+  'ðŸ”¥', 'âœ¨', 'ðŸ‘‹', 'ðŸ™Œ', 'ðŸ’ª', 'ðŸ¤', 'ðŸ‘€', 'ðŸ’¡', 'ðŸ“Œ', 'âœ…',
 ];
 
 interface MessageInputProps {
@@ -34,7 +34,7 @@ interface MessageInputProps {
 }
 
 /**
- * Message composer (spec §MessageInput): auto-expand textarea, 0/500 counter,
+ * Message composer (spec Â§MessageInput): auto-expand textarea, 0/500 counter,
  * emoji picker, photo attach + preview, @mention autocomplete, link chip,
  * Enter to send / Shift+Enter for newline.
  */
@@ -118,7 +118,7 @@ export function MessageInput({
       const res = await upload.mutateAsync(file);
       setPhotoUrl(res?.photoUrl ?? null);
     } catch (err: any) {
-      toast.error(err?.response?.data?.message ?? 'Photo upload failed — retry');
+      toast.error(err?.response?.data?.message ?? 'Photo upload failed â€” retry');
     } finally {
       setPhotoBusy(false);
     }
@@ -219,7 +219,7 @@ export function MessageInput({
       {urlPreview && (
         <div className="mb-1.5 flex items-center gap-2 rounded-lg border border-border bg-muted/60 px-3 py-1.5 text-xs text-muted-foreground">
           <span className="truncate">
-            🔗 {(() => {
+            ðŸ”- {(() => {
               try {
                 return new URL(urlPreview).hostname;
               } catch {
@@ -284,7 +284,7 @@ export function MessageInput({
             value={draft}
             onChange={onChange}
             onKeyDown={onKeyDown}
-            placeholder="Type a message… (Enter to send)"
+            placeholder="Type a messageâ€¦ (Enter to send)"
             aria-label="Message content"
             rows={1}
             className="max-h-40 resize-none pr-14"
@@ -328,7 +328,8 @@ export function MessageInput({
           <SendIcon className="size-4" />
         </Button>
       </form>
-      {photoBusy && <p className="mt-1 text-xs text-muted-foreground">Uploading photo…</p>}
+      {photoBusy && <p className="mt-1 text-xs text-muted-foreground">Uploading photoâ€¦</p>}
     </div>
   );
 }
+

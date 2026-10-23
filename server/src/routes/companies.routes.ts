@@ -3,7 +3,7 @@ import { listPublicCompanies, getPublicCompany } from '../controllers/company-pr
 
 const router = Router();
 
-// Public — no authentication required
+// Public - no authentication required
 router.get('/', listPublicCompanies);
 router.get('/:id', getPublicCompany);
 

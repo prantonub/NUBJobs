@@ -6,7 +6,7 @@ import { getUserDetail } from './admin-spec.user-detail.controller';
 
 export { getUserDetail };
 
-/** PATCH /api/admin/users/:id/status — ban/suspend with reason, email + audit. (spec #4) */
+/** PATCH /api/admin/users/:id/status - ban/suspend with reason, email + audit. (spec #4) */
 export async function updateUserStatus(req: AdminRequest, res: Response, next: NextFunction) {
   try {
     const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;

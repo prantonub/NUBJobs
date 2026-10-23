@@ -20,7 +20,7 @@ import {
 
 interface DeleteAccountSectionProps {
   /**
-   * Optional pin — e.g. the company settings tab only shows this to employers.
+   * Optional pin - e.g. the company settings tab only shows this to employers.
    * Without it the card renders for every deletable role (student *and*
    * employer); admins are excluded either way, so Google sign-ins of any
    * student/employer role always see it on /settings.
@@ -36,7 +36,7 @@ const CONFIRM_WORD = 'DELETE';
  * Confirmation depends on how the account signs in: local accounts must retype
  * their password, Google accounts (which have no usable password) are instead
  * asked to type `DELETE`. The server repeats both checks, so this part is UX
- * only — nothing here is trusted.
+ * only - nothing here is trusted.
  */
 export const DeleteAccountSection: FC<DeleteAccountSectionProps> = ({ requiredRole }) => {
   const { user } = useAuth();
@@ -95,7 +95,7 @@ export const DeleteAccountSection: FC<DeleteAccountSectionProps> = ({ requiredRo
       handleOpenChange(false);
       toast.success('Your account has been deleted.');
       // Full navigation (not a client-side route change): nothing from the
-      // deleted session — tokens, cached queries, socket — should survive.
+      // deleted session - tokens, cached queries, socket - should survive.
       window.setTimeout(() => window.location.assign('/'), 1200);
     } catch (deleteError) {
       setError(getErrorMessage(deleteError, 'Failed to delete your account.'));

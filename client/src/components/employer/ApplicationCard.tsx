@@ -68,7 +68,7 @@ export const ApplicationCard: FC<ApplicationCardProps> = ({
                 {application.student?.user?.name ?? 'Candidate'}
               </p>
               <p className="truncate text-xs text-muted-foreground">
-                {application.job?.title ?? '—'}
+                {application.job?.title ?? '-'}
               </p>
             </div>
             {application.student?.photoUrl ? (
@@ -88,7 +88,7 @@ export const ApplicationCard: FC<ApplicationCardProps> = ({
           <div className="mt-2 flex items-center gap-2 text-xs">
             <span className="font-semibold">{application.matchScore}%</span>
             <span className="text-muted-foreground">
-              CGPA {application.student?.cgpa ?? '—'}
+              CGPA {application.student?.cgpa ?? '-'}
             </span>
           </div>
 

@@ -113,7 +113,7 @@ function toDataUrl(filePath: string): string {
 
   if (!mime) {
     throw new Error(
-      `Unsupported image extension "${extname(filePath)}" — use png, jpg, jpeg, svg, webp or gif.`
+      `Unsupported image extension "${extname(filePath)}" - use png, jpg, jpeg, svg, webp or gif.`
     );
   }
 
@@ -146,13 +146,13 @@ async function main() {
     throw new Error(
       args.email
         ? `No employer profile found for ${args.email}.`
-        : 'No employer profile found — register an employer account first.'
+        : 'No employer profile found - register an employer account first.'
     );
   }
 
   if (employers.length > 1) {
     throw new Error(
-      `Found ${employers.length} employer profiles — target one with --email <employer@gmail.com>.`
+      `Found ${employers.length} employer profiles - target one with --email <employer@gmail.com>.`
     );
   }
 
@@ -171,7 +171,7 @@ async function main() {
   );
 
   if (args.dryRun) {
-    console.log('\nAfter (dry run — nothing written):');
+    console.log('\nAfter (dry run - nothing written):');
     console.log(
       JSON.stringify({ companyName, logo: logoUrl ? 'set' : null, jobsAffected: jobs })
     );

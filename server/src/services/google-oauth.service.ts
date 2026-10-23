@@ -3,7 +3,7 @@ import { hashPassword } from '../utils/password.utils';
 import prisma from '../lib/prisma';
 
 /**
- * Google OAuth 2.0 ("Continue with Google") — authorization-code flow.
+ * Google OAuth 2.0 ("Continue with Google") - authorization-code flow.
  *
  * No SDK is required: the token exchange and the profile lookup are two plain
  * HTTPS calls, which Node's built-in `fetch` handles.
@@ -94,7 +94,7 @@ export interface StatePayload {
   role: 'STUDENT' | 'EMPLOYER';
   intent: 'login' | 'signup';
   nonce: string;
-  /** Optional signup extras — only used when a brand-new account is created. */
+  /** Optional signup extras - only used when a brand-new account is created. */
   extras: { nubId?: string; department?: string; companyName?: string };
 }
 
@@ -216,8 +216,8 @@ export interface GoogleSignInResult {
  * Find or create the local account for a Google profile.
  *
  * Matching order:
- *   1. `googleId` — the same Google account returning.
- *   2. `email`    — an existing email/password account is linked to Google, so
+ *   1. `googleId` - the same Google account returning.
+ *   2. `email`    - an existing email/password account is linked to Google, so
  *      a user who registered with OTP does not end up with two accounts.
  *
  * New accounts are created already verified (Google vouches for the email) and
@@ -323,7 +323,7 @@ export async function upsertGoogleUser(
     });
     return { user: created, isNewUser: true };
   } catch (error) {
-    // A duplicate NUB ID (unique in StudentProfile) must not block sign-in —
+    // A duplicate NUB ID (unique in StudentProfile) must not block sign-in -
     // create the account and let the student set/confirm the ID in their
     // profile instead (the register flow's NUB ID is equally unverified).
     const isNubIdConflict =

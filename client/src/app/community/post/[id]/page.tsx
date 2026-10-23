@@ -11,7 +11,7 @@ import { useEditPost, usePost, useSocialSocket } from '@/hooks/useSocial';
 import { use, useState } from 'react';
 import { toast } from 'sonner';
 
-/** /community/post/:id — full post, inline edit (30-min window), threaded comments. */
+/** /community/post/:id - full post, inline edit (30-min window), threaded comments. */
 export default function PostDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   useSocialSocket();

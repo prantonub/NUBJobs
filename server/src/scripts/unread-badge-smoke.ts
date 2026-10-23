@@ -5,7 +5,7 @@ import 'dotenv/config';
  * (direct Conversation + legacy application thread), against the running API:
  *
  *   1. Student sees direct (2) + legacy (1) = 3 from GET /unread-count.
- *   2. The sender (employer) sees 0 — unread is always recipient-side.
+ *   2. The sender (employer) sees 0 - unread is always recipient-side.
  *   3. GET /conversations rows report the same per-thread counts.
  *   4. Opening the direct thread (read-all) drops the badge to 1 (legacy left).
  *   5. Opening the legacy thread (GET /conversation/:applicationId) clears it.

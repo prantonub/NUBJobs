@@ -16,7 +16,7 @@ export interface AuthRequest extends Request {
   role?: string;
 }
 
-/** Mirrors the Prisma `JobStatus` enum — anything else must not reach Prisma. */
+/** Mirrors the Prisma `JobStatus` enum - anything else must not reach Prisma. */
 const JOB_STATUSES = ['DRAFT', 'PENDING', 'ACTIVE', 'CLOSED'];
 
 function readJobStatus(value: unknown): string | null {
@@ -466,7 +466,7 @@ export async function getApplicationDetail(req: AuthRequest, res: Response, next
  *
  * NOTE: the implementation lives in `applications-enhanced.controller.ts`
  * (`updateApplicationStatus`) so the employer route and
- * `PATCH /api/applications/:id/status` share ONE code path — pipeline rules,
+ * `PATCH /api/applications/:id/status` share ONE code path - pipeline rules,
  * student email, notification and the Socket.io event. The route imports it
  * directly; the controller was removed from this file on purpose.
  */
@@ -658,7 +658,7 @@ export async function getEmployerDashboard(req: AuthRequest, res: Response, next
         avgTimeToHire: avgDays !== null ? `${avgDays} days` : 'N/A',
         acceptanceRate,
       },
-      // Extras for the dashboard page (chart + header) — a superset of the
+      // Extras for the dashboard page (chart + header) - a superset of the
       // spec payload, so /dashboard/stats consumers keep working too.
       statusCounts,
       companyName: employer.companyName,
@@ -760,7 +760,7 @@ export async function getEmployerMessages(req: AuthRequest, res: Response, next:
 
     const unreadByApplication = new Map<string, number>();
     for (const row of unreadGroups) {
-      // applicationId is nullable now (direct-messaging messages have none) —
+      // applicationId is nullable now (direct-messaging messages have none) -
       // those unread counts belong to /messages, not this employer thread list.
       if (!row.applicationId) continue;
       unreadByApplication.set(row.applicationId, row._count._all);
@@ -813,7 +813,7 @@ export async function getEmployerMessages(req: AuthRequest, res: Response, next:
       });
     }
 
-    // Direct-DM partners who never applied have no application row — surface
+    // Direct-DM partners who never applied have no application row - surface
     // them too (identity resolved from the users on their Conversation rows),
     // with direct-DM unread attached so the new message is visible.
     if (directConvIds.length) {
@@ -890,7 +890,7 @@ export async function getEmployerMessageThread(req: AuthRequest, res: Response, 
       : String(req.params.studentId ?? '');
     const primary = await findMyApplicationWithStudent(employer.id, rawParam);
 
-    // Student param always addresses one user — direct DMs (POST /messages/send)
+    // Student param always addresses one user - direct DMs (POST /messages/send)
     // share Conversation rows keyed by user pair, so the thread merges BOTH
     // shapes: application messages + direct-conversation messages.
     const studentUserId =
@@ -932,7 +932,7 @@ export async function getEmployerMessageThread(req: AuthRequest, res: Response, 
         })
       : [];
 
-    // Opening the thread marks messages as read — application ones via their
+    // Opening the thread marks messages as read - application ones via their
     // application ids, direct-DM ones via their shared Conversation row.
     const readWhere: any[] = [];
     if (applicationIds.length) {
@@ -1016,7 +1016,7 @@ export async function sendEmployerMessage(req: AuthRequest, res: Response, next:
     });
 
     // Mirror into the shared direct-messaging Conversation so BOTH inboxes
-    // (/messages + /employer/messages) and both thread readers see it —
+    // (/messages + /employer/messages) and both thread readers see it -
     // direct sends already land here, so legacy-shaped sends must too.
     const [user1Id, user2Id] =
       application.student.user.id < userId

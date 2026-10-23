@@ -72,7 +72,7 @@ function buildParams({ status, jobId, sort = 'newest', page = 1, limit = 20 }: A
 }
 
 /**
- * GET /api/applications — the signed-in student's applications.
+ * GET /api/applications - the signed-in student's applications.
  * Returns rows + per-status stats + pagination metadata.
  */
 export const useApplications = (filters: ApplicationFilters = {}) => {
@@ -88,7 +88,7 @@ export const useApplications = (filters: ApplicationFilters = {}) => {
   });
 };
 
-/** GET /api/applications/stats — counts for the dashboard cards. */
+/** GET /api/applications/stats - counts for the dashboard cards. */
 export const useApplicationStats = () => {
   return useQuery({
     queryKey: ['applicationStats'],
@@ -101,7 +101,7 @@ export const useApplicationStats = () => {
 };
 
 /**
- * GET /api/applications/:id — full detail (job, company, cover letter,
+ * GET /api/applications/:id - full detail (job, company, cover letter,
  * match breakdown, status timeline, messages).
  */
 export const useApplicationDetail = (applicationId?: string | null) => {
@@ -116,7 +116,7 @@ export const useApplicationDetail = (applicationId?: string | null) => {
   });
 };
 
-/** POST /api/applications — apply for a job. */
+/** POST /api/applications - apply for a job. */
 export const useApplyJob = () => {
   const queryClient = useQueryClient();
   return useMutation({
@@ -133,7 +133,7 @@ export const useApplyJob = () => {
   });
 };
 
-/** POST /api/applications/:id/withdraw — student withdraws. */
+/** POST /api/applications/:id/withdraw - student withdraws. */
 export const useWithdrawApplication = () => {
   const queryClient = useQueryClient();
   return useMutation({

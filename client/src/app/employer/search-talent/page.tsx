@@ -119,7 +119,7 @@ function TalentCardSkeleton() {
 }
 
 /**
- * /employer/search-talent — employer-only directory of students who opted in
+ * /employer/search-talent - employer-only directory of students who opted in
  * to discovery. The parent /employer layout also guards the route; the checks
  * here keep the page safe on their own. The API never returns email, phone,
  * CV or date of birth, and only profiles with `visibleToEmployers = true`.

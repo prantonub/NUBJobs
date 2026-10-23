@@ -31,7 +31,7 @@ const adminNav = [
 ];
 
 /**
- * /admin/* shell — spec rule: ONLY ADMIN accounts may enter these routes.
+ * /admin/* shell - spec rule: ONLY ADMIN accounts may enter these routes.
  * Every /api/admin/* call underneath is additionally gated by
  * authenticate + requireRole('ADMIN') + tier permissions server-side.
  */

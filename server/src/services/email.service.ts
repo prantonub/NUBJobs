@@ -222,7 +222,7 @@ export async function sendApplicationStatusEmail(
 }
 
 /**
- * Send password reset email — OTP variant used by the forgot-password flow.
+ * Send password reset email - OTP variant used by the forgot-password flow.
  */
 export async function sendPasswordResetEmail(
   email: string,
@@ -427,7 +427,7 @@ export async function sendVerificationDecisionEmail(
               <p>Hello ${companyName},</p>
               ${
                 approved
-                  ? `<p>Good news — your company is now <strong>verified</strong> on ${COMPANY_NAME}. Your badge is visible on your profile and job posts.</p>`
+                  ? `<p>Good news - your company is now <strong>verified</strong> on ${COMPANY_NAME}. Your badge is visible on your profile and job posts.</p>`
                   : `<p>Thanks for submitting your documents. We could not approve verification at this time.</p>
                      <div class="info"><strong>Reason:</strong> ${note ?? 'Documents did not meet our verification requirements.'}</div>
                      <p>You may update your documents and resubmit from your company page.</p>`
@@ -459,7 +459,7 @@ export async function sendVerificationDecisionEmail(
 }
 
 /**
- * POST /api/applications — confirmation to the student.
+ * POST /api/applications - confirmation to the student.
  */
 export async function sendApplicationReceivedEmail(
   email: string,
@@ -499,7 +499,7 @@ export async function sendApplicationReceivedEmail(
 }
 
 /**
- * POST /api/applications — heads-up to the employer.
+ * POST /api/applications - heads-up to the employer.
  */
 export async function sendNewApplicationEmail(
   email: string,
@@ -538,7 +538,7 @@ export async function sendNewApplicationEmail(
 }
 
 /**
- * POST /api/employer/company/verify — alert the admins.
+ * POST /api/employer/company/verify - alert the admins.
  */
 export async function sendVerificationRequestEmail(
   email: string,
@@ -574,7 +574,7 @@ export async function sendVerificationRequestEmail(
 }
 
 /**
- * POST /api/jobs — alert every admin that a posting is waiting for approval.
+ * POST /api/jobs - alert every admin that a posting is waiting for approval.
  */
 export async function sendJobPendingApprovalEmail(
   email: string,

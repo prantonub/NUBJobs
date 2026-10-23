@@ -17,7 +17,7 @@ import {
 } from '@/hooks/useAdmin';
 import { getErrorMessage } from '@/lib/utils';
 
-const fmt = (v?: string | null) => (v ? new Date(v).toLocaleString() : '—');
+const fmt = (v?: string | null) => (v ? new Date(v).toLocaleString() : '-');
 
 export default function AdminUserDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -59,7 +59,7 @@ export default function AdminUserDetailPage() {
 
   return (
     <div className="grid gap-6 xl:grid-cols-3">
-      {/* Left — profile card */}
+      {/* Left - profile card */}
       <Card>
         <CardHeader><CardTitle>Profile</CardTitle></CardHeader>
         <CardContent className="space-y-3 text-sm">
@@ -77,20 +77,20 @@ export default function AdminUserDetailPage() {
         </CardContent>
       </Card>
 
-      {/* Center — role details + activity */}
+      {/* Center - role details + activity */}
       <Card>
         <CardHeader><CardTitle>{isStudent ? 'Student details' : isEmployer ? 'Company details' : 'Details'}</CardTitle></CardHeader>
         <CardContent className="space-y-4 text-sm">
           {isStudent && (
             <dl className="grid grid-cols-2 gap-2">
-              <div><dt className="text-muted-foreground">CGPA</dt><dd className="font-medium">{profile.cgpa ?? '—'}</dd></div>
-              <div><dt className="text-muted-foreground">Department</dt><dd className="font-medium">{profile.department ?? '—'}</dd></div>
+              <div><dt className="text-muted-foreground">CGPA</dt><dd className="font-medium">{profile.cgpa ?? '-'}</dd></div>
+              <div><dt className="text-muted-foreground">Department</dt><dd className="font-medium">{profile.department ?? '-'}</dd></div>
               <div className="col-span-2">
                 <dt className="text-muted-foreground">Skills</dt>
                 <dd className="flex flex-wrap gap-1 pt-1">
                   {(profile.skills ?? []).length
                     ? profile.skills.map((s: string) => <Badge key={s} variant="secondary">{s}</Badge>)
-                    : '—'}
+                    : '-'}
                 </dd>
               </div>
               <div><dt className="text-muted-foreground">Applications</dt><dd className="font-medium">{profile._count?.applications ?? 0}</dd></div>
@@ -99,10 +99,10 @@ export default function AdminUserDetailPage() {
           )}
           {isEmployer && (
             <dl className="grid grid-cols-2 gap-2">
-              <div><dt className="text-muted-foreground">Company</dt><dd className="font-medium">{profile.companyName ?? '—'}</dd></div>
+              <div><dt className="text-muted-foreground">Company</dt><dd className="font-medium">{profile.companyName ?? '-'}</dd></div>
               <div><dt className="text-muted-foreground">Verified</dt><dd className="font-medium">{profile.isVerified ? 'Yes' : 'No'}</dd></div>
               <div><dt className="text-muted-foreground">Jobs posted</dt><dd className="font-medium">{profile._count?.jobs ?? 0}</dd></div>
-              <div><dt className="text-muted-foreground">Location</dt><dd className="font-medium">{profile.location ?? '—'}</dd></div>
+              <div><dt className="text-muted-foreground">Location</dt><dd className="font-medium">{profile.location ?? '-'}</dd></div>
             </dl>
           )}
           {!isStudent && !isEmployer && <p className="text-muted-foreground">Administrator account.</p>}
@@ -152,7 +152,7 @@ export default function AdminUserDetailPage() {
         </CardContent>
       </Card>
 
-      {/* Right — admin actions */}
+      {/* Right - admin actions */}
       <div className="space-y-6">
         <Card>
           <CardHeader><CardTitle>Change status</CardTitle></CardHeader>

@@ -24,7 +24,7 @@ const isTabId = (value: string | null): value is TabId =>
   Boolean(value) && TABS.some((tab) => tab.id === value);
 
 /**
- * /employer/company — the company hub: Overview, Jobs, Applications, Analytics
+ * /employer/company - the company hub: Overview, Jobs, Applications, Analytics
  * and Settings in one place (the same panels power the dedicated routes).
  * The active tab is kept in `?tab=` so links can deep-link into it.
  */

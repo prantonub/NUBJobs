@@ -82,8 +82,8 @@ export default function AdminDashboardPage() {
             <div className="border-t border-border pt-3 text-sm text-muted-foreground">
               <p>New users today: <strong className="text-foreground">{overview.newUsersToday ?? 0}</strong></p>
               <p>New jobs today: <strong className="text-foreground">{overview.newJobsToday ?? 0}</strong></p>
-              <p>Avg time to hire: <strong className="text-foreground">{stats.avgTimeToHire ?? '—'}</strong></p>
-              <p>Acceptance rate: <strong className="text-foreground">{stats.acceptanceRate ?? '—'}</strong></p>
+              <p>Avg time to hire: <strong className="text-foreground">{stats.avgTimeToHire ?? '-'}</strong></p>
+              <p>Acceptance rate: <strong className="text-foreground">{stats.acceptanceRate ?? '-'}</strong></p>
             </div>
           </CardContent>
         </Card>

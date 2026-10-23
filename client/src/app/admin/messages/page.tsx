@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useAdminMessagesOverview, useAdminUsers, useSendAdminMessage } from '@/hooks/useAdmin';
 import { getErrorMessage } from '@/lib/utils';
 
-const fmt = (v?: string | null) => (v ? new Date(v).toLocaleString() : '—');
+const fmt = (v?: string | null) => (v ? new Date(v).toLocaleString() : '-');
 
 export default function AdminMessagesPage() {
   const [search, setSearch] = useState('');
@@ -49,7 +49,7 @@ export default function AdminMessagesPage() {
 
   return (
     <div className="grid gap-6 xl:grid-cols-3">
-      {/* Left — recent platform messages (monitoring) */}
+      {/* Left - recent platform messages (monitoring) */}
       <Card className="xl:col-span-2">
         <CardHeader>
           <CardTitle>Messages &amp; Communications</CardTitle>
@@ -93,7 +93,7 @@ export default function AdminMessagesPage() {
         </CardContent>
       </Card>
 
-      {/* Right — compose to a user */}
+      {/* Right - compose to a user */}
       <Card className="xl:sticky xl:top-4 xl:self-start">
         <CardHeader><CardTitle>Send a message</CardTitle></CardHeader>
         <CardContent className="space-y-3 text-sm">

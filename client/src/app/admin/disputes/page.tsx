@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useAdminDisputes } from '@/hooks/useAdmin';
 
-const fmt = (v?: string | null) => (v ? new Date(v).toLocaleDateString() : '—');
+const fmt = (v?: string | null) => (v ? new Date(v).toLocaleDateString() : '-');
 const VARIANT: Record<string, 'secondary' | 'outline' | 'destructive'> = {
   OPEN: 'destructive', RESOLVED: 'outline', CLOSED: 'secondary',
 };
@@ -89,8 +89,8 @@ export default function AdminDisputesPage() {
               ) : disputes.map((d: any) => (
                 <tr key={d.id} className="border-b">
                   <td className="p-3 font-medium">{d.type}</td>
-                  <td className="p-3">{d.student ?? '—'}</td>
-                  <td className="p-3">{d.employer ?? '—'}</td>
+                  <td className="p-3">{d.student ?? '-'}</td>
+                  <td className="p-3">{d.employer ?? '-'}</td>
                   <td className="p-3"><Badge variant={VARIANT[d.status] ?? 'secondary'}>{d.status}</Badge></td>
                   <td className="p-3 text-muted-foreground">{fmt(d.createdAt)}</td>
                   <td className="p-3">

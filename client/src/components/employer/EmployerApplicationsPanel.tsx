@@ -173,7 +173,7 @@ export const EmployerApplicationsPanel: FC<EmployerApplicationsPanelProps> = ({
                     <td className="px-4 py-3 text-muted-foreground">
                       {application.lastMessage
                         ? new Date(application.lastMessage.createdAt).toLocaleDateString()
-                        : '—'}
+                        : '-'}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1">
@@ -217,7 +217,7 @@ export const EmployerApplicationsPanel: FC<EmployerApplicationsPanelProps> = ({
                 <span className="text-xs font-medium">{application.matchScore}%</span>
               </div>
               <p className="mt-2 text-xs text-muted-foreground">
-                CGPA {application.student?.cgpa ?? '—'} ·{' '}
+                CGPA {application.student?.cgpa ?? '-'} ·{' '}
                 {(application.student?.skills ?? []).slice(0, 3).join(', ') || 'No skills listed'}
               </p>
               <div className="mt-3 flex gap-2">

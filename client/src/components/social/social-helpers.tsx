@@ -17,7 +17,7 @@ export function timeAgo(date: string | Date): string {
 
 /** Render post/comment content with #hashtags, @mentions and links made clickable. */
 export function renderRichContent(content: string, basePath = '/social'): React.ReactNode {
-  // Inline anchors may sit inside a click-to-open post wrapper (PostCard div) —
+  // Inline anchors may sit inside a click-to-open post wrapper (PostCard div) -
   // stopping propagation keeps THEIR navigation (not the wrapper's post route).
   // Inert where no click wrapper exists (comments, legacy pages).
   const stop = (e: React.MouseEvent) => e.stopPropagation();

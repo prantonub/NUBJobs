@@ -108,7 +108,7 @@ function SidebarNav({
           >
             {item.icon}
             <span className="flex-1">{item.label}</span>
-            {/* Any "Messages" row gets the pill — the single unified
+            {/* Any "Messages" row gets the pill - the single unified
                 inbox at `/messages` (students and employers alike). */}
             {item.href.endsWith("/messages") && <MessagesNavBadge />}
           </Link>

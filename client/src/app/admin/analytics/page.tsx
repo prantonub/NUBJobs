@@ -65,7 +65,7 @@ export default function AdminAnalyticsPage() {
         </div>
       </div>
 
-      {/* Section 1 — users */}
+      {/* Section 1 - users */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <StatCard icon={<UsersIcon />} value={users.total ?? 0} label="Total users" color="blue" />
         <StatCard icon={<UsersIcon />} value={users.students ?? 0} label="Students" color="green" />
@@ -74,7 +74,7 @@ export default function AdminAnalyticsPage() {
         <StatCard icon={<UsersIcon />} value={users.monthlyActive ?? 0} label="Active users" color="blue" />
       </div>
 
-      {/* Section 2 — jobs & applications */}
+      {/* Section 2 - jobs & applications */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <StatCard icon={<BriefcaseBusinessIcon />} value={jobs.total ?? 0} label="Total jobs" color="blue" />
         <StatCard icon={<BriefcaseBusinessIcon />} value={jobs.active ?? 0} label="Active jobs" color="green" />

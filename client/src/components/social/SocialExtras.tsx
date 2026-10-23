@@ -75,7 +75,7 @@ export function TrendingCard({ limit = 5 }: { limit?: number }) {
       <h2 className="mb-2 text-sm font-semibold">Trending hashtags</h2>
       {trending.isLoading && <Skeleton className="h-16 w-full" />}
       {!trending.isLoading && items.length === 0 && (
-        <p className="text-xs text-muted-foreground">No hashtags yet — be the first to post one.</p>
+        <p className="text-xs text-muted-foreground">No hashtags yet - be the first to post one.</p>
       )}
       {items.map((t) => (
         <TrendingRow key={t.name} name={t.name} postCount={t.postCount} />

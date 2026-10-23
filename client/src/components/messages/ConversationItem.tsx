@@ -95,7 +95,7 @@ export const ConversationItem: FC<{
         )}
       </div>
 
-      {/* Hover actions — direct threads only; stop propagation so they don't open the thread. */}
+      {/* Hover actions - direct threads only; stop propagation so they don't open the thread. */}
       {conversation.kind === 'direct' && (
       <div className="absolute right-2 top-2 hidden gap-0.5 rounded-md border bg-background p-0.5 shadow-sm group-hover:flex">
         {onPin && (

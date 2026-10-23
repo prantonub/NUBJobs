@@ -19,7 +19,7 @@ import { ThemeProvider as NextThemesProvider } from "next-themes";
  * and leaves the tag inert. next-themes renders its script inside a Client
  * Component, so whenever React builds the tree on the client instead of
  * hydrating it (hydration recovery after a mismatch, a Fast Refresh remount,
- * …) that error fired — and the script did nothing, flashing the wrong theme.
+ * …) that error fired - and the script did nothing, flashing the wrong theme.
  *
  * This module therefore does two things:
  *   1. flushes an equivalent bootstrap into the SSR stream with
@@ -107,7 +107,7 @@ export function ThemeProvider({
   });
 
   // `useServerInsertedHTML` collects a callback for every render the provider
-  // performs while streaming, so only the first callback may emit the script —
+  // performs while streaming, so only the first callback may emit the script -
   // otherwise the bootstrap would land in the document once per render.
   const bootstrapEmitted = React.useRef(false);
 

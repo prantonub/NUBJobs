@@ -1,4 +1,4 @@
-import { XIcon } from "lucide-react";
+﻿import { XIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type SkillProficiency = "Beginner" | "Intermediate" | "Expert";
@@ -20,7 +20,7 @@ export interface SkillTagProps
   variant?: keyof typeof VARIANTS;
   /** Shows a colored proficiency dot before the label. */
   proficiency?: SkillProficiency;
-  /** When provided, renders a removable "×" button that calls this handler. */
+  /** When provided, renders a removable "Ã-" button that calls this handler. */
   onRemove?: () => void;
 }
 
@@ -65,3 +65,4 @@ export function SkillTag({
     </span>
   );
 }
+

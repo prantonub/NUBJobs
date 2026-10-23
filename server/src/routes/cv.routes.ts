@@ -21,7 +21,7 @@ const CV_MIME_TYPES = [
   'application/msword',
 ];
 
-/** In-memory upload, 5 MB, PDF/DOCX only. File is parsed then dropped — never stored. */
+/** In-memory upload, 5 MB, PDF/DOCX only. File is parsed then dropped - never stored. */
 const cvUpload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: MAX_CV_BYTES, files: 1 },
@@ -50,7 +50,7 @@ function cvCheckThrottle(req: AuthRequest, res: Response, next: NextFunction) {
   return sendError(res, 429, 'Too many requests', 'CV check limit reached (10 per hour).');
 }
 
-/** POST /api/cv/match — keyword match a saved check against a job. */
+/** POST /api/cv/match - keyword match a saved check against a job. */
 async function matchCv(req: AuthRequest, res: Response, next: NextFunction) {
   try {
     const body = req.body as z.infer<typeof matchSchema>;
@@ -86,7 +86,7 @@ async function matchCv(req: AuthRequest, res: Response, next: NextFunction) {
   }
 }
 
-/** GET /api/cv/history — newest first, without the extracted text. */
+/** GET /api/cv/history - newest first, without the extracted text. */
 async function listHistory(req: AuthRequest, res: Response, next: NextFunction) {
   try {
     const rows = await prisma.cvCheck.findMany({
@@ -108,7 +108,7 @@ async function listHistory(req: AuthRequest, res: Response, next: NextFunction) 
   }
 }
 
-/** GET /api/cv/:checkId — full row for the owner. */
+/** GET /api/cv/:checkId - full row for the owner. */
 async function getCheck(req: AuthRequest, res: Response, next: NextFunction) {
   try {
     const id = String(req.params.checkId ?? '');
@@ -123,7 +123,7 @@ async function getCheck(req: AuthRequest, res: Response, next: NextFunction) {
   }
 }
 
-/** DELETE /api/cv/:checkId — owner only. */
+/** DELETE /api/cv/:checkId - owner only. */
 async function deleteCheck(req: AuthRequest, res: Response, next: NextFunction) {
   try {
     const id = String(req.params.checkId ?? '');

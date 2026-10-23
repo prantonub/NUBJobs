@@ -6,7 +6,7 @@ import { siteName, siteUrl } from "@/lib/site";
  *
  * Only fields that genuinely exist on the `Job` / `EmployerProfile` rows are
  * emitted, and only public employer fields (company name, website, public logo
- * URL) — never student or employer account data.
+ * URL) - never student or employer account data.
  */
 
 /** schema.org `employmentType` values for the Prisma `JobType` enum. */
@@ -19,7 +19,7 @@ const EMPLOYMENT_TYPE: Record<string, string> = {
 
 const TELECOMMUTE_HINTS = ["remote", "anywhere", "work from home", "wfh", "online"];
 
-/** Uploaded avatars are stored as base64 `data:` URLs — not usable as schema URLs. */
+/** Uploaded avatars are stored as base64 `data:` URLs - not usable as schema URLs. */
 function isPublicHttpUrl(value: string | null | undefined): value is string {
   return typeof value === "string" && /^https?:\/\//i.test(value);
 }
@@ -55,7 +55,7 @@ export function jobUrl(id: string): string {
 /**
  * Build a schema.org `JobPosting` for a job detail page.
  *
- * Returns `null` when required data (description, posting date) is missing —
+ * Returns `null` when required data (description, posting date) is missing -
  * an incomplete JobPosting is worse than none for Rich Results.
  */
 export function buildJobPostingJsonLd(job: PublicJob): Record<string, unknown> | null {

@@ -36,7 +36,7 @@ export interface ConversationsQuery {
   page?: number;
 }
 
-/** GET /social/messages — filter + search run server-side (spec §5). */
+/** GET /social/messages - filter + search run server-side (spec §5). */
 export const useConversations = ({ filter = 'all', search = '', page = 1 }: ConversationsQuery = {}) =>
   useQuery({
     queryKey: ['social', 'convs', filter, search, page],
@@ -74,7 +74,7 @@ export type HistoryPage = {
   conversation?: { id: string; isPinned: boolean; isMuted: boolean; isArchived: boolean } | null;
 };
 
-/** GET /social/messages/:userId — page 1 = newest; older pages load on scroll. */
+/** GET /social/messages/:userId - page 1 = newest; older pages load on scroll. */
 export const useMessages = (userId?: string | null) =>
   useInfiniteQuery<HistoryPage, Error, InfiniteData<HistoryPage>, readonly unknown[], number>({
     queryKey: ['social', 'history', userId],
@@ -117,7 +117,7 @@ export const useSendMessage = (userId?: string | null) => {
   });
 };
 
-/** PATCH /social/messages/:id/read — recipient only. */
+/** PATCH /social/messages/:id/read - recipient only. */
 export const useReadMessage = () => {
   const qc = useQueryClient();
   return useMutation({
@@ -151,7 +151,7 @@ export const useToggleReaction = () => {
   });
 };
 
-/** POST /social/messages/photo — multipart upload, returns { photoUrl }. */
+/** POST /social/messages/photo - multipart upload, returns { photoUrl }. */
 export const useUploadMessagePhoto = () =>
   useMutation({
     mutationFn: async (file: File) => {
@@ -183,7 +183,7 @@ export const useUnreadCount = () =>
   });
 
 /**
- * GET /social/search/users — used by the @mention autocomplete in MessageInput.
+ * GET /social/search/users - used by the @mention autocomplete in MessageInput.
  * Mirrors useSocial's useSearchUsers but lives on the social-messages query keys.
  */
 export const useSearchUsers = (q: string, page = 1, enabled = true, limit = 10) =>
@@ -302,7 +302,7 @@ export function useMessageRealtime() {
           ['social', 'unreadMessages'],
           ['social', 'searchMessages'],
         ]);
-        // Deletes/updates/reactions touch the OPEN thread too — refresh it live
+        // Deletes/updates/reactions touch the OPEN thread too - refresh it live
         // so a removed message disappears on both sides without a reload.
         invalidate(qc, [['social', 'history']]);
         const msg = payload?.message;

@@ -1,4 +1,4 @@
-/* Temp smoke test — part 2: profiles, DMs, notifications (needs part 1's post alive). */
+/* Temp smoke test - part 2: profiles, DMs, notifications (needs part 1's post alive). */
 const BASE = 'http://localhost:5000/api';
 let pass = 0, fail = 0;
 const ok = (cond, label, extra) => {

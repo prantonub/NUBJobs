@@ -64,8 +64,8 @@ function VerifyOtpForm() {
     if (!email) {
       toast.error(
         isRegisterFlow
-          ? "Missing email — please restart registration."
-          : "Missing email — please restart the reset process."
+          ? "Missing email please restart registration."
+          : "Missing email please restart the reset process."
       );
       return;
     }

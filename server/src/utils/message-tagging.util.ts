@@ -2,7 +2,7 @@
  * Message auto-tagging (spec §5 PROFESSIONAL/COMMUNITY FILTERING) and the
  * per-user send quota (spec §SECURITY: 10/min + 100/hour).
  *
- * Pure helpers — safe to import from both the HTTP controller and the
+ * Pure helpers - safe to import from both the HTTP controller and the
  * Socket.io server without creating import cycles.
  */
 
@@ -38,7 +38,7 @@ export function classifyMessage(
 ): MessageTag {
   const text = (content ?? '').toLowerCase();
 
-  // Hashtags are always collected (max 5) — they feed the tag filters.
+  // Hashtags are always collected (max 5) - they feed the tag filters.
   const hashtagTags = Array.from(
     new Set((content.match(/#([A-Za-z0-9_]+)/g) ?? []).map((t) => t.slice(1).toLowerCase()))
   ).slice(0, 5);

@@ -15,7 +15,7 @@ import { formatSalary } from '@/lib/utils';
 import { ArrowLeft, Check, ExternalLink, X } from 'lucide-react';
 
 /**
- * /dashboard/applications/[id] — the student's view of one application:
+ * /dashboard/applications/[id] - the student's view of one application:
  * job + company, their cover letter, match breakdown, status timeline and the
  * real-time chat with the employer.
  */
@@ -91,7 +91,7 @@ const ApplicationDetailPage: FC = () => {
             <div className="mt-4 rounded-lg border bg-muted/40 p-4">
               <p className="text-xs font-medium text-muted-foreground">Cover letter</p>
               <p className="mt-1 whitespace-pre-wrap text-sm">
-                {application.coverLetter || 'No cover letter — applied with your resume.'}
+                {application.coverLetter || 'No cover letter applied with your resume.'}
               </p>
             </div>
             {application.resumeUrl ? (
@@ -164,7 +164,7 @@ const ApplicationDetailPage: FC = () => {
               <p className="text-sm text-muted-foreground">
                 {application.status === 'HIRED'
                   ? 'Congratulations! This application was hired.'
-                  : `This application is ${String(application.status).toLowerCase()} — no further action needed.`}
+                  : `This application is ${String(application.status).toLowerCase()} no further action needed.`}
               </p>
             )}
           </Card>

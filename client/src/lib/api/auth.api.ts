@@ -7,7 +7,7 @@ export interface AppUser {
   email: string;
   name: string;
   role: UserRole;
-  /** `"local"` or `"google"` — decides how account deletion is confirmed. */
+  /** `"local"` or `"google"` - decides how account deletion is confirmed. */
   provider?: string;
   /** Profile photo (students) or company logo (employers). */
   avatar?: string | null;

@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 
 /**
- * /employer/applications — every applicant across the employer's OWN jobs.
+ * /employer/applications - every applicant across the employer's OWN jobs.
  * `?jobId=` pre-filters to one posting (used by the jobs table/detail pages).
  */
 const EmployerApplicationsPage: FC = () => {

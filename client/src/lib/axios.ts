@@ -61,7 +61,7 @@ api.interceptors.request.use((config) => {
 //
 // NOTE: the API nests every payload under `data` (`responses.ok` →
 // `{ success, statusCode, message, data }`), so the fresh token must be read
-// from `data.data.accessToken` — plain `data.accessToken` is undefined and the
+// from `data.data.accessToken` - plain `data.accessToken` is undefined and the
 // old code stored that, silently wiping the session.
 type QueueEntry = {
   resolve: (token: string) => void;
@@ -110,7 +110,7 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    // A refresh is already running — queue this request behind it.
+    // A refresh is already running - queue this request behind it.
     if (isRefreshing) {
       return new Promise<string>((resolve, reject) => {
         queue.push({ resolve, reject });

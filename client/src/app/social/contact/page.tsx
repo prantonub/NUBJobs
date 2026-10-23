@@ -1,5 +1,5 @@
 /**
- * /social/contact — Contact NUBJobs (client component).
+ * /social/contact - Contact NUBJobs (client component).
  * Renders inside the shared social layout (left + right sidebars stay visible).
  *
  * All copy lives in CONTACT / TOPICS below. Posts to `${NEXT_PUBLIC_API_URL}/contact`.
@@ -66,7 +66,7 @@ const contactSchema = z.object({
   topic: z.enum(TOPICS, { message: 'Choose a topic.' }),
   subject: z.string().trim().min(5, 'Subject needs at least 5 characters.').max(100),
   message: z.string().trim().min(20, 'Tell us a little more (at least 20 characters).').max(MAX_MESSAGE),
-  website: z.string().optional().default(''), // honeypot — must stay empty
+  website: z.string().optional().default(''), // honeypot - must stay empty
 });
 
 type ContactForm = z.infer<typeof contactSchema>;
@@ -99,7 +99,7 @@ export default function ContactPage() {
       setErrors({});
     },
     onError: (error: unknown) => {
-      // Keep the typed values — the user only has to retry.
+      // Keep the typed values - the user only has to retry.
       setServerError(getErrorMessage(error, 'Could not send your message. Please try again.'));
     },
   });
@@ -330,7 +330,7 @@ export default function ContactPage() {
                 )}
               </div>
 
-              {/* Honeypot — invisible to humans, must stay empty. */}
+              {/* Honeypot - invisible to humans, must stay empty. */}
               <div className="hidden" aria-hidden="true">
                 <Label htmlFor="contact-website">Website</Label>
                 <Input
@@ -367,13 +367,13 @@ export default function ContactPage() {
                 >
                   Read the FAQ
                 </Link>
-                <span className="text-muted-foreground"> — quick answers about jobs and accounts.</span>
+                <span className="text-muted-foreground"> - quick answers about jobs and accounts.</span>
               </li>
               <li>
                 <span className="font-medium">Report a job or user</span>
                 <span className="text-muted-foreground">
                   {' '}
-                  — use the Report button on any post or profile and our moderators take a look.
+                  - use the Report button on any post or profile and our moderators take a look.
                 </span>
               </li>
               <li>
@@ -383,7 +383,7 @@ export default function ContactPage() {
                 </span>
                 <span className="text-muted-foreground">
                   {' '}
-                  — open the chat bubble at the corner of the screen for instant help using NUBJobs.
+                  - open the chat bubble at the corner of the screen for instant help using NUBJobs.
                 </span>
               </li>
             </ul>

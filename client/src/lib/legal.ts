@@ -1,5 +1,5 @@
 /**
- * Shared legal constants — operator details used by /privacy and /terms.
+ * Shared legal constants - operator details used by /privacy and /terms.
  *
  * Edit the values here, not in the pages: both legal pages import from
  * this file so one change updates every mention.

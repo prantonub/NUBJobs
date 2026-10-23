@@ -3,7 +3,7 @@ import prisma from '../lib/prisma';
 import { responses } from '../utils/response.utils';
 import { AdminRequest, paginationMeta, parsePageLimit } from './admin-spec.helpers';
 
-/** GET /api/admin/users — role/status/search filters + pagination. (spec #2) */
+/** GET /api/admin/users - role/status/search filters + pagination. (spec #2) */
 export async function listAllUsers(req: AdminRequest, res: Response, next: NextFunction) {
   try {
     const { page, limit, skip } = parsePageLimit(req.query);

@@ -3,7 +3,7 @@
 import { PostComposer } from '@/components/social/PostComposer';
 import { SocialNav, SocialShell } from '@/components/social/SocialNav';
 
-/** /social/post/new — compose a post. */
+/** /social/post/new - compose a post. */
 export default function NewPostPage() {
   return (
     <SocialShell>

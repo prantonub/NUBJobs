@@ -3,7 +3,7 @@ import prisma from '../lib/prisma';
 import { responses } from '../utils/response.utils';
 import { AdminRequest } from './admin-spec.helpers';
 
-/** GET /api/admin/users/:id — profile + side counts + audit trail. (spec #3) */
+/** GET /api/admin/users/:id - profile + side counts + audit trail. (spec #3) */
 export async function getUserDetail(req: AdminRequest, res: Response, next: NextFunction) {
   try {
     const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;

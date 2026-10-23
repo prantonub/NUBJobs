@@ -10,7 +10,7 @@ export interface AuthRequest extends Request {
   role?: string;
 }
 
-/** Mirrors the Prisma `JobType` enum — anything else must not reach Prisma. */
+/** Mirrors the Prisma `JobType` enum - anything else must not reach Prisma. */
 const JOB_TYPES = ['FULL_TIME', 'PART_TIME', 'INTERNSHIP', 'CONTRACT', 'REMOTE', 'HYBRID'];
 type JobTypeValue = (typeof JOB_TYPES)[number];
 
@@ -215,7 +215,7 @@ export async function createJob(req: AuthRequest, res: Response, next: NextFunct
       return responses.forbidden(res, 'Employer profile not found');
     }
 
-    // The blue verified badge gates job posting — complete the company
+    // The blue verified badge gates job posting - complete the company
     // profile and get admin approval before posting (spec: no unverified
     // employer may post jobs on NUBJobs).
     if (!employer.isVerified) {
@@ -257,7 +257,7 @@ export async function createJob(req: AuthRequest, res: Response, next: NextFunct
         data: admins.map((admin) => ({
           userId: admin.id,
           type: 'JOB_ALERT' as const,
-          message: `${job.employer.companyName} posted "${job.title}" — awaiting approval`,
+          message: `${job.employer.companyName} posted "${job.title}" - awaiting approval`,
           link: '/admin/jobs',
         })),
       });

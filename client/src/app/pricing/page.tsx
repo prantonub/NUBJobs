@@ -1,5 +1,5 @@
 /**
- * /pricing — public pricing page (server component).
+ * /pricing - public pricing page (server component).
  *
  * All plan copy lives in the PRICING constant so the offer can be edited in
  * one place. No price number is rendered anywhere except inside that constant.
@@ -28,7 +28,7 @@ import { Separator } from "@/components/ui/separator";
 export const metadata: Metadata = {
   title: { absolute: "Pricing | NUBJobs" },
   description:
-    "NUBJobs is free for students and graduates. Employers post free during launch — every posting is approved by an admin.",
+    "NUBJobs is free for students and graduates. Employers post free during launch every posting is approved by an admin.",
 };
 
 const PRICING = {
@@ -36,7 +36,7 @@ const PRICING = {
     badge: "For students",
     name: "Students",
     price: "Free",
-    priceNote: "Free for every NUB student and graduate — always.",
+    priceNote: "Free for every NUB student and graduate always.",
     features: [
       "Create your profile and get discovered by employers",
       "Apply to unlimited jobs and internships",
@@ -63,7 +63,7 @@ const PRICING = {
     {
       question: "Is there a fee to apply for jobs?",
       answer:
-        "No. Applying on NUBJobs is completely free for students and graduates — you can apply to as many jobs and internships as you like.",
+        "No. Applying on NUBJobs is completely free for students and graduates you can apply to as many jobs and internships as you like.",
     },
     {
       question: "Do employers pay to post a job?",

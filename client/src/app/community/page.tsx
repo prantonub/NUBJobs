@@ -63,7 +63,7 @@ function FeedList({
   );
 }
 
-/** /community — Home feed redesign (professional networking timeline). */
+/** /community - Home feed redesign (professional networking timeline). */
 export default function CommunityHomePage() {
   useSocialSocket();
   const { user } = useAuth();

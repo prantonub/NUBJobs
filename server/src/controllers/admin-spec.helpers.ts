@@ -25,7 +25,7 @@ const readClientIp = (req: Request) =>
   req.socket?.remoteAddress ||
   null;
 
-/** Write one audit row. Never throws — logging must not break the action. */
+/** Write one audit row. Never throws - logging must not break the action. */
 export async function logAdminAction(
   req: AdminRequest,
   action: string,

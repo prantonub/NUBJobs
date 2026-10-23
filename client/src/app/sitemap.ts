@@ -7,7 +7,7 @@ import { absoluteUrl, publicRoutes } from "@/lib/site";
  * `/sitemap.xml`
  *
  * Public marketing routes plus one entry per ACTIVE job. Private/authenticated
- * sections and auth utility pages are intentionally absent — see
+ * sections and auth utility pages are intentionally absent - see
  * `privateRoutePaths` in `@/lib/site` and the matching `robots.txt` rules.
  *
  * `getActiveJobIds()` swallows API/database failures, so a production build

@@ -1,4 +1,4 @@
-/* Temp smoke test for the social network — part 1. DELETE AFTER VERIFICATION. */
+/* Temp smoke test for the social network - part 1. DELETE AFTER VERIFICATION. */
 const BASE = 'http://localhost:5000/api';
 let pass = 0, fail = 0;
 const ok = (cond, label, extra) => {

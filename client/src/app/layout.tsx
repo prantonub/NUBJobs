@@ -19,11 +19,11 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "NUBJobs — NUB Students Job & Internship Portal",
+    default: "NUBJobs NUB Students Job & Internship Portal",
     template: "%s · NUBJobs",
   },
   description:
-    "Discover jobs and internships, track applications, and connect with employers — built for Northern University Bangladesh students.",
+    "Discover jobs and internships, track applications, and connect with employers built for Northern University Bangladesh students.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

@@ -58,7 +58,7 @@ export function getInitials(name: string): string {
 }
 
 /**
- * Best-effort human-readable message from a thrown value — typically an Axios
+ * Best-effort human-readable message from a thrown value - typically an Axios
  * error whose server payload lives at `response.data.message`. Falls back to
  * the error's own message, then a generic default.
  */

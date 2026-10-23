@@ -150,7 +150,7 @@ export function UserHeader({
   );
 }
 
-/** Author row used on posts and comments — name + verified seal (verified users only). */
+/** Author row used on posts and comments - name + verified seal (verified users only). */
 export function AuthorRow({ user, compact = false }: { user: SocialUser; createdAt?: string | Date; compact?: boolean }) {
   return (
     <div className={`flex items-center gap-2.5 ${compact ? '' : 'mb-2'}`}>
@@ -171,5 +171,6 @@ export function AuthorRow({ user, compact = false }: { user: SocialUser; created
     </div>
   );
 }
+
 
 

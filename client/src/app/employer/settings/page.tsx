@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { DeleteAccountSection } from '@/components/account/DeleteAccountSection';
 
 /**
- * /employer/settings — account details, shortcuts into the company hub and
+ * /employer/settings - account details, shortcuts into the company hub and
  * the danger-zone account deletion card (employer role).
  */
 const EmployerSettingsPage: FC = () => {
@@ -29,11 +29,11 @@ const EmployerSettingsPage: FC = () => {
         <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
           <div>
             <p className="text-muted-foreground">Name</p>
-            <p className="font-medium">{user?.name ?? '—'}</p>
+            <p className="font-medium">{user?.name ?? '-'}</p>
           </div>
           <div>
             <p className="text-muted-foreground">Email</p>
-            <p className="font-medium">{user?.email ?? '—'}</p>
+            <p className="font-medium">{user?.email ?? '-'}</p>
           </div>
         </div>
       </Card>
@@ -62,7 +62,7 @@ const EmployerSettingsPage: FC = () => {
         </Button>
       </Card>
 
-      {/* Danger zone — permanently delete the employer account. */}
+      {/* Danger zone - permanently delete the employer account. */}
       <DeleteAccountSection requiredRole="EMPLOYER" />
     </div>
   );

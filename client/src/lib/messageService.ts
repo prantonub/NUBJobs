@@ -1,6 +1,6 @@
 /**
  * Client-side message utilities (spec §lib/messageService).
- * Tagging mirror, formatting, grouping, parsing and validation — pure
+ * Tagging mirror, formatting, grouping, parsing and validation - pure
  * functions only, so they are safe to unit-test and reuse everywhere.
  */
 
@@ -14,7 +14,7 @@ export const PROFESSIONAL_KEYWORDS = [
 ];
 export const COMMUNITY_KEYWORDS = ['#community', '#nub', '#campus', '#club', '#event', '#project'];
 
-/** Mirror of the server heuristic — used for instant feedback while typing. */
+/** Mirror of the server heuristic - used for instant feedback while typing. */
 export function classifyMessage(content: string): 'DIRECT' | 'PROFESSIONAL' | 'COMMUNITY' {
   const text = content.toLowerCase();
   if (PROFESSIONAL_KEYWORDS.some((k) => text.includes(k))) return 'PROFESSIONAL';
@@ -143,7 +143,7 @@ export function parseContent(content: string): ContentSegment[] {
   return segments;
 }
 
-/** First URL found in the draft — drives the paste-preview chip. */
+/** First URL found in the draft - drives the paste-preview chip. */
 export function extractUrl(content: string): string | null {
   return content.match(/https?:\/\/[^\s]+/)?.[0] ?? null;
 }

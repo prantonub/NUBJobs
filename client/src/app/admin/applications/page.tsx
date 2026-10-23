@@ -17,7 +17,7 @@ const VARIANTS: Record<string, 'secondary' | 'outline' | 'destructive'> = {
   APPLIED: 'secondary', REVIEWED: 'outline', SHORTLISTED: 'outline',
   INTERVIEWED: 'secondary', HIRED: 'outline', REJECTED: 'destructive',
 };
-const fmt = (v?: string | null) => (v ? new Date(v).toLocaleDateString() : '—');
+const fmt = (v?: string | null) => (v ? new Date(v).toLocaleDateString() : '-');
 
 export default function AdminApplicationsPage() {
   const [status, setStatus] = useState('ALL');

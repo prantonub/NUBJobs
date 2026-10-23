@@ -66,7 +66,7 @@ export const useSocket = (): UseSocketReturn => {
   useEffect(() => {
     if (!user || !user.id) return;
 
-    // Tokens are stored under 'token' (TOKEN_KEY in lib/axios) — the old
+    // Tokens are stored under 'token' (TOKEN_KEY in lib/axios) - the old
     // 'accessToken' lookup always returned null, so the socket never connected.
     const token = localStorage.getItem('token');
     if (!token) return;

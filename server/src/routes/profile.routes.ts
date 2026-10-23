@@ -17,7 +17,7 @@ import { singleDocument, singleImage } from '../middleware/upload.middleware';
 const router = Router();
 
 // NOTE: authentication is applied per route (not with router.use) so that this
-// router can be mounted before the public profile router — unmatched requests
+// router can be mounted before the public profile router - unmatched requests
 // fall through to `/api/profile/:userId` instead of being rejected with a 401.
 router.get('/', authenticate, getProfile);
 router.get('/completion', authenticate, getProfileCompletion);

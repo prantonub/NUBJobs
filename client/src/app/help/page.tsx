@@ -52,7 +52,7 @@ const TOPICS = [
 ] as const;
 
 /**
- * /help — searchable Help Center. Client component: the search input filters
+ * /help - searchable Help Center. Client component: the search input filters
  * the category cards locally (no API involved).
  */
 export default function HelpPage() {

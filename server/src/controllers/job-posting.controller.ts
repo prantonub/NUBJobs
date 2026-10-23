@@ -41,7 +41,7 @@ export async function createJob(req: AuthRequest, res: Response, next: NextFunct
       return responses.notFound(res, 'Employer profile not found');
     }
 
-    // Verified companies only — drafts included (spec: unverified employers
+    // Verified companies only - drafts included (spec: unverified employers
     // cannot post jobs on NUBJobs).
     if (!employer.isVerified) {
       return responses.forbidden(

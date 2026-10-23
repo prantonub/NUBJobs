@@ -118,7 +118,7 @@ export function validateJobPayload(payload: JobPayload): Record<string, string> 
 
 /**
  * Turn `requireRole`'s 403 ("This action requires one of: EMPLOYER") into
- * something the user can act on. The raw message is a role list, not advice —
+ * something the user can act on. The raw message is a role list, not advice -
  * it appears when the session's JWT claim doesn't match the area they're in
  * (stale token, signed-in as the wrong account, admin role changed mid-session).
  */
@@ -131,7 +131,7 @@ function humanizeAuthzMessage(message: string): string {
   if (roles.includes('ADMIN')) {
     return 'Your account does not have admin access. Sign in with an admin account to continue.';
   }
-  return `This action requires one of: ${roles} — sign in with an account that has that role.`;
+  return `This action requires one of: ${roles} - sign in with an account that has that role.`;
 }
 
 /**

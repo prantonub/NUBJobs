@@ -36,7 +36,7 @@ export interface DirectMessage {
   id: string;
   senderId: string;
   recipientId?: string;
-  /** Server-computed "is this the viewer's message" — authoritative for bubble side. */
+  /** Server-computed "is this the viewer's message" - authoritative for bubble side. */
   isOwn?: boolean;
   senderName: string | null;
   senderPhoto: string | null;
@@ -47,7 +47,7 @@ export interface DirectMessage {
   isDeleted: boolean;
 }
 
-/** GET /api/messages/conversations — paginated conversation list. */
+/** GET /api/messages/conversations - paginated conversation list. */
 export const useMessages = (params?: {
   page?: number;
   limit?: number;
@@ -67,7 +67,7 @@ export const useMessages = (params?: {
   });
 };
 
-/** GET /api/messages/conversation/:userId — one thread's history. */
+/** GET /api/messages/conversation/:userId - one thread's history. */
 export const useConversation = (userId?: string | null, params?: { page?: number; limit?: number; cursor?: string }) => {
   return useQuery({
     queryKey: ['directConversation', userId, params],
@@ -89,7 +89,7 @@ export const useConversation = (userId?: string | null, params?: { page?: number
 };
 
 /**
- * POST /api/messages/send. Pure REST — the server emits `new_message` to the
+ * POST /api/messages/send. Pure REST - the server emits `new_message` to the
  * recipient (and their other tabs) itself, so ALSO emitting from here would
  * write the message twice. The response updates our own cache.
  */
@@ -108,7 +108,7 @@ export const useSendMessage = (recipientId?: string | null, jobId?: string) => {
   });
 };
 
-/** PATCH /api/messages/:messageId/read — read receipt. */
+/** PATCH /api/messages/:messageId/read - read receipt. */
 export const useMarkAsRead = () => {
   const queryClient = useQueryClient();
   return useMutation({
@@ -125,7 +125,7 @@ export const useMarkAsRead = () => {
   });
 };
 
-/** PATCH /api/messages/conversation/:userId/read-all — clears unread badge. */
+/** PATCH /api/messages/conversation/:userId/read-all - clears unread badge. */
 export const useMarkAllAsRead = (userId?: string | null) => {
   const queryClient = useQueryClient();
   return useMutation({
@@ -143,7 +143,7 @@ export const useMarkAllAsRead = (userId?: string | null) => {
   });
 };
 
-/** DELETE /api/messages/:messageId — soft delete (sender only). */
+/** DELETE /api/messages/:messageId - soft delete (sender only). */
 export const useDeleteMessage = (userId?: string | null) => {
   const queryClient = useQueryClient();
   return useMutation({
@@ -182,7 +182,7 @@ export const useUnarchiveConversation = () => {
   });
 };
 
-/** PATCH /api/messages/conversation/:userId/pin — { isPinned } */
+/** PATCH /api/messages/conversation/:userId/pin - { isPinned } */
 export const usePinConversation = () => {
   const queryClient = useQueryClient();
   return useMutation({
@@ -194,7 +194,7 @@ export const usePinConversation = () => {
   });
 };
 
-/** Typing indicator — fire-and-forget socket emit with manual stop. */
+/** Typing indicator - fire-and-forget socket emit with manual stop. */
 export const useTypingIndicator = (recipientId?: string | null) => {
   return {
     start: () => {
@@ -239,7 +239,7 @@ export const useUnblockUser = () => {
   });
 };
 
-/** GET /api/messages/search — keyword/date/sender filters. */
+/** GET /api/messages/search - keyword/date/sender filters. */
 export const useSearchMessages = (params?: {
   keyword?: string;
   userId?: string;
@@ -264,7 +264,7 @@ export const useSearchMessages = (params?: {
   });
 };
 
-/** GET /api/messages/unread-count — navbar/sidebar badge. */
+/** GET /api/messages/unread-count - navbar/sidebar badge. */
 export const useGetUnreadCount = () => {
   return useQuery({
     queryKey: ['unreadMessageCount'],
@@ -279,7 +279,7 @@ export const useGetUnreadCount = () => {
   });
 };
 
-/** GET /api/messages/blocked — blocked-users list. */
+/** GET /api/messages/blocked - blocked-users list. */
 export const useBlockedUsers = () => {
   return useQuery({
     queryKey: ['blockedUsers'],
@@ -338,7 +338,7 @@ export function useUnreadBadgeRealtime() {
 }
 
 /**
- * useSocket() (spec §FRONTEND HOOKS) — mounts the direct-messaging server
+ * useSocket() (spec §FRONTEND HOOKS) - mounts the direct-messaging server
  * event listeners for the current session:
  *   new_message → invalidate thread + list + badge
  *   message_read / conversation_read → refresh receipts
@@ -353,7 +353,7 @@ export function useSocket(otherUserId?: string | null) {
   const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    // Hard refreshes never dial the socket by themselves — subscriptions made
+    // Hard refreshes never dial the socket by themselves - subscriptions made
     // before it exists would silently no-op.
     ensureMessagingSocket();
     const subs: Array<() => void> = [];

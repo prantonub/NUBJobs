@@ -87,7 +87,7 @@ export default function CommunityHubPage() {
 
   return (
     <SocialShell right={rightSidebar}>
-      {/* Main feed center — Twitter style */}
+      {/* Main feed center - Twitter style */}
       <div className="sticky top-16 z-10 -mx-4 mb-4 flex items-center justify-between gap-3 border-b border-border bg-background/80 px-4 py-3 backdrop-blur">
         <div className="min-w-0">
           <h1 className="text-xl font-bold">Community</h1>
@@ -152,7 +152,7 @@ export default function CommunityHubPage() {
       ) : postsData.length === 0 ? (
         <Card className="p-8 text-center">
           <p className="text-sm text-muted-foreground">
-            No community posts yet — start the conversation!
+            No community posts yet start the conversation!
           </p>
           <Link href="/social/post/new">
             <Button className="mt-4" size="sm">
@@ -178,3 +178,4 @@ export default function CommunityHubPage() {
     </SocialShell>
   );
 }
+

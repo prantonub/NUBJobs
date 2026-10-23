@@ -17,7 +17,7 @@ export const FAQ_ITEMS: FaqItem[] = [
     category: "Students",
     question: "Is NUBJobs free for students?",
     answer:
-      "Yes. NUBJobs is completely free for students and graduates — creating a profile, applying to jobs, messaging employers, and using the community all cost nothing.",
+      "Yes. NUBJobs is completely free for students and graduates - creating a profile, applying to jobs, messaging employers, and using the community all cost nothing.",
   },
   {
     id: "who-can-use-nubjobs",
@@ -45,14 +45,14 @@ export const FAQ_ITEMS: FaqItem[] = [
     category: "Employers",
     question: "How do I know an employer is trustworthy?",
     answer:
-      "Look for the verified badge on the company profile — verified employers have submitted documents to our admin team. Always review the job description carefully and report anything suspicious from the contact page.",
+      "Look for the verified badge on the company profile - verified employers have submitted documents to our admin team. Always review the job description carefully and report anything suspicious from the contact page.",
   },
   {
     id: "messaging-filter",
     category: "Account and safety",
     question: "What is the Professional and Community messaging filter?",
     answer:
-      "Your inbox separates Professional messages — job-related chats with employers — from Community messages, such as study groups and forum replies. The filter keeps job conversations from getting lost in social chatter.",
+      "Your inbox separates Professional messages - job-related chats with employers - from Community messages, such as study groups and forum replies. The filter keeps job conversations from getting lost in social chatter.",
   },
   {
     id: "personal-information-safe",

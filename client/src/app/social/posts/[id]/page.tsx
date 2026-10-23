@@ -11,7 +11,7 @@ import { useEditPost, usePost, useSocialSocket } from '@/hooks/useSocial';
 import { use, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
-/** /social/posts/:id — full post, inline edit (30-min window), threaded comments. */
+/** /social/posts/:id - full post, inline edit (30-min window), threaded comments. */
 export default function PostDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   useSocialSocket();
@@ -23,7 +23,7 @@ export default function PostDetailPage({ params }: { params: Promise<{ id: strin
   const post = (detail.data as any)?.post;
   const comments: any[] = (detail.data as any)?.comments ?? [];
 
-  // The feed's "Edit post" menu links here with ?edit=1 — open the editor.
+  // The feed's "Edit post" menu links here with ?edit=1 - open the editor.
   useEffect(() => {
     if (post?.canEdit && new URLSearchParams(window.location.search).get('edit') === '1') {
       setDraft(post.content);

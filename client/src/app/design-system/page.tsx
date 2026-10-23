@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import * as React from "react";
 import { useTheme } from "next-themes";
@@ -85,7 +85,7 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 
-/* ─── local helpers ──────────────────────────────────────────────────────── */
+/* â”€â”€â”€ local helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 function ThemeToggle() {
   const { resolvedTheme, setTheme } = useTheme();
@@ -152,7 +152,7 @@ function Swatch({
   );
 }
 
-/* ─── sample data ────────────────────────────────────────────────────────── */
+/* â”€â”€â”€ sample data â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 const BUTTON_VARIANTS = [
   "default",
@@ -227,7 +227,7 @@ const APPLICANT_COLUMNS: DataTableColumn<Applicant>[] = [
   },
 ];
 
-/* ─── page ───────────────────────────────────────────────────────────────── */
+/* â”€â”€â”€ page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 export default function DesignSystemPage() {
   const [saved, setSaved] = React.useState<Record<string, boolean>>({ "1": true });
@@ -245,7 +245,7 @@ export default function DesignSystemPage() {
               NUB<span className="text-brand-600">Jobs</span> Design System
             </h1>
             <p className="text-xs text-muted-foreground">
-              Components, tokens & patterns · Phase 3
+              Components, tokens & patterns Â· Phase 3
             </p>
           </div>
           <ThemeToggle />
@@ -318,12 +318,12 @@ export default function DesignSystemPage() {
             </p>
             <p className="text-lg font-medium">Subtitle / lg medium</p>
             <p className="text-base text-foreground">
-              Body / base — Find jobs and internships tailored to NUB students.
+              Body / base â€” Find jobs and internships tailored to NUB students.
             </p>
             <p className="text-sm text-muted-foreground">
-              Muted / sm — supporting text and metadata.
+              Muted / sm â€” supporting text and metadata.
             </p>
-            <p className="font-mono text-sm">Mono / code · const cgpa = 3.75;</p>
+            <p className="font-mono text-sm">Mono / code Â· const cgpa = 3.75;</p>
           </div>
         </Section>
 
@@ -535,7 +535,7 @@ export default function DesignSystemPage() {
                 <Label htmlFor="ds-bio">Cover note</Label>
                 <Textarea
                   id="ds-bio"
-                  placeholder="Tell the employer why you're a great fit…"
+                  placeholder="Tell the employer why you're a great fitâ€¦"
                   rows={4}
                 />
               </div>
@@ -709,7 +709,7 @@ export default function DesignSystemPage() {
 
             <div className="grid gap-4 md:grid-cols-2">
               <div className="rounded-lg border border-border">
-                <LoadingSpinner label="Loading jobs…" />
+                <LoadingSpinner label="Loading jobsâ€¦" />
               </div>
               <EmptyState
                 icon={<InboxIcon />}
@@ -732,7 +732,7 @@ export default function DesignSystemPage() {
               <CardHeader>
                 <CardTitle>Complete your profile</CardTitle>
                 <CardDescription>
-                  A complete profile gets 3× more employer views.
+                  A complete profile gets 3Ã- more employer views.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -745,7 +745,7 @@ export default function DesignSystemPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Job alert created</CardTitle>
-                <CardDescription>Frontend · Dhaka · Full-time</CardDescription>
+                <CardDescription>Frontend Â· Dhaka Â· Full-time</CardDescription>
               </CardHeader>
               <CardContent className="text-sm text-muted-foreground">
                 We&apos;ll email you when matching roles are posted.
@@ -807,3 +807,4 @@ export default function DesignSystemPage() {
     </div>
   );
 }
+

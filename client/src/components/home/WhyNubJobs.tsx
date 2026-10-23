@@ -31,7 +31,7 @@ const FEATURES: Feature[] = [
     icon: <SlidersHorizontalIcon />,
     title: "CGPA Filter",
     description:
-      "See only the roles you actually qualify for — listings are matched to your CGPA automatically.",
+      "See only the roles you actually qualify for listings are matched to your CGPA automatically.",
     onBdJobs: false,
   },
   {
@@ -45,7 +45,7 @@ const FEATURES: Feature[] = [
     icon: <MessagesSquareIcon />,
     title: "Real-time Chat",
     description:
-      "Message recruiters directly and get answers in real time — no more waiting on email threads.",
+      "Message recruiters directly and get answers in real time no more waiting on email threads.",
     onBdJobs: false,
   },
   {
@@ -59,7 +59,7 @@ const FEATURES: Feature[] = [
     icon: <GraduationCapIcon />,
     title: "University Targeting",
     description:
-      "Every posting is curated for NUB students, so you compete with your peers — not the whole country.",
+      "Every posting is curated for NUB students, so you compete with your peers not the whole country.",
     onBdJobs: false,
   },
 ];

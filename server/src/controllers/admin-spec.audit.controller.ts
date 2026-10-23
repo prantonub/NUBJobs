@@ -4,7 +4,7 @@ import { responses } from '../utils/response.utils';
 import { emitToUser } from '../lib/socket-server';
 import { AdminRequest, logAdminAction, notifyUser, paginationMeta, parsePageLimit } from './admin-spec.helpers';
 
-/** GET /api/admin/audit-logs — SUPER_ADMIN only (enforced in route). (spec #23) */
+/** GET /api/admin/audit-logs - SUPER_ADMIN only (enforced in route). (spec #23) */
 export async function listAuditLogs(req: AdminRequest, res: Response, next: NextFunction) {
   try {
     const { page, limit, skip } = parsePageLimit(req.query);
@@ -35,7 +35,7 @@ export async function listAuditLogs(req: AdminRequest, res: Response, next: Next
   }
 }
 
-/** GET /api/admin/activity-logs/:userId — audit rows touching a user. (spec #24) */
+/** GET /api/admin/activity-logs/:userId - audit rows touching a user. (spec #24) */
 export async function getUserActivityLogs(req: AdminRequest, res: Response, next: NextFunction) {
   try {
     const userId = Array.isArray(req.params.userId) ? req.params.userId[0] : req.params.userId;
@@ -54,7 +54,7 @@ export async function getUserActivityLogs(req: AdminRequest, res: Response, next
   }
 }
 
-/** POST /api/admin/message/:userId — admin → user via notifications. (spec #25) */
+/** POST /api/admin/message/:userId - admin → user via notifications. (spec #25) */
 export async function sendAdminMessage(req: AdminRequest, res: Response, next: NextFunction) {
   try {
     const userId = Array.isArray(req.params.userId) ? req.params.userId[0] : req.params.userId;
@@ -73,7 +73,7 @@ export async function sendAdminMessage(req: AdminRequest, res: Response, next: N
   }
 }
 
-/** GET /api/admin/messages/overview — recent messages, read-only monitoring. */
+/** GET /api/admin/messages/overview - recent messages, read-only monitoring. */
 export async function getAdminMessagesOverview(req: AdminRequest, res: Response, next: NextFunction) {
   try {
     const { page, limit, skip } = parsePageLimit(req.query);

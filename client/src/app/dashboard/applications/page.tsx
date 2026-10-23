@@ -163,7 +163,7 @@ const ApplicationsPage: FC = () => {
                     <td className="px-4 py-3 font-medium">{application.job?.title}</td>
                     <td className="px-4 py-3">{application.job?.employer?.companyName}</td>
                     <td className="px-4 py-3 text-muted-foreground">
-                      {application.job?.location ?? '—'}
+                      {application.job?.location ?? '-'}
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">
                       {new Date(application.appliedAt ?? application.createdAt).toLocaleDateString()}

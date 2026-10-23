@@ -67,7 +67,7 @@ export function HeroSection() {
 
   return (
     <section className="relative isolate overflow-hidden bg-neutral-900 text-white">
-      {/* Banner photo — fills the hero at native quality; a neutral dark
+      {/* Banner photo - fills the hero at native quality; a neutral dark
           scrim keeps the white headline readable without tinting the photo. */}
       <Image
         src={homeBanner}
@@ -105,7 +105,7 @@ export function HeroSection() {
           <Reveal animateOnMount delay={0.25}>
             <p className="mx-auto mt-5 max-w-2xl text-base text-white/85 sm:text-lg">
               Discover internships, entry-level jobs and graduate roles from
-              verified employers across Bangladesh — apply in one click and get
+              verified employers across Bangladesh apply in one click and get
               hired faster, built exclusively for Northern University students.
             </p>
           </Reveal>
@@ -113,7 +113,7 @@ export function HeroSection() {
           <Reveal animateOnMount delay={0.25}>
             <p className="mx-auto mt-5 max-w-2xl text-base text-blue-100 sm:text-lg">
               Discover jobs and internships tailored to your degree, filter by
-              CGPA, join campus drives, and track every application — all in one
+              CGPA, join campus drives, and track every application all in one
               place built for your campus.
             </p>
           </Reveal>

@@ -3,7 +3,7 @@ import prisma from '../lib/prisma';
 import { responses } from '../utils/response.utils';
 import { AdminRequest, logAdminAction, notifyUser, paginationMeta, parsePageLimit } from './admin-spec.helpers';
 
-/** GET /api/admin/disputes — status/type filters + pagination. (spec #19) */
+/** GET /api/admin/disputes - status/type filters + pagination. (spec #19) */
 export async function listDisputes(req: AdminRequest, res: Response, next: NextFunction) {
   try {
     const { page, limit, skip } = parsePageLimit(req.query);
@@ -34,7 +34,7 @@ export async function listDisputes(req: AdminRequest, res: Response, next: NextF
   }
 }
 
-/** GET /api/admin/disputes/:id — parties + chat history + timeline. (spec #20) */
+/** GET /api/admin/disputes/:id - parties + chat history + timeline. (spec #20) */
 export async function getDisputeDetail(req: AdminRequest, res: Response, next: NextFunction) {
   try {
     const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;

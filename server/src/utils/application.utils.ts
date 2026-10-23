@@ -28,7 +28,7 @@ export const TERMINAL_STATUSES: ApplicationStatusValue[] = ['HIRED', 'REJECTED',
 
 /**
  * Allowed pipeline moves: forward steps plus the terminal "reject" from any
- * live stage — never backwards into an earlier stage.
+ * live stage - never backwards into an earlier stage.
  */
 export const PIPELINE_TRANSITIONS: Record<ApplicationStatusValue, ApplicationStatusValue[]> = {
   APPLIED: ['REVIEWED', 'SHORTLISTED', 'REJECTED'],

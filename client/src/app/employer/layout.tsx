@@ -34,7 +34,7 @@ function CompanySidebarBlock() {
 }
 
 /**
- * /employer/* shell — spec rule: ONLY EMPLOYER accounts may enter these
+ * /employer/* shell - spec rule: ONLY EMPLOYER accounts may enter these
  * routes (RequireAuth redirects students/admins). Every API call underneath
  * is additionally scoped to the signed-in company's `employerId`, so no other
  * company's data can ever appear here.

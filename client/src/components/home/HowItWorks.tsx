@@ -53,7 +53,7 @@ const EMPLOYER_STEPS: Step[] = [
     icon: <FileCheckIcon />,
     title: "Hire",
     description:
-      "Chat, schedule interviews, and send offers — all without leaving the platform.",
+      "Chat, schedule interviews, and send offers all without leaving the platform.",
   },
 ];
 
@@ -107,7 +107,7 @@ function Track({
 }
 
 /**
- * Two parallel "how it works" tracks — one for students, one for employers —
+ * Two parallel "how it works" tracks - one for students, one for employers -
  * each a sequence of numbered, staggered steps.
  */
 export function HowItWorks() {

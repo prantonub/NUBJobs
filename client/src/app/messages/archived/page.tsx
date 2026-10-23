@@ -11,7 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useMessages, useUnarchiveConversation } from '@/hooks/useMessages';
 
 /**
- * /messages/archived — archived conversations (spec §FRONTEND PAGE 4).
+ * /messages/archived - archived conversations (spec §FRONTEND PAGE 4).
  * Unarchive restores the thread to the main list; the row shows the last
  * message and archived date.
  */

@@ -24,14 +24,14 @@ const TOPICS = [
   'Other',
 ] as const;
 
-// Validation schema — mirrors the client-side Zod rules.
+// Validation schema - mirrors the client-side Zod rules.
 const contactSchema = z.object({
   name: z.string().trim().min(2, 'Name must be at least 2 characters').max(80, 'Name must be at most 80 characters'),
   email: z.string().trim().email('Enter a valid email address'),
   topic: z.enum(TOPICS, { message: 'Choose a topic' }),
   subject: z.string().trim().min(5, 'Subject must be at least 5 characters').max(100, 'Subject must be at most 100 characters'),
   message: z.string().trim().min(20, 'Message must be at least 20 characters').max(1000, 'Message must be at most 1000 characters'),
-  // Honeypot — must stay empty. Optional so a missing field (older clients) still parses.
+  // Honeypot - must stay empty. Optional so a missing field (older clients) still parses.
   website: z.string().optional().default(''),
 });
 
@@ -93,14 +93,14 @@ async function submitContact(req: AuthRequest, res: Response) {
       },
     });
   } catch (dbError) {
-    // Persisting is best-effort — still try to email support below, but log it.
+    // Persisting is best-effort - still try to email support below, but log it.
     console.error('Failed to persist contact message:', dbError);
   }
 
   try {
     await sendContactEmail(body);
   } catch (emailError) {
-    // Don't fail the request just because the notification email hiccuped —
+    // Don't fail the request just because the notification email hiccuped -
     // the message is already stored for admin review.
     console.error('Contact notification email errored:', emailError);
   }
@@ -108,7 +108,7 @@ async function submitContact(req: AuthRequest, res: Response) {
   return responses.ok(res, 'Thanks, we received your message.');
 }
 
-// POST /api/contact — public, optional auth, rate-limited to 5 / 15 min per IP.
+// POST /api/contact - public, optional auth, rate-limited to 5 / 15 min per IP.
 router.post(
   '/',
   optionalAuth,

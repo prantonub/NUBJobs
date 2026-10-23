@@ -1,7 +1,7 @@
 {
   "name": "nubjobs",
   "version": "1.0.0",
-  "description": "NUBJobs — NUB Students Job & Internship Portal (Next.js 16 client + Express/Prisma server)",
+  "description": "NUBJobs - NUB Students Job & Internship Portal (Next.js 16 client + Express/Prisma server)",
   "private": true,
   "scripts": {
     "dev": "concurrently \"npm run dev --prefix server\" \"npm run dev --prefix client\"",

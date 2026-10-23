@@ -5,7 +5,7 @@ import { emitToUser } from '../lib/socket-server';
 import { sendJobStatusEmail } from '../services/email.service';
 import { AdminRequest, logAdminAction, notifyUser } from './admin-spec.helpers';
 
-/** PATCH /api/admin/jobs/:id/approve — ACTIVE + email + socket + audit. (spec #9) */
+/** PATCH /api/admin/jobs/:id/approve - ACTIVE + email + socket + audit. (spec #9) */
 export async function approveJob(req: AdminRequest, res: Response, next: NextFunction) {
   try {
     const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
@@ -32,7 +32,7 @@ export async function approveJob(req: AdminRequest, res: Response, next: NextFun
   }
 }
 
-/** PATCH /api/admin/jobs/:id/reject — REJECTED + reason + email + audit. (spec #10) */
+/** PATCH /api/admin/jobs/:id/reject - REJECTED + reason + email + audit. (spec #10) */
 export async function rejectJob(req: AdminRequest, res: Response, next: NextFunction) {
   try {
     const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
@@ -57,7 +57,7 @@ export async function rejectJob(req: AdminRequest, res: Response, next: NextFunc
   }
 }
 
-/** PATCH /api/admin/jobs/:id/feature — toggle + audit. (spec #11) */
+/** PATCH /api/admin/jobs/:id/feature - toggle + audit. (spec #11) */
 export async function featureJob(req: AdminRequest, res: Response, next: NextFunction) {
   try {
     const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;

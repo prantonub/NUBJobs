@@ -87,7 +87,7 @@ export default function AdminPipelinePage() {
                         ))}
                       </div>
                       <p className="mt-1 text-[11px] text-muted-foreground">
-                        CGPA {c.cgpa ?? '—'} · {new Date(c.appliedAt).toLocaleDateString()}
+                        CGPA {c.cgpa ?? '-'} · {new Date(c.appliedAt).toLocaleDateString()}
                       </p>
                     </Link>
                   ))}

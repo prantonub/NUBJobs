@@ -485,7 +485,7 @@ function parseVerificationDocumentUrl(raw: string | null | undefined): string | 
     const parsed = JSON.parse(raw) as { documentUrl?: unknown };
     return typeof parsed.documentUrl === 'string' ? parsed.documentUrl : null;
   } catch {
-    // Legacy rows stored plain text (not JSON) — nothing to delete.
+    // Legacy rows stored plain text (not JSON) - nothing to delete.
     return null;
   }
 }

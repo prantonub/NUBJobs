@@ -14,7 +14,7 @@ import { UserProfileCard } from './UserProfileCard';
 
 /**
  * Peer's public profile link. Everyone gets the social username route
- * (/social/profile/<username> — the same page social chat links to); without
+ * (/social/profile/<username> - the same page social chat links to); without
  * a username we stay on the thread instead of a 404ing /profile/<id> page.
  */
 export function getProfileHref(peer: { id: string; username?: string | null }): string {
@@ -205,7 +205,7 @@ export const ChatWindow: FC<{
         <div ref={bottomRef} />
       </div>
 
-      {/* Composer — replaced by the block notice once messaging is locked */}
+      {/* Composer - replaced by the block notice once messaging is locked */}
       {blocked ? (
         <div className="border-t bg-muted/40 px-4 py-4 text-center">
           <p className="text-sm font-medium text-muted-foreground">You can't message this user</p>

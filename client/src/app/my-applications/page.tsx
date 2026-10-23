@@ -7,7 +7,7 @@ import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { useAuthContext } from "@/contexts/AuthContext";
 
 /**
- * /my-applications — role-aware relay for the footer's "My Applications" link.
+ * /my-applications - role-aware relay for the footer's "My Applications" link.
  * Students land on their application tracker, employers on the applicant
  * pipeline for their jobs, and signed-out visitors on /login. This keeps a
  * single stable footer URL that always sends each role to the right place.

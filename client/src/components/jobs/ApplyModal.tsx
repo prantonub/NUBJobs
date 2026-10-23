@@ -112,7 +112,7 @@ const ApplyModal: FC<ApplyModalProps> = ({ open, onOpenChange, jobId, jobTitle, 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (needsVerification) {
-      toast.error('Your profile is not verified yet — get admin approval before applying.');
+      toast.error('Your profile is not verified yet get admin approval before applying.');
       return;
     }
     try {

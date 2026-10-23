@@ -11,7 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useBlockedUsers, useUnblockUser } from '@/hooks/useMessages';
 
 /**
- * /messages/blocked — blocked users (spec §FRONTEND PAGE 5).
+ * /messages/blocked - blocked users (spec §FRONTEND PAGE 5).
  * Unblock restores messaging in both directions immediately.
  */
 const BlockedPage: FC = () => {

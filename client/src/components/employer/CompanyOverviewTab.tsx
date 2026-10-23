@@ -39,7 +39,7 @@ export const CompanyOverviewTab: FC = () => {
               </Button>
             </div>
             <p className="whitespace-pre-wrap text-sm text-muted-foreground">
-              {profile?.about || 'No description yet — add one so candidates know who you are.'}
+              {profile?.about || 'No description yet - add one so candidates know who you are.'}
             </p>
           </Card>
 
@@ -76,15 +76,15 @@ export const CompanyOverviewTab: FC = () => {
             <dl className="space-y-2 text-sm">
               <div className="flex justify-between gap-2">
                 <dt className="text-muted-foreground">Email</dt>
-                <dd className="truncate">{profile?.email || '—'}</dd>
+                <dd className="truncate">{profile?.email || '-'}</dd>
               </div>
               <div className="flex justify-between gap-2">
                 <dt className="text-muted-foreground">Phone</dt>
-                <dd>{profile?.phone || '—'}</dd>
+                <dd>{profile?.phone || '-'}</dd>
               </div>
               <div className="flex justify-between gap-2">
                 <dt className="text-muted-foreground">Location</dt>
-                <dd>{profile?.location || '—'}</dd>
+                <dd>{profile?.location || '-'}</dd>
               </div>
               {profile?.website ? (
                 <div className="flex justify-between gap-2">

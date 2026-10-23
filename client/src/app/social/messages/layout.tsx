@@ -18,7 +18,7 @@ export default function SocialMessagesLayout({ children }: { children: React.Rea
   const [filter, setFilter] = useState<MessageFilter>('all');
   const [search, setSearch] = useState('');
 
-  // Mounted once — drives badge updates, sounds and desktop notifications.
+  // Mounted once - drives badge updates, sounds and desktop notifications.
   useMessageRealtime();
 
   const conversations = useConversations({ filter, search, page: 1 });

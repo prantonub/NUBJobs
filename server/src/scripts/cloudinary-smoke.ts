@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Cloudinary smoke test.
  *
  * Verifies: credentials, image upload (with on-the-fly optimisation), raw
@@ -20,7 +20,7 @@ import {
   uploadBuffer,
 } from '../lib/cloudinary';
 
-// ── Tiny dependency-free PNG encoder ────────────────────────────────────────
+// â”€â”€ Tiny dependency-free PNG encoder â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function crc32(buffer: Buffer): number {
   let crc = 0xffffffff;
   for (const byte of buffer) {
@@ -41,7 +41,7 @@ function pngChunk(type: string, data: Buffer): Buffer {
   return Buffer.concat([length, typeBuffer, data, crc]);
 }
 
-/** Valid RGB gradient PNG, `size`×`size` pixels. */
+/** Valid RGB gradient PNG, `size`Ã-`size` pixels. */
 function createPng(size = 64): Buffer {
   const ihdr = Buffer.alloc(13);
   ihdr.writeUInt32BE(size, 0);
@@ -80,15 +80,15 @@ async function httpStatus(url: string): Promise<number> {
 async function main(): Promise<void> {
   if (!isCloudinaryConfigured()) {
     console.error(
-      '❌ Cloudinary is not configured. Set CLOUDINARY_CLOUD_NAME / CLOUDINARY_API_KEY / CLOUDINARY_API_SECRET (or CLOUDINARY_URL) in server/.env'
+      'âŒ Cloudinary is not configured. Set CLOUDINARY_CLOUD_NAME / CLOUDINARY_API_KEY / CLOUDINARY_API_SECRET (or CLOUDINARY_URL) in server/.env'
     );
     process.exitCode = 1;
     return;
   }
 
-  console.log(`☁️  Cloud: ${getCloudinaryCloudName()}`);
-  console.log(`🔑 API key: ${getCloudinaryApiKeyPreview()}`);
-  console.log('   (both values come from server/.env — they must match the Cloudinary dashboard exactly)');
+  console.log(`â˜ï¸  Cloud: ${getCloudinaryCloudName()}`);
+  console.log(`ðŸ”‘ API key: ${getCloudinaryApiKeyPreview()}`);
+  console.log('   (both values come from server/.env â€” they must match the Cloudinary dashboard exactly)');
 
   const uploadedUrls: string[] = [];
   let ok = true;
@@ -101,13 +101,13 @@ async function main(): Promise<void> {
       transformation: IMAGE_TRANSFORMATIONS.profilePhoto,
     });
     uploadedUrls.push(photo.url);
-    console.log(`✅ Image uploaded → ${photo.url}`);
-    console.log(`   ${photo.width}x${photo.height}px · ${photo.bytes} bytes · ${photo.format}`);
+    console.log(`âœ… Image uploaded â†’ ${photo.url}`);
+    console.log(`   ${photo.width}x${photo.height}px Â· ${photo.bytes} bytes Â· ${photo.format}`);
 
     const thumbnailUrl = optimizeImageUrl(photo.url, { width: 32, height: 32, crop: 'fill' });
     const thumbnailStatus = await httpStatus(thumbnailUrl);
     ok = ok && thumbnailStatus === 200;
-    console.log(`${thumbnailStatus === 200 ? '✅' : '❌'} Optimised 32x32 rendition → HTTP ${thumbnailStatus}`);
+    console.log(`${thumbnailStatus === 200 ? 'âœ…' : 'âŒ'} Optimised 32x32 rendition â†’ HTTP ${thumbnailStatus}`);
 
     const stamp = Date.now();
     const resume = await uploadBuffer(Buffer.from('%PDF-1.4\n% nubjobs smoke test\n%%EOF\n', 'utf8'), {
@@ -116,25 +116,26 @@ async function main(): Promise<void> {
       resourceType: 'raw',
     });
     uploadedUrls.push(resume.url);
-    console.log(`✅ Raw document uploaded → ${resume.url}`);
+    console.log(`âœ… Raw document uploaded â†’ ${resume.url}`);
 
     const documentStatus = await httpStatus(resume.url);
     ok = ok && documentStatus === 200;
-    console.log(`${documentStatus === 200 ? '✅' : '❌'} Resume reachable → HTTP ${documentStatus}`);
+    console.log(`${documentStatus === 200 ? 'âœ…' : 'âŒ'} Resume reachable â†’ HTTP ${documentStatus}`);
   } catch (error) {
     ok = false;
-    console.error('❌ Upload failed:', error instanceof Error ? error.message : error);
+    console.error('âŒ Upload failed:', error instanceof Error ? error.message : error);
   } finally {
     for (const url of uploadedUrls) {
       const parsed = parseCloudinaryUrl(url);
       if (!parsed) continue;
       const deleted = await destroyFile(parsed.publicId, parsed.resourceType);
-      console.log(`${deleted ? '🧹' : '⚠️ '} cleanup ${parsed.publicId} → ${deleted ? 'deleted' : 'not deleted'}`);
+      console.log(`${deleted ? 'ðŸ§¹' : 'âš ï¸ '} cleanup ${parsed.publicId} â†’ ${deleted ? 'deleted' : 'not deleted'}`);
     }
   }
 
-  console.log(ok ? '✅ Cloudinary smoke test passed' : '❌ Cloudinary smoke test failed');
+  console.log(ok ? 'âœ… Cloudinary smoke test passed' : 'âŒ Cloudinary smoke test failed');
   if (!ok) process.exitCode = 1;
 }
 
 void main();
+

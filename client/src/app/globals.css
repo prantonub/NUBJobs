@@ -130,7 +130,7 @@
   --chart-5: oklch(0.269 0 0);
   --radius: 0.625rem;
 
-  /* NUBJobs semantic design tokens (raw CSS vars — use via var(--success), etc.) */
+  /* NUBJobs semantic design tokens (raw CSS vars - use via var(--success), etc.) */
   --brand-primary: #1a56db; /* == brand-600 */
   --brand-navy: #1e293b; /* == navy */
   --success: #16a34a;

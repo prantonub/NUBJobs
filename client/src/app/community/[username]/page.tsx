@@ -78,7 +78,7 @@ function EditProfileDialog({
   );
 }
 
-/** /community/:username — social profile (header, stats, post history). */
+/** /community/:username - social profile (header, stats, post history). */
 export default function SocialProfilePage({ params }: { params: Promise<{ username: string }> }) {
   const { username } = use(params);
   const profile = useUserProfile(username);

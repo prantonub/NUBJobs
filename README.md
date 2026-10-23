@@ -1,12 +1,12 @@
-# NUBJobs — NUB Students Job & Internship Portal
+﻿# NUBJobs â€” NUB Students Job & Internship Portal
 
-> A modern, student-first job & internship platform for **Northern University Bangladesh**, purpose-built for campus recruitment, CGPA-aware matching, and AI-assisted applications — the things a general job board like BDJobs was never designed to do.
+> A modern, student-first job & internship platform for **Northern University Bangladesh**, purpose-built for campus recruitment, CGPA-aware matching, and AI-assisted applications â€” the things a general job board like BDJobs was never designed to do.
 
 NUBJobs is a full-stack TypeScript monorepo: a **Next.js 16** client and an **Express + Prisma + PostgreSQL** API server, with role-based auth (Student / Employer / Admin), JWT access + refresh tokens, in-app messaging, notifications, campus events, and AI-powered job matching.
 
 ---
 
-## 🧱 Tech Stack
+## ðŸ§± Tech Stack
 
 ### Frontend (`/client`)
 
@@ -32,78 +32,78 @@ NUBJobs is a full-stack TypeScript monorepo: a **Next.js 16** client and an **Ex
 | ORM | Prisma | **v6** (see note) |
 | Database | PostgreSQL | 14+ |
 | Validation | Zod | v4 |
-| Auth | JWT (access + refresh) · bcryptjs | — |
-| Security | helmet · cors · express-rate-limit | — |
-| Uploads | multer · Cloudinary | — |
-| Email | Resend | — |
-| AI | Anthropic Claude API | — |
+| Auth | JWT (access + refresh) Â· bcryptjs | â€” |
+| Security | helmet Â· cors Â· express-rate-limit | â€” |
+| Uploads | multer Â· Cloudinary | â€” |
+| Email | Resend | â€” |
+| AI | Anthropic Claude API | â€” |
 
 > **Prisma version note:** Prisma **7** removed the `url` field from the schema `datasource` block and now requires a driver adapter (or `accelerateUrl`) passed to the `PrismaClient` constructor. That is incompatible with this project's classic schema (`url = env("DATABASE_URL")`) and the plain `new PrismaClient()` usage in `server.ts`. The project is therefore pinned to the latest **Prisma 6.x**, which supports the schema and code as written. Both `prisma` (CLI) and `@prisma/client` are kept on the same 6.x version.
 
 ---
 
-## 🏆 Why NUBJobs beats BDJobs — 13-feature comparison
+## ðŸ† Why NUBJobs beats BDJobs â€” 13-feature comparison
 
-BDJobs is a great *general* job board for the whole country. NUBJobs is a *campus* platform — it knows what a university, a student, and a recruiter hiring from that university actually need.
+BDJobs is a great *general* job board for the whole country. NUBJobs is a *campus* platform â€” it knows what a university, a student, and a recruiter hiring from that university actually need.
 
 | # | Feature | NUBJobs | BDJobs |
 | --- | --- | :---: | :---: |
-| 1 | AI-powered candidate ↔ job **match score** | ✅ Built-in (`matchScore`) | ❌ |
-| 2 | **CGPA-aware** eligibility filtering on jobs & events (`minCgpa`) | ✅ | ❌ |
-| 3 | **University-targeted** postings (`targetUniversity`) | ✅ | ❌ |
-| 4 | Rich **student profiles**: NUB ID, department, skills, projects, certifications | ✅ Structured JSON | ⚠️ Basic CV only |
-| 5 | **Internship-first** categories (Full-time / Part-time / Internship / Remote / Hybrid) | ✅ First-class | ⚠️ Generic |
-| 6 | **On-campus recruitment events** + student RSVP | ✅ (`CampusEvent` + `EventRsvp`) | ❌ |
-| 7 | **Application pipeline** tracking (Applied → Reviewed → Shortlisted → Interviewed → Hired) | ✅ 6 stages | ⚠️ Applied / Not |
-| 8 | **Real-time in-app messaging** scoped to an application | ✅ | ❌ (email only) |
-| 9 | **In-app notifications** center | ✅ | ⚠️ Email digests |
-| 10 | **Verified employers** with uploaded documents | ✅ | ⚠️ Partial |
-| 11 | **AI cover-letter & resume assistance** (Claude) | ✅ | ❌ |
-| 12 | **OTP email verification** + JWT refresh-token sessions | ✅ | ⚠️ Basic |
-| 13 | **Free for students** — no premium wall on applying | ✅ | ❌ Freemium |
+| 1 | AI-powered candidate â†” job **match score** | âœ… Built-in (`matchScore`) | âŒ |
+| 2 | **CGPA-aware** eligibility filtering on jobs & events (`minCgpa`) | âœ… | âŒ |
+| 3 | **University-targeted** postings (`targetUniversity`) | âœ… | âŒ |
+| 4 | Rich **student profiles**: NUB ID, department, skills, projects, certifications | âœ… Structured JSON | âš ï¸ Basic CV only |
+| 5 | **Internship-first** categories (Full-time / Part-time / Internship / Remote / Hybrid) | âœ… First-class | âš ï¸ Generic |
+| 6 | **On-campus recruitment events** + student RSVP | âœ… (`CampusEvent` + `EventRsvp`) | âŒ |
+| 7 | **Application pipeline** tracking (Applied â†’ Reviewed â†’ Shortlisted â†’ Interviewed â†’ Hired) | âœ… 6 stages | âš ï¸ Applied / Not |
+| 8 | **Real-time in-app messaging** scoped to an application | âœ… | âŒ (email only) |
+| 9 | **In-app notifications** center | âœ… | âš ï¸ Email digests |
+| 10 | **Verified employers** with uploaded documents | âœ… | âš ï¸ Partial |
+| 11 | **AI cover-letter & resume assistance** (Claude) | âœ… | âŒ |
+| 12 | **OTP email verification** + JWT refresh-token sessions | âœ… | âš ï¸ Basic |
+| 13 | **Free for students** â€” no premium wall on applying | âœ… | âŒ Freemium |
 
-Legend: ✅ full · ⚠️ partial/limited · ❌ none
+Legend: âœ… full Â· âš ï¸ partial/limited Â· âŒ none
 
 ---
 
-## 📁 Project structure
+## ðŸ“ Project structure
 
 ```
 NUBJobs/
-├── client/                      # Next.js 16 frontend (App Router, src dir)
-│   ├── src/
-│   │   ├── app/                 # routes, layout, globals.css
-│   │   └── lib/                 # utils.ts (cn helper)
-│   ├── components.json          # shadcn/ui config (radix-nova, CSS variables)
-│   ├── next.config.ts           # Turbopack root pinned to client
-│   └── .env.local.example
-│
-├── server/                      # Express + Prisma API
-│   ├── prisma/
-│   │   └── schema.prisma        # User, Profiles, Job, Application, Message, …
-│   ├── src/
-│   │   ├── app.ts               # Express app (helmet, cors, morgan, /api/health)
-│   │   ├── server.ts            # bootstrap: connect Prisma → listen
-│   │   ├── routes/              # auth, jobs, applications, profile, admin,
-│   │   │                        #   events, messages, notifications, ai
-│   │   ├── controllers/         # one controller per route group
-│   │   ├── services/            # auth, jobs, email, ai
-│   │   ├── middleware/          # auth, validate, upload, rateLimit
-│   │   ├── lib/                 # prisma, cloudinary, resend
-│   │   ├── utils/               # jwt, password, response helpers
-│   │   └── types/               # express.d.ts (request augmentation)
-│   ├── nodemon.json
-│   ├── tsconfig.json
-│   └── .env.example
-│
-├── package.json                 # root scripts (concurrently), dev tooling
-├── .gitignore
-└── README.md
+â”œâ”€â”€ client/                      # Next.js 16 frontend (App Router, src dir)
+â”‚   â”œâ”€â”€ src/
+â”‚   â”‚   â”œâ”€â”€ app/                 # routes, layout, globals.css
+â”‚   â”‚   â””â”€â”€ lib/                 # utils.ts (cn helper)
+â”‚   â”œâ”€â”€ components.json          # shadcn/ui config (radix-nova, CSS variables)
+â”‚   â”œâ”€â”€ next.config.ts           # Turbopack root pinned to client
+â”‚   â””â”€â”€ .env.local.example
+â”‚
+â”œâ”€â”€ server/                      # Express + Prisma API
+â”‚   â”œâ”€â”€ prisma/
+â”‚   â”‚   â””â”€â”€ schema.prisma        # User, Profiles, Job, Application, Message, â€¦
+â”‚   â”œâ”€â”€ src/
+â”‚   â”‚   â”œâ”€â”€ app.ts               # Express app (helmet, cors, morgan, /api/health)
+â”‚   â”‚   â”œâ”€â”€ server.ts            # bootstrap: connect Prisma â†’ listen
+â”‚   â”‚   â”œâ”€â”€ routes/              # auth, jobs, applications, profile, admin,
+â”‚   â”‚   â”‚                        #   events, messages, notifications, ai
+â”‚   â”‚   â”œâ”€â”€ controllers/         # one controller per route group
+â”‚   â”‚   â”œâ”€â”€ services/            # auth, jobs, email, ai
+â”‚   â”‚   â”œâ”€â”€ middleware/          # auth, validate, upload, rateLimit
+â”‚   â”‚   â”œâ”€â”€ lib/                 # prisma, cloudinary, resend
+â”‚   â”‚   â”œâ”€â”€ utils/               # jwt, password, response helpers
+â”‚   â”‚   â””â”€â”€ types/               # express.d.ts (request augmentation)
+â”‚   â”œâ”€â”€ nodemon.json
+â”‚   â”œâ”€â”€ tsconfig.json
+â”‚   â””â”€â”€ .env.example
+â”‚
+â”œâ”€â”€ package.json                 # root scripts (concurrently), dev tooling
+â”œâ”€â”€ .gitignore
+â””â”€â”€ README.md
 ```
 
 ---
 
-## 🚀 Quick start
+## ðŸš€ Quick start
 
 ### Prerequisites
 
@@ -116,7 +116,7 @@ NUBJobs/
 This is a multi-package repo (not npm workspaces), so install in each package:
 
 ```bash
-npm install                      # root dev tooling (concurrently, prettier, …)
+npm install                      # root dev tooling (concurrently, prettier, â€¦)
 npm install --prefix server
 npm install --prefix client
 ```
@@ -152,8 +152,8 @@ From the repo root:
 npm run dev
 ```
 
-- API → **http://localhost:5000**
-- Web → **http://localhost:3000**
+- API â†’ **http://localhost:5000**
+- Web â†’ **http://localhost:3000**
 
 Or run them individually: `npm run dev --prefix server` / `npm run dev --prefix client`.
 
@@ -166,7 +166,7 @@ curl http://localhost:5000/api/health
 
 ---
 
-## 📜 Scripts
+## ðŸ“œ Scripts
 
 ### Root
 
@@ -203,7 +203,7 @@ curl http://localhost:5000/api/health
 
 ---
 
-## 🔐 Environment variables
+## ðŸ” Environment variables
 
 See [`server/.env.example`](server/.env.example) and [`client/.env.local.example`](client/.env.local.example) for the full list. Key server variables:
 
@@ -211,10 +211,10 @@ See [`server/.env.example`](server/.env.example) and [`client/.env.local.example
 
 ### Cloudinary file uploads
 
-Uploads go through Multer (memory storage) → Cloudinary; the resulting `secure_url` is what gets stored in Postgres (`StudentProfile.photoUrl` / `resumeUrl`, `EmployerProfile.logoUrl` / `verificationDocument`).
+Uploads go through Multer (memory storage) â†’ Cloudinary; the resulting `secure_url` is what gets stored in Postgres (`StudentProfile.photoUrl` / `resumeUrl`, `EmployerProfile.logoUrl` / `verificationDocument`).
 
 ```bash
-# server/.env — values from Cloudinary Dashboard → Product Environment → API keys
+# server/.env â€” values from Cloudinary Dashboard â†’ Product Environment â†’ API keys
 CLOUDINARY_CLOUD_NAME="<your-cloud-name>"
 CLOUDINARY_API_KEY="<your-api-key>"
 CLOUDINARY_API_SECRET="<your-api-secret>"
@@ -229,13 +229,13 @@ cd server && npm run test:cloudinary
 
 | Method | Endpoint | Auth | Field | Limits |
 | --- | --- | --- | --- | --- |
-| `POST` | `/api/profile/photo` | Student | `photo` | JPG/PNG/WEBP · 5MB |
-| `DELETE` | `/api/profile/photo` | Student | — | — |
-| `POST` | `/api/profile/resume` | Student | `resume` | PDF/DOC/DOCX · 5MB |
-| `DELETE` | `/api/profile/resume` | Student | — | — |
-| `POST` | `/api/employer/company/logo` (alias `/api/company/logo`) | Employer | `logo` | JPG/PNG/WEBP · 5MB |
-| `DELETE` | `/api/employer/company/logo` (alias `/api/company/logo`) | Employer | — | — |
-| `POST` | `/api/company/verification-document` | Employer | `document` | PDF/DOC/DOCX · 5MB |
+| `POST` | `/api/profile/photo` | Student | `photo` | JPG/PNG/WEBP Â· 5MB |
+| `DELETE` | `/api/profile/photo` | Student | â€” | â€” |
+| `POST` | `/api/profile/resume` | Student | `resume` | PDF/DOC/DOCX Â· 5MB |
+| `DELETE` | `/api/profile/resume` | Student | â€” | â€” |
+| `POST` | `/api/employer/company/logo` (alias `/api/company/logo`) | Employer | `logo` | JPG/PNG/WEBP Â· 5MB |
+| `DELETE` | `/api/employer/company/logo` (alias `/api/company/logo`) | Employer | â€” | â€” |
+| `POST` | `/api/company/verification-document` | Employer | `document` | PDF/DOC/DOCX Â· 5MB |
 
 Images are transformed on delivery (`q_auto,f_auto` + avatar/logo sizing); replacing a file deletes the previous asset from Cloudinary.
 
@@ -244,7 +244,7 @@ Images are transformed on delivery (`q_auto,f_auto` + avatar/logo sizing); repla
 SDK-free authorization-code flow: the browser is redirected to Google, and the callback exchanges the `code`, reads the profile, upserts the user and hands a token pair back to the SPA (`/oauth/callback`). `state` is a base64url JSON blob carrying the role/intent (plus optional signup extras); it is re-validated server-side, so a tampered value can never escalate privileges.
 
 ```bash
-# server/.env — Google Cloud Console → APIs & Services → Credentials → OAuth client ID (Web application)
+# server/.env â€” Google Cloud Console â†’ APIs & Services â†’ Credentials â†’ OAuth client ID (Web application)
 GOOGLE_CLIENT_ID="<your-client-id>.apps.googleusercontent.com"
 GOOGLE_CLIENT_SECRET="<your-client-secret>"
 GOOGLE_CALLBACK_URL="http://localhost:5000/api/auth/google/callback"
@@ -266,12 +266,13 @@ cd server && npm run test:google-oauth:http   # live routes (needs `npm run dev`
 
 ---
 
-## 🗺️ Data model at a glance
+## ðŸ-ºï¸ Data model at a glance
 
-`User` (Student / Employer / Admin) → `StudentProfile` / `EmployerProfile` → `Job` → `Application` (with scoped `Message` threads) → `Notification`, `SavedJob`, `CampusEvent` + `EventRsvp`. See [`server/prisma/schema.prisma`](server/prisma/schema.prisma) for the full schema.
+`User` (Student / Employer / Admin) â†’ `StudentProfile` / `EmployerProfile` â†’ `Job` â†’ `Application` (with scoped `Message` threads) â†’ `Notification`, `SavedJob`, `CampusEvent` + `EventRsvp`. See [`server/prisma/schema.prisma`](server/prisma/schema.prisma) for the full schema.
 
 ---
 
-## 📄 License
+## ðŸ“„ License
 
-ISC © NUBJobs
+ISC Â© NUBJobs
+

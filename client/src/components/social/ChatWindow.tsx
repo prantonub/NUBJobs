@@ -71,7 +71,7 @@ export function ChatWindow({ userId, sourceId }: ChatWindowProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const nearBottomRef = useRef(true);
 
-  // Auto-scroll on new messages — but never yank the reader away.
+  // Auto-scroll on new messages - but never yank the reader away.
   useEffect(() => {
     const el = scrollRef.current;
     if (el && nearBottomRef.current) el.scrollTop = el.scrollHeight;
@@ -114,7 +114,7 @@ export function ChatWindow({ userId, sourceId }: ChatWindowProps) {
         reason: 'Inappropriate message',
         description: `Reported from chat (message ${messageId})`,
       });
-      toast.success('Reported — a moderator will review this conversation');
+      toast.success('Reported a moderator will review this conversation');
     } catch {
       toast.error('Could not submit the report');
     }

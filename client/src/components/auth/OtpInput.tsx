@@ -19,7 +19,7 @@ export interface OtpInputProps {
 /**
  * Segmented one-time-code input: `length` single-digit boxes with full
  * keyboard support (auto-advance, backspace, arrows) and paste handling. Fully
- * controlled — pairs with a React Hook Form `Controller`.
+ * controlled - pairs with a React Hook Form `Controller`.
  */
 export function OtpInput({
   value,

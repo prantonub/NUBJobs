@@ -26,7 +26,7 @@ const SECTIONS = [
     bullets: [
       "Name, phone, email, and city at the very top.",
       "A two-line summary of your field and goals.",
-      "Education first — students lead with academics.",
+      "Education first students lead with academics.",
       "Experience: internships, jobs, and major projects.",
       "Skills section listing tools you actually use.",
     ],
@@ -50,7 +50,7 @@ const SECTIONS = [
       "Cut coursework that does not serve the job.",
       "Use 10–12pt font with comfortable margins.",
       "Remove references available on request.",
-      "If it overflows, tighten — do not shrink the font.",
+      "If it overflows, tighten do not shrink the font.",
     ],
   },
   {

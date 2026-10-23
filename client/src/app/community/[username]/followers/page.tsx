@@ -8,7 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useFollowers } from '@/hooks/useSocial';
 import { use, useState } from 'react';
 
-/** /community/:username/followers — follower list with search. */
+/** /community/:username/followers - follower list with search. */
 export default function FollowersPage({ params }: { params: Promise<{ username: string }> }) {
   const { username } = use(params);
   const [page, setPage] = useState(1);

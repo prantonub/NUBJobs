@@ -8,7 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useCommunityMembers } from '@/hooks/useSocial';
 import { useState } from 'react';
 
-/** /social/community/members — community directory. */
+/** /social/community/members - community directory. */
 export default function CommunityMembersPage() {
   const [page, setPage] = useState(1);
   const [q, setQ] = useState('');

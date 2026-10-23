@@ -7,7 +7,7 @@ import 'dotenv/config';
  *   1. `buildState` / `parseState` round-trip (role + signup extras).
  *   2. `buildConsentUrl` carries the right client_id / redirect_uri / scope.
  *   3. `upsertGoogleUser` creates, refreshes, links by email and survives a
- *      duplicate NUB ID — then everything it created is deleted again.
+ *      duplicate NUB ID - then everything it created is deleted again.
  *
  * Run: cd server && npx ts-node src/scripts/google-oauth-smoke.ts
  */

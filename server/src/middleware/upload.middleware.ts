@@ -33,7 +33,7 @@ function fileFilter(allowed: string[], label: string) {
 }
 
 /**
- * Images (profile photo, company logo) — kept in memory so the buffer can be
+ * Images (profile photo, company logo) - kept in memory so the buffer can be
  * streamed straight to Cloudinary, nothing touches the disk.
  */
 export const imageUpload = multer({
@@ -42,7 +42,7 @@ export const imageUpload = multer({
   fileFilter: fileFilter(IMAGE_MIME_TYPES, 'image'),
 });
 
-/** Documents (resume, verification document) — PDF / DOC / DOCX only. */
+/** Documents (resume, verification document) - PDF / DOC / DOCX only. */
 export const documentUpload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: MAX_DOCUMENT_UPLOAD_MB * 1024 * 1024, files: 1, fields: 10 },
@@ -85,6 +85,6 @@ export function singleDocument(field: string): RequestHandler[] {
 }
 
 // Express detects error middleware by arity (4 params), which TypeScript cannot
-// express inside a RequestHandler[] chain — hence the cast.
+// express inside a RequestHandler[] chain - hence the cast.
 const uploadErrorHandler = handleUploadErrors as unknown as RequestHandler;
 

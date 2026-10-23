@@ -7,7 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useFeed } from '@/hooks/useSocial';
 import { Suspense, useEffect, useState } from 'react';
 
-/** /social — home feed. Posts only: no headings, teasers or filler text. */
+/** /social - home feed. Posts only: no headings, teasers or filler text. */
 function HomeFeedBody() {
   const [page, setPage] = useState(1);
   const feed = useFeed(page);
@@ -16,7 +16,7 @@ function HomeFeedBody() {
   const hasMore = Boolean((feed.data as any)?.pagination?.hasMore);
   const [accumulated, setAccumulated] = useState<any[]>([]);
 
-  // Append pages instead of replacing — "Load more" must keep earlier posts.
+  // Append pages instead of replacing - "Load more" must keep earlier posts.
   useEffect(() => {
     if (!posts.length) return;
     setAccumulated((prev) => {
@@ -58,7 +58,7 @@ function HomeFeedBody() {
   );
 }
 
-/** /social — home feed. */
+/** /social - home feed. */
 export default function HomeFeedPage() {
   return (
     <Suspense fallback={<Skeleton className="h-64 w-full" />}>

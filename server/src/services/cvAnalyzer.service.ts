@@ -10,7 +10,7 @@ export interface CvCheckItem {
   tip: string;
 }
 
-/** Score weights — must sum to 100. */
+/** Score weights - must sum to 100. */
 const WEIGHTS: Record<string, number> = {
   readable: 15,
   contact: 12,
@@ -90,7 +90,7 @@ export async function parseCv(buffer: Buffer, mimeType: string): Promise<string>
 const EMAIL_RE = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i;
 const PHONE_RE = /(\+?\d[\d\s\-().]{7,}\d)/;
 const DATE_RE =
-  /\b(\d{1,2}[/\-.]\d{1,2}[/\-.]\d{2,4}|\d{4}[/\-.]\d{1,2}|(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?\s+\d{4}|\d{4}\s*[-–—to]+\s*(\d{4}|present|current))/gi;
+  /\b(\d{1,2}[/\-.]\d{1,2}[/\-.]\d{2,4}|\d{4}[/\-.]\d{1,2}|(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?\s+\d{4}|\d{4}\s*[-–-to]+\s*(\d{4}|present|current))/gi;
 const NUMBER_RE = /\d+\s?(%|percent|\+|x\b)?|\$\s?\d+|৳\s?\d+/i;
 
 function sectionFound(lower: string, key: string): boolean {
@@ -163,7 +163,7 @@ export function analyzeCv(rawText: string): { score: number; checks: CvCheckItem
     id: 'noImages',
     label: 'No images or icons detected in the text layer',
     status: imageHints ? 'warn' : 'pass',
-    tip: 'Remove photos, logos and icons — tracking systems ignore them.',
+    tip: 'Remove photos, logos and icons - tracking systems ignore them.',
   });
 
   const multiCol = looksTwoColumn(text) || looksTabular(text);
@@ -191,7 +191,7 @@ export function analyzeCv(rawText: string): { score: number; checks: CvCheckItem
     tip: 'Add start and end dates (e.g. Jan 2024 – Jun 2024) to every role.',
   });
 
-  const bullets = text.split('\n').filter((l) => /^[\s]*[•\-*–—]/.test(l));
+  const bullets = text.split('\n').filter((l) => /^[\s]*[•\-*–-]/.test(l));
   const withNumbers = bullets.filter((b) => NUMBER_RE.test(b)).length;
   const ratio = bullets.length === 0 ? 0 : withNumbers / bullets.length;
   checks.push({

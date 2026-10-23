@@ -19,7 +19,7 @@ export interface FileUploadRules {
   /** Accepted MIME types. `image/*` style wildcards are supported. */
   accept?: string[];
   /**
-   * Accepted file extensions (`pdf`, `docx`, ...) — fallback for browsers that
+   * Accepted file extensions (`pdf`, `docx`, ...) - fallback for browsers that
    * report an empty MIME type (common with Office documents).
    */
   extensions?: string[];
@@ -55,9 +55,9 @@ export function validateUploadFile(file: File, rules: FileUploadRules = {}): str
 }
 
 export interface UseFileUploadOptions extends FileUploadRules {
-  /** API path without the `/api` prefix — e.g. `/profile/photo`. */
+  /** API path without the `/api` prefix - e.g. `/profile/photo`. */
   endpoint: string;
-  /** Multer field name — e.g. `photo`, `resume`, `logo`. */
+  /** Multer field name - e.g. `photo`, `resume`, `logo`. */
   fieldName: string;
   /** React Query keys invalidated after a successful upload. */
   invalidateKeys?: QueryKey[];

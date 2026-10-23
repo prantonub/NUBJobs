@@ -3,7 +3,7 @@ import prisma from '../lib/prisma';
 import { responses } from '../utils/response.utils';
 import { AdminRequest, paginationMeta, parsePageLimit } from './admin-spec.helpers';
 
-/** GET /api/admin/companies — verified filter + counts. (spec #13) */
+/** GET /api/admin/companies - verified filter + counts. (spec #13) */
 export async function listAllCompanies(req: AdminRequest, res: Response, next: NextFunction) {
   try {
     const { page, limit, skip } = parsePageLimit(req.query);
@@ -38,7 +38,7 @@ export async function listAllCompanies(req: AdminRequest, res: Response, next: N
   }
 }
 
-/** GET /api/admin/companies/verification-requests — queue. (spec #14) */
+/** GET /api/admin/companies/verification-requests - queue. (spec #14) */
 export async function listVerificationRequests(req: AdminRequest, res: Response, next: NextFunction) {
   try {
     const { page, limit, skip } = parsePageLimit(req.query);

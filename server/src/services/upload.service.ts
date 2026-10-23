@@ -35,7 +35,7 @@ function extensionOf(fileName: string): string {
 }
 
 /**
- * `nubjobs/<scope>/<ownerId>-<timestamp><random>` — deterministic enough to
+ * `nubjobs/<scope>/<ownerId>-<timestamp><random>` - deterministic enough to
  * review in the Cloudinary console, unique enough that two uploads never clash.
  */
 function buildPublicId(scope: string, ownerId: string, extension = ''): string {
@@ -46,7 +46,7 @@ function buildPublicId(scope: string, ownerId: string, extension = ''): string {
 }
 
 /**
- * POST /api/profile/photo — square 400px face-cropped avatar, `q_auto,f_auto`.
+ * POST /api/profile/photo - square 400px face-cropped avatar, `q_auto,f_auto`.
  */
 export async function storeProfilePhoto(userId: string, file: UploadedFile): Promise<StoredImage> {
   assertMime(file, IMAGE_MIME_TYPES, 'image');
@@ -64,7 +64,7 @@ export async function storeProfilePhoto(userId: string, file: UploadedFile): Pro
 }
 
 /**
- * POST /api/profile/resume — PDF/DOC/DOCX stored as a `raw` asset (never
+ * POST /api/profile/resume - PDF/DOC/DOCX stored as a `raw` asset (never
  * transformed, always downloadable with its original extension).
  */
 export async function storeResume(userId: string, file: UploadedFile): Promise<StoredFile> {
@@ -82,7 +82,7 @@ export async function storeResume(userId: string, file: UploadedFile): Promise<S
   });
 }
 
-/** POST /api/social/posts/photo — feed photo (1200px fit, `q_auto,f_auto`). */
+/** POST /api/social/posts/photo - feed photo (1200px fit, `q_auto,f_auto`). */
 export async function storePostPhoto(userId: string, file: UploadedFile): Promise<StoredImage> {
   assertMime(file, IMAGE_MIME_TYPES, 'image');
 
@@ -98,7 +98,7 @@ export async function storePostPhoto(userId: string, file: UploadedFile): Promis
   return { ...stored, thumbnailUrl: optimizeImageUrl(stored.url, { width: 640, height: 640, crop: 'limit' }) };
 }
 
-/** POST /api/employer/company/logo — 512px fit logo, `q_auto,f_auto`. */
+/** POST /api/employer/company/logo - 512px fit logo, `q_auto,f_auto`. */
 export async function storeCompanyLogo(employerId: string, file: UploadedFile): Promise<StoredImage> {
   assertMime(file, IMAGE_MIME_TYPES, 'image');
 
@@ -114,7 +114,7 @@ export async function storeCompanyLogo(employerId: string, file: UploadedFile): 
   return { ...stored, thumbnailUrl: optimizeImageUrl(stored.url, { width: 128, height: 128, crop: 'fit' }) };
 }
 
-/** POST /api/company/verification-document — raw document for admin review. */
+/** POST /api/company/verification-document - raw document for admin review. */
 export async function storeVerificationDocument(
   employerId: string,
   file: UploadedFile

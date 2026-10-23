@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useAdminApplicationDetail, useAdminApplicationStatus, useSendAdminMessage } from '@/hooks/useAdmin';
 import { getErrorMessage } from '@/lib/utils';
 
-const fmt = (v?: string | null) => (v ? new Date(v).toLocaleString() : '—');
+const fmt = (v?: string | null) => (v ? new Date(v).toLocaleString() : '-');
 const STATUSES = ['REVIEWED', 'SHORTLISTED', 'INTERVIEWED', 'HIRED', 'REJECTED'];
 
 export default function AdminApplicationDetailPage() {
@@ -52,7 +52,7 @@ export default function AdminApplicationDetailPage() {
 
   return (
     <div className="grid gap-6 xl:grid-cols-3">
-      {/* Left — student profile */}
+      {/* Left - student profile */}
       <Card className="xl:sticky xl:top-4 xl:self-start">
         <CardHeader><CardTitle>Student</CardTitle></CardHeader>
         <CardContent className="space-y-3 text-sm">
@@ -61,8 +61,8 @@ export default function AdminApplicationDetailPage() {
             <p className="text-muted-foreground">{student.user?.email}</p>
           </div>
           <dl className="grid grid-cols-2 gap-2">
-            <div><dt className="text-muted-foreground">CGPA</dt><dd className="font-medium">{student.cgpa ?? '—'}</dd></div>
-            <div><dt className="text-muted-foreground">Department</dt><dd className="font-medium">{student.department ?? '—'}</dd></div>
+            <div><dt className="text-muted-foreground">CGPA</dt><dd className="font-medium">{student.cgpa ?? '-'}</dd></div>
+            <div><dt className="text-muted-foreground">Department</dt><dd className="font-medium">{student.department ?? '-'}</dd></div>
           </dl>
           <div className="flex flex-wrap gap-1">
             {skills.length ? skills.slice(0, 8).map((s) => <Badge key={s} variant="secondary">{s}</Badge>) : <span className="text-muted-foreground">No skills</span>}
@@ -80,7 +80,7 @@ export default function AdminApplicationDetailPage() {
         </CardContent>
       </Card>
 
-      {/* Center — application details */}
+      {/* Center - application details */}
       <div className="space-y-6">
         <Card>
           <CardHeader>
@@ -143,7 +143,7 @@ export default function AdminApplicationDetailPage() {
         </Card>
       </div>
 
-      {/* Right — actions */}
+      {/* Right - actions */}
       <div className="space-y-6 xl:sticky xl:top-4 xl:self-start">
         <Card>
           <CardHeader><CardTitle>Update status</CardTitle></CardHeader>

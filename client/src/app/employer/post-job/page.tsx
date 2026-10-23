@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { FC, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -23,9 +23,9 @@ const JobPostingWizard: FC = () => {
   const [step, setStep] = useState(1);
   const [isImproving, setIsImproving] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  // Draft → POST /api/employer/jobs (status DRAFT)
+  // Draft â†’ POST /api/employer/jobs (status DRAFT)
   const saveDraftMutation = useCreateJob();
-  // Publish → POST /api/jobs (status PENDING + admin approval notification)
+  // Publish â†’ POST /api/jobs (status PENDING + admin approval notification)
   const postJobMutation = usePostJob();
   const improveDescMutation = useImproveDescription();
   // Spec: only a blue verified company may post jobs (server enforces too).
@@ -92,7 +92,7 @@ const JobPostingWizard: FC = () => {
    */
   const submitJob = async (mode: 'draft' | 'publish') => {
     if (companyUnverified) {
-      toast.error('Your company profile is not verified yet — get admin approval before posting jobs.');
+      toast.error('Your company profile is not verified yet â€” get admin approval before posting jobs.');
       return;
     }
     const payload = buildJobPayload(formData);
@@ -125,10 +125,10 @@ const JobPostingWizard: FC = () => {
 
   const handleSaveDraft = () => void submitJob('draft');
 
-  // ── Auto-save (spec): persist in-progress forms as DRAFT every 30 seconds.
+  // â”€â”€ Auto-save (spec): persist in-progress forms as DRAFT every 30 seconds.
   // The FIRST tick creates the draft; later ticks UPDATE that same job so the
   // list never fills with duplicates. Too-thin forms (below the client mins)
-  // and in-flight submits are skipped, and failures stay silent — the manual
+  // and in-flight submits are skipped, and failures stay silent â€” the manual
   // "Save as Draft" button is where real validation errors surface.
   const updateDraftMutation = useUpdateJob();
   const formDataRef = useRef(formData);
@@ -149,7 +149,7 @@ const JobPostingWizard: FC = () => {
   useEffect(() => {
     const interval = window.setInterval(() => {
       if (autoSavingRef.current) return;
-      // Unverified companies can't create drafts server-side — skip the auto-save.
+      // Unverified companies can't create drafts server-side â€” skip the auto-save.
       if (companyUnverifiedRef.current) return;
       if (Date.now() - lastAutoSavedRef.current < 30_000) return;
 
@@ -171,7 +171,7 @@ const JobPostingWizard: FC = () => {
           }
           lastAutoSavedRef.current = Date.now();
         } catch {
-          // Silent by design — auto-save must never interrupt typing.
+          // Silent by design â€” auto-save must never interrupt typing.
         } finally {
           autoSavingRef.current = false;
         }
@@ -278,7 +278,7 @@ const JobPostingWizard: FC = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2">Salary Min (৳)</label>
+                  <label className="block text-sm font-medium mb-2">Salary Min (à§³)</label>
                   <Input
                     type="number"
                     value={formData.salaryMin}
@@ -286,7 +286,7 @@ const JobPostingWizard: FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">Salary Max (৳)</label>
+                  <label className="block text-sm font-medium mb-2">Salary Max (à§³)</label>
                   <Input
                     type="number"
                     value={formData.salaryMax}
@@ -366,7 +366,7 @@ const JobPostingWizard: FC = () => {
                         onClick={() => handleRemoveSkill(i)}
                         className="ml-1 hover:text-red-600"
                       >
-                        ×
+                        Ã-
                       </button>
                     </Badge>
                   ))}
@@ -440,7 +440,7 @@ const JobPostingWizard: FC = () => {
                     <div>
                       <p className="text-sm text-gray-600">Salary</p>
                       <p className="font-semibold">
-                        ৳{formData.salaryMin}-{formData.salaryMax}
+                        à§³{formData.salaryMin}-{formData.salaryMax}
                       </p>
                     </div>
                     <div>
@@ -522,7 +522,7 @@ const JobPostingWizard: FC = () => {
                     {saveDraftMutation.isPending ? (
                       <>
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Saving…
+                        Savingâ€¦
                       </>
                     ) : (
                       'Save as Draft'

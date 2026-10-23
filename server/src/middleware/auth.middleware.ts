@@ -61,7 +61,7 @@ export function optionalAuth(req: AuthRequest, res: Response, next: NextFunction
 /**
  * Require specific role
  *
- * Fail-closed on the JWT claim, then — only when the claim misses — re-check
+ * Fail-closed on the JWT claim, then - only when the claim misses - re-check
  * the live DB row before refusing. That second lookup costs one indexed query
  * and only runs on what would otherwise be a 403, so:
  *  - a stale token (role changed by an admin / a re-registered account while
@@ -96,7 +96,7 @@ export function requireRole(...roles: string[]) {
         }
       }
 
-      // Which account and claim hit the wall — essential for debugging stale sessions.
+      // Which account and claim hit the wall - essential for debugging stale sessions.
       console.warn(`[authz] blocked user=${req.userId ?? 'unknown'} claim=${req.role ?? 'none'} db=${dbRole ?? 'unknown'} needs=${roles.join(',')}`);
       return responses.forbidden(res, `This action requires one of: ${roles.join(', ')}`);
     } catch (error) {

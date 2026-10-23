@@ -440,7 +440,7 @@ export const CompanySettingsTab: FC = () => {
         )}
       </Card>
 
-      {/* Danger zone — permanently delete the employer account. */}
+      {/* Danger zone - permanently delete the employer account. */}
       <DeleteAccountSection requiredRole="EMPLOYER" />
     </div>
   );

@@ -77,7 +77,7 @@ function SearchBody() {
   );
 }
 
-/** /community/search — search posts & users. */
+/** /community/search - search posts & users. */
 export default function SearchPage() {
   return (
     <Suspense fallback={<Skeleton className="h-40 w-full" />}>

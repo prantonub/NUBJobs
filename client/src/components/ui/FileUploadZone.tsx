@@ -10,7 +10,7 @@ import { useFileUpload, type UseFileUploadOptions } from '@/hooks/useFileUpload'
 export interface FileUploadZoneProps extends Omit<UseFileUploadOptions, 'onUploaded'> {
   /** Headline shown inside the drop zone. */
   label?: string;
-  /** Secondary line — defaults to "… drag & drop or browse · max XMB". */
+  /** Secondary line - defaults to "… drag & drop or browse · max XMB". */
   hint?: string;
   /** Already stored file (Cloudinary `secure_url`) rendered as a preview. */
   previewUrl?: string | null;

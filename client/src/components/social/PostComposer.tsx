@@ -133,7 +133,7 @@ export function PostComposer({ initial }: { initial?: { content: string; photoUr
         placeholder={showPoll ? 'Add a caption (optional)…' : "What's on your mind? Use #hashtags and @mentions…"}
         aria-label="Post content"
       />
-      {/* Photo picker — uploads to Cloudinary, stores the URL for the post */}
+      {/* Photo picker - uploads to Cloudinary, stores the URL for the post */}
       <input
         ref={fileRef}
         type="file"
@@ -174,7 +174,7 @@ export function PostComposer({ initial }: { initial?: { content: string; photoUr
           </Button>
         </div>
       )}
-      {/* Poll builder — question + 2–4 options, Twitter-style */}
+      {/* Poll builder - question + 2–4 options, Twitter-style */}
       {showPoll && (
         <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-3">
           <div className="flex items-center justify-between">

@@ -3,7 +3,7 @@
 import { MessagesSquareIcon } from 'lucide-react';
 
 /**
- * /social/messages — the list lives in the section layout; this pane shows
+ * /social/messages - the list lives in the section layout; this pane shows
  * the "pick a conversation" empty state (desktop only; hidden on mobile).
  */
 export default function SocialMessagesHome() {
@@ -15,7 +15,7 @@ export default function SocialMessagesHome() {
       <div>
         <p className="text-base font-semibold">Select a conversation</p>
         <p className="mx-auto mt-1 max-w-xs text-sm text-muted-foreground">
-          Pick someone from the list to start chatting — messages arrive instantly, with typing
+          Pick someone from the list to start chatting messages arrive instantly, with typing
           indicators and read receipts.
         </p>
       </div>

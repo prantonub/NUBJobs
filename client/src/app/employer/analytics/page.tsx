@@ -6,7 +6,7 @@ import { EmployerAnalyticsPanel } from '@/components/employer/EmployerAnalyticsP
 import { Button } from '@/components/ui/button';
 
 /**
- * /employer/analytics — charts, metrics and per-job performance for the
+ * /employer/analytics - charts, metrics and per-job performance for the
  * company (the same panel is embedded in the Analytics tab of /employer/company).
  */
 const EmployerAnalyticsPage: FC = () => (

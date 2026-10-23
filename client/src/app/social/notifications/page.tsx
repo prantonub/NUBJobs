@@ -12,7 +12,7 @@ import {
 } from '@/hooks/useSocial';
 import { useState } from 'react';
 
-/** /social/notifications — notification center. */
+/** /social/notifications - notification center. */
 export default function NotificationsPage() {
   useSocialSocket();
   const [page, setPage] = useState(1);

@@ -3,7 +3,7 @@ import prisma from '../lib/prisma';
 import { responses } from '../utils/response.utils';
 import { AdminRequest, paginationMeta, parsePageLimit } from './admin-spec.helpers';
 
-/** GET /api/admin/applications — status/job/company/search + pagination. (spec #17) */
+/** GET /api/admin/applications - status/job/company/search + pagination. (spec #17) */
 export async function listAllApplications(req: AdminRequest, res: Response, next: NextFunction) {
   try {
     const { page, limit, skip } = parsePageLimit(req.query);
@@ -41,7 +41,7 @@ export async function listAllApplications(req: AdminRequest, res: Response, next
   }
 }
 
-/** GET /api/admin/applications/:id — profile + resume + messages + timeline. (spec #18) */
+/** GET /api/admin/applications/:id - profile + resume + messages + timeline. (spec #18) */
 export async function getAdminApplicationDetail(req: AdminRequest, res: Response, next: NextFunction) {
   try {
     const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
@@ -67,7 +67,7 @@ export async function getAdminApplicationDetail(req: AdminRequest, res: Response
   }
 }
 
-/** GET /api/admin/pipeline — read-only kanban. (spec §5) */
+/** GET /api/admin/pipeline - read-only kanban. (spec §5) */
 export async function getAdminPipeline(req: AdminRequest, res: Response, next: NextFunction) {
   try {
     const q = req.query as Record<string, string | undefined>;

@@ -20,7 +20,7 @@ import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxi
 import { Briefcase, Eye, TrendingUp, Users } from 'lucide-react';
 
 /**
- * /employer/dashboard — company header, 4 KPI cards, the pipeline chart, the
+ * /employer/dashboard - company header, 4 KPI cards, the pipeline chart, the
  * latest postings/applicants, quick actions and an activity feed.
  * Every number comes from employer-scoped endpoints, so it only ever reflects
  * the signed-in company's own data.

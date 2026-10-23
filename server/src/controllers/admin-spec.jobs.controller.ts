@@ -3,7 +3,7 @@ import prisma from '../lib/prisma';
 import { responses } from '../utils/response.utils';
 import { AdminRequest, paginationMeta, parsePageLimit } from './admin-spec.helpers';
 
-/** GET /api/admin/jobs — status/category/featured/search + pagination. (spec #7) */
+/** GET /api/admin/jobs - status/category/featured/search + pagination. (spec #7) */
 export async function listAllJobs(req: AdminRequest, res: Response, next: NextFunction) {
   try {
     const { page, limit, skip } = parsePageLimit(req.query);
@@ -43,7 +43,7 @@ export async function listAllJobs(req: AdminRequest, res: Response, next: NextFu
   }
 }
 
-/** GET /api/admin/jobs/:id — full detail + employer + first 10 applications. (spec #8) */
+/** GET /api/admin/jobs/:id - full detail + employer + first 10 applications. (spec #8) */
 export async function getAdminJobDetail(req: AdminRequest, res: Response, next: NextFunction) {
   try {
     const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;

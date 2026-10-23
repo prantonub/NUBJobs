@@ -28,7 +28,7 @@ async function isFollowingSet(viewerId: string, targetIds: string[]): Promise<Se
   return new Set(rows.map((r) => r.followingId));
 }
 
-/** GET /api/social/users/:username — public profile + counts + isFollowing. */
+/** GET /api/social/users/:username - public profile + counts + isFollowing. */
 export async function getUserProfile(req: AuthRequest, res: Response) {
   const me = req.userId!;
   const user = await findUserByUsername(req.params.username);
@@ -49,7 +49,7 @@ export async function getUserProfile(req: AuthRequest, res: Response) {
   });
 }
 
-/** PATCH /api/social/users/me — photo/bio(≤150)/location/website. */
+/** PATCH /api/social/users/me - photo/bio(≤150)/location/website. */
 export async function updateMe(req: AuthRequest, res: Response) {
   const me = req.userId!;
   const data: Record<string, any> = {};
@@ -71,7 +71,7 @@ export async function updateMe(req: AuthRequest, res: Response) {
   responses.ok(res, 'Profile updated', { user: toPublicUser(updated) });
 }
 
-/** GET /api/social/users/:username/posts — paginated post history. */
+/** GET /api/social/users/:username/posts - paginated post history. */
 export async function getUserPosts(req: AuthRequest, res: Response) {
   const me = req.userId!;
   const user = await findUserByUsername(req.params.username);
@@ -230,7 +230,7 @@ export async function listFollowing(req: AuthRequest, res: Response) {
   });
 }
 
-/** GET /api/social/suggestions — people I don't follow yet, by popularity. */
+/** GET /api/social/suggestions - people I don't follow yet, by popularity. */
 export async function getSuggestions(req: AuthRequest, res: Response) {
   const me = req.userId!;
   const limit = Math.min(20, Math.max(1, Number(req.query.limit) || 5));

@@ -25,7 +25,7 @@ interface UserHit {
 }
 
 /**
- * /messages/new — start a new conversation (spec §FRONTEND PAGE 2).
+ * /messages/new - start a new conversation (spec §FRONTEND PAGE 2).
  * Recipient auto-complete + optional job context (pre-filled from ?job=) +
  * message preview, then hands off to /messages?user=<id>.
  */

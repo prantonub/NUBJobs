@@ -7,7 +7,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { useAuditLogs } from '@/hooks/useAdmin';
 
-const fmt = (v?: string | null) => (v ? new Date(v).toLocaleString() : '—');
+const fmt = (v?: string | null) => (v ? new Date(v).toLocaleString() : '-');
 
 export default function AdminAuditLogsPage() {
   const [action, setAction] = useState('');
@@ -98,8 +98,8 @@ export default function AdminAuditLogsPage() {
                   <td className="p-3">{l.adminName}</td>
                   <td className="p-3"><Badge variant="secondary">{l.action}</Badge></td>
                   <td className="p-3 text-muted-foreground">{l.resource}</td>
-                  <td className="p-3 max-w-xs truncate" title={l.details ?? ''}>{l.details ?? '—'}</td>
-                  <td className="p-3 text-muted-foreground">{l.ipAddress ?? '—'}</td>
+                  <td className="p-3 max-w-xs truncate" title={l.details ?? ''}>{l.details ?? '-'}</td>
+                  <td className="p-3 text-muted-foreground">{l.ipAddress ?? '-'}</td>
                 </tr>
               ))
             )}

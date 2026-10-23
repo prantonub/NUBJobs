@@ -1,4 +1,4 @@
-import { cache } from "react";
+﻿import { cache } from "react";
 
 /**
  * Server-side read-only access to the public job endpoints of the Express API.
@@ -71,7 +71,7 @@ export const getPublicJob = cache(async (id: string): Promise<PublicJob | null> 
   return payload?.data ?? null;
 });
 
-/** Google recommends ≤50k URLs per sitemap; 10 × 50 keeps the fetch bounded. */
+/** Google recommends â‰¤50k URLs per sitemap; 10 Ã- 50 keeps the fetch bounded. */
 const MAX_SITEMAP_PAGES = 10;
 const SITEMAP_PAGE_SIZE = 50;
 

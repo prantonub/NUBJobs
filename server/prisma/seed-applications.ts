@@ -225,7 +225,7 @@ const STUDENTS = [
   { name: 'Sabbir Rahman', department: 'CIVIL', cgpa: 2.9, skills: ['AutoCAD', 'Project Management', 'Excel'] },
 ];
 
-/** Applications per status — superseded by the per-company weighted mix below. */
+/** Applications per status - superseded by the per-company weighted mix below. */
 
 const COVER_LETTERS = [
   'I am a final-year CSE student at NUB with hands-on experience building production web apps. I would love to contribute to your team.',
@@ -348,7 +348,7 @@ async function main(): Promise<void> {
         title:
           level === 0
             ? base.title
-            : `${base.title} — ${['Mid-level', 'Senior', 'Lead'][level - 1] ?? `Level ${level + 1}`}`,
+            : `${base.title} - ${['Mid-level', 'Senior', 'Lead'][level - 1] ?? `Level ${level + 1}`}`,
       };
 
       const description = `${company.name} is hiring a ${template.title}.
@@ -493,7 +493,7 @@ Requirements
         matchScore,
         status: status as 'APPLIED',
         notes: ['SHORTLISTED', 'INTERVIEWED', 'HIRED', 'REJECTED'].includes(status)
-          ? 'Screening call completed — feedback shared with the hiring manager.'
+          ? 'Screening call completed - feedback shared with the hiring manager.'
           : null,
         createdAt: appliedAt,
         updatedAt,

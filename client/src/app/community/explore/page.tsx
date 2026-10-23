@@ -93,7 +93,7 @@ function ExploreBody() {
   );
 }
 
-/** /community/explore — discovery hub (+ ?tag= deep link). */
+/** /community/explore - discovery hub (+ ?tag= deep link). */
 export default function ExplorePage() {
   return (
     <Suspense fallback={<Skeleton className="h-40 w-full" />}>

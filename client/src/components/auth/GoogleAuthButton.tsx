@@ -24,7 +24,7 @@ function GoogleIcon({ className }: { className?: string }) {
 }
 
 export interface GoogleAuthButtonProps {
-  /** Verb shown after "Continue with" — e.g. "Sign up". Defaults to "Continue with Google". */
+  /** Verb shown after "Continue with" - e.g. "Sign up". Defaults to "Continue with Google". */
   label?: string;
   onClick?: () => void;
   disabled?: boolean;
@@ -33,7 +33,7 @@ export interface GoogleAuthButtonProps {
 
 /**
  * Full-width Google OAuth button with the multi-color Google glyph. Purely
- * presentational — the parent wires up the OAuth handler via `onClick`.
+ * presentational - the parent wires up the OAuth handler via `onClick`.
  */
 export function GoogleAuthButton({
   label = "Continue with Google",

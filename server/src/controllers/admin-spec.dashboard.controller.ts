@@ -6,7 +6,7 @@ import { AdminRequest, logAdminAction, notifyUser, paginationMeta, parsePageLimi
 
 // ── Dashboard (spec endpoint #1) ──────────────────────────────────────────
 
-/** GET /api/admin/dashboard — pending queues, recents, hire stats. */
+/** GET /api/admin/dashboard - pending queues, recents, hire stats. */
 export async function getAdminDashboard(req: AdminRequest, res: Response, next: NextFunction) {
   try {
     const today = new Date();

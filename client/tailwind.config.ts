@@ -3,7 +3,7 @@ import type { Config } from "tailwindcss"
 /**
  * NUBJobs Tailwind configuration.
  *
- * Tailwind CSS v4 is CSS-first and normally needs no JS/TS config — the brand
+ * Tailwind CSS v4 is CSS-first and normally needs no JS/TS config - the brand
  * tokens, animations and font family are declared with `@theme` in
  * `src/app/globals.css`. This file mirrors those values in the classic
  * `theme.extend` shape (the format most tooling and contributors expect) and is

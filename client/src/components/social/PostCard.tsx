@@ -85,7 +85,7 @@ export function PollBlock({ postId, poll }: { postId: string; poll: SocialPoll }
               className={`relative w-full overflow-hidden rounded-md border px-2.5 py-1.5 text-left text-sm transition-colors ${
                 mine ? 'border-primary' : 'border-border hover:border-primary/50'
               }`}
-              aria-label={`${opt.text} — ${pct}%${mine ? ' (your vote)' : ''}`}
+              aria-label={`${opt.text} ${pct}%${mine ? ' (your vote)' : ''}`}
             >
               <span className="absolute inset-y-0 left-0 bg-primary/10" style={{ width: `${pct}%` }} />
               <span className="relative flex items-center justify-between gap-2">
@@ -161,7 +161,7 @@ export function PostCard({ post, hideActions = false }: { post: SocialPost; hide
         )}
       </div>
 
-      {/* Click-to-open as a <div> — a wrapping <Link> would nest an <a>
+      {/* Click-to-open as a <div> - a wrapping <Link> would nest an <a>
           inside the inline #hashtag / @mention / URL anchors (hydration error). */}
       <div
         onClick={() => router.push(`/social/posts/${post.id}`)}
@@ -228,3 +228,4 @@ export function PostCard({ post, hideActions = false }: { post: SocialPost; hide
     </article>
   );
 }
+

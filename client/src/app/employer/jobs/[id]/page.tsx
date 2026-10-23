@@ -18,7 +18,7 @@ import { ArrowLeft, Eye, Loader2, Users, StarIcon } from 'lucide-react';
 import { getErrorMessage, formatSalary } from '@/lib/utils';
 
 /**
- * /employer/jobs/[id] — full detail of ONE of the employer's own postings.
+ * /employer/jobs/[id] - full detail of ONE of the employer's own postings.
  * The API returns 403 for any other company's job, so a leaked id shows the
  * "not found / not yours" state instead of foreign data.
  */
@@ -94,7 +94,7 @@ const EmployerJobDetailPage: FC = () => {
                   {job.category ?? 'General'}
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Posted {postedAt ? new Date(postedAt).toLocaleString() : '—'}
+                  Posted {postedAt ? new Date(postedAt).toLocaleString() : '-'}
                   {job.deadline ? ` · deadline ${new Date(job.deadline).toLocaleDateString()}` : ''}
                 </p>
               </div>

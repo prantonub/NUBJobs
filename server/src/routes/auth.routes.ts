@@ -69,7 +69,7 @@ router.post('/resend-otp', rateLimit(10, 15 * 60 * 1000), validate(resendOTPSche
 
 // Google OAuth ("Continue with Google").
 // These are full-page browser redirects, so they are rate limited more loosely
-// than the JSON endpoints — a user may retry the consent screen repeatedly.
+// than the JSON endpoints - a user may retry the consent screen repeatedly.
 router.get('/google', rateLimit(30, 15 * 60 * 1000), googleAuth);
 router.get('/google/callback', rateLimit(30, 15 * 60 * 1000), googleAuthCallback);
 

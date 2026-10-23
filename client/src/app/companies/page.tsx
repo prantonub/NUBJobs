@@ -40,7 +40,7 @@ const PAGE_SIZE = 12;
  * Company directory. The navbar and footer both link here, and the API exposes
  * `GET /api/companies` (verified employers only), so this page lists what that
  * endpoint returns. Each card links into the job search filtered by company
- * name — there is no per-company page to link to, and a filtered job search is
+ * name - there is no per-company page to link to, and a filtered job search is
  * the more useful destination for a student anyway.
  */
 export default function CompaniesPage() {

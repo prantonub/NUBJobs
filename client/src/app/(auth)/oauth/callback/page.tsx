@@ -53,7 +53,7 @@ function GoogleCallbackInner() {
   // which re-renders this component with empty params. Without the guard that
   // second run would mistake consumption for a direct visit and flash the
   // "couldn't find the details" error for a frame before the dashboard
-  // navigation lands — the 0.5s error-then-success flicker.
+  // navigation lands - the 0.5s error-then-success flicker.
   const consumedRef = React.useRef(false);
 
   // Everything that can be decided from the query string alone is derived while
@@ -217,4 +217,5 @@ function GoogleCallbackLoading() {
     </div>
   );
 }
+
 

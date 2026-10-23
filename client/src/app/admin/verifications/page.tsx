@@ -29,7 +29,7 @@ type Tab = 'PENDING' | 'APPROVED' | 'REJECTED';
 type RoleFilter = 'ALL' | 'STUDENT' | 'EMPLOYER';
 
 /**
- * /admin/verifications — review queue for the blue verified badge.
+ * /admin/verifications - review queue for the blue verified badge.
  * 100%-complete students and employers land here; approving flips
  * `isVerified` (badge goes live) and lifts the apply/post-job gates.
  */
@@ -62,7 +62,7 @@ export default function AdminVerificationsPage() {
       { kind: row.kind.toLowerCase(), id: row.id },
       {
         onSuccess: () => {
-          toast.success(`${row.name} verified — blue badge is live`);
+          toast.success(`${row.name} verified blue badge is live`);
           setViewTarget(null);
         },
         onError: (error) => toast.error(getErrorMessage(error, 'Failed to approve')),
@@ -97,7 +97,7 @@ export default function AdminVerificationsPage() {
         <div>
           <h1 className="text-3xl font-bold">Profile Verifications</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Review 100%-complete profiles — approval grants the blue verified badge and unlocks job
+            Review 100%-complete profiles approval grants the blue verified badge and unlocks job
             applications / postings.
           </p>
         </div>
@@ -194,18 +194,18 @@ export default function AdminVerificationsPage() {
                           {row.completion}%
                         </span>
                       ) : (
-                        <span className="text-muted-foreground">—</span>
+                        <span className="text-muted-foreground">-</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-xs text-muted-foreground">
-                      {row.submittedAt ? new Date(row.submittedAt).toLocaleString() : '—'}
+                      {row.submittedAt ? new Date(row.submittedAt).toLocaleString() : '-'}
                     </td>
                     <td className="max-w-56 px-4 py-3 text-xs text-muted-foreground">
                       {row.kind === 'STUDENT'
                         ? [row.detail?.nubId, row.detail?.cgpa ? 'CGPA ' + row.detail.cgpa : null, row.detail?.department]
                             .filter(Boolean)
-                            .join(' · ') || '—'
-                        : [row.detail?.location, row.detail?.industry].filter(Boolean).join(' · ') || '—'}
+                            .join(' · ') || '-'
+                        : [row.detail?.location, row.detail?.industry].filter(Boolean).join(' · ') || '-'}
                       {row.rejectReason && tab === 'REJECTED' ? (
                         <p className="mt-0.5 text-red-500">Reason: {row.rejectReason}</p>
                       ) : null}
@@ -275,7 +275,7 @@ export default function AdminVerificationsPage() {
           <Textarea
             value={rejectReason}
             onChange={(event) => setRejectReason(event.target.value)}
-            placeholder="Reason (min 3 chars) — e.g. resume unreadable, photo does not match"
+            placeholder="Reason (min 3 chars) e.g. resume unreadable, photo does not match"
             rows={4}
           />
           <DialogFooter>
@@ -289,7 +289,7 @@ export default function AdminVerificationsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      {/* Full-profile review dialog (separate root — Radix DialogContent must be an only child) */}
+      {/* Full-profile review dialog (separate root - Radix DialogContent must be an only child) */}
       {viewTarget ? (
         <ViewVerificationDialog
           open={!!viewTarget}

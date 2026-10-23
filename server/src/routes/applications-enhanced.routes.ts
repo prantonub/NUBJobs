@@ -15,7 +15,7 @@ import { authenticate, requireRole, validate } from '../middleware/auth.middlewa
 const router = Router();
 
 // NOTE: job/application ids are Prisma `cuid()` values (e.g.
-// "cmu11j0770002e6jcv675dgx4"), not UUIDs — validating with
+// "cmu11j0770002e6jcv675dgx4"), not UUIDs - validating with
 // `z.string().uuid()` rejected every real job. Length bounds are the guard.
 const createApplicationSchema = z.object({
   jobId: z.string().min(1).max(64),

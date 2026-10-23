@@ -2,7 +2,7 @@
 
 /**
  * Page header for social routes (title + subtitle only).
- * Navigation lives in the SocialSidebar — the old horizontal tab bar
+ * Navigation lives in the SocialSidebar - the old horizontal tab bar
  * was removed because it duplicated the sidebar links below the title.
  */
 export function SocialNav({ title, subtitle }: { title?: string; subtitle?: string }) {

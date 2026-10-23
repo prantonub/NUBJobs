@@ -29,7 +29,7 @@ export interface JobCardEmployer {
 }
 
 /**
- * Data the card renders — a structural subset of a `GET /api/jobs` row, so the
+ * Data the card renders - a structural subset of a `GET /api/jobs` row, so the
  * full Prisma payload can be passed straight through. Every optional field
  * degrades to a sensible placeholder instead of breaking the layout.
  */
@@ -80,7 +80,7 @@ const JOB_TYPE_LABELS: Record<string, string> = {
 const SENIOR_TITLE = /\b(senior|sr\.?|lead|principal|staff|head)\b/i;
 const MID_TITLE = /\b(mid|mid-level|intermediate)\b/i;
 
-/** "Full-time" / "Internship" — unknown enum values fall back to Full-time. */
+/** "Full-time" / "Internship" - unknown enum values fall back to Full-time. */
 function jobTypeLabel(type?: string | null): string {
   const key = (type ?? 'FULL_TIME').toUpperCase().replace(/[\s-]+/g, '_');
   return JOB_TYPE_LABELS[key] ?? 'Full-time';
@@ -89,7 +89,7 @@ function jobTypeLabel(type?: string | null): string {
 /**
  * Career level shown next to the job type. The API stores no dedicated column,
  * so an explicit `experienceLevel` always wins; otherwise we infer it from the
- * title keywords and default to Entry Level — the level this portal targets.
+ * title keywords and default to Entry Level - the level this portal targets.
  */
 function careerLevel(job: JobCardJob): string {
   const explicit = job.experienceLevel?.trim();
@@ -101,7 +101,7 @@ function careerLevel(job: JobCardJob): string {
   return 'Entry Level';
 }
 
-/** 30000 → "30K", 32500 → "32.5K" — compact taka keeps the row scannable. */
+/** 30000 → "30K", 32500 → "32.5K" - compact taka keeps the row scannable. */
 function compactTaka(amount: number): string {
   if (Math.abs(amount) < 1000) return String(Math.round(amount));
   const thousands = Math.round((amount / 1000) * 10) / 10;
@@ -222,7 +222,7 @@ function SaveButton({
 }
 
 /** Trust signal for admin-approved employers (`employer.isVerified`).
- * Same inline blue seal as the Companies page — icon only, no text. */
+ * Same inline blue seal as the Companies page - icon only, no text. */
 function VerifiedBadge() {
   return <SharedVerifiedBadge variant="seal" iconClassName="size-3.5" />;
 }
@@ -328,7 +328,7 @@ function JobInfoList({
 /* ── Card ────────────────────────────────────────────────────────────────── */
 
 /**
- * NUBJobs job listing card — employer chip, bold title, type/level meta, short
+ * NUBJobs job listing card - employer chip, bold title, type/level meta, short
  * description, minimal skill chips and the location / salary / deadline block,
  * with a bookmark toggle and a "View Job" action that makes the whole card
  * clickable.

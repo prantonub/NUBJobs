@@ -3,7 +3,7 @@ import prisma from '../lib/prisma';
 import { responses } from '../utils/response.utils';
 import { AdminRequest } from './admin-spec.helpers';
 
-/** GET /api/admin/analytics — platform metrics + charts. (spec #22) */
+/** GET /api/admin/analytics - platform metrics + charts. (spec #22) */
 export async function getAdminDetailedAnalytics(req: AdminRequest, res: Response, next: NextFunction) {
   try {
     const days = Math.min(365, Math.max(7, parseInt(String((req.query as Record<string, string | undefined>).dateRange ?? '30'), 10) || 30));

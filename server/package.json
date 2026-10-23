@@ -1,7 +1,7 @@
 {
   "name": "nubjobs-server",
   "version": "1.0.0",
-  "description": "NUBJobs backend — Express + TypeScript + Prisma + PostgreSQL API",
+  "description": "NUBJobs backend - Express + TypeScript + Prisma + PostgreSQL API",
   "main": "dist/server.js",
   "scripts": {
     "dev": "nodemon",

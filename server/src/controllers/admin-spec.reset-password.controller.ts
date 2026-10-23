@@ -6,7 +6,7 @@ import { hashPassword } from '../utils/password.utils';
 import { emitToUser } from '../lib/socket-server';
 import { AdminRequest, logAdminAction, notifyUser } from './admin-spec.helpers';
 
-/** POST /api/admin/users/:id/reset-password — temp password + audit. (spec #5) */
+/** POST /api/admin/users/:id/reset-password - temp password + audit. (spec #5) */
 export async function resetUserPassword(req: AdminRequest, res: Response, next: NextFunction) {
   try {
     const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;

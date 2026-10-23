@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
  * "Shohoz" with the pill below it.
  *
  * `variant="seal"` renders the icon only for tight inline spots
- * (job cards, admin rows) — no text.
+ * (job cards, admin rows) - no text.
  */
 export function VerifiedBadge({
   className,
@@ -18,7 +18,7 @@ export function VerifiedBadge({
 }: {
   className?: string;
   iconClassName?: string;
-  /** @deprecated — the pill always shows "Verified"; use `variant="seal"` for icon-only. */
+  /** @deprecated - the pill always shows "Verified"; use `variant="seal"` for icon-only. */
   label?: boolean;
   variant?: 'pill' | 'seal';
   size?: 'sm' | 'lg';

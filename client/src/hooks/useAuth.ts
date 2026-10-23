@@ -7,7 +7,7 @@ export interface User {
   email: string;
   name: string;
   role: 'STUDENT' | 'EMPLOYER' | 'ADMIN';
-  /** `"local"` or `"google"` — decides how account deletion is confirmed. */
+  /** `"local"` or `"google"` - decides how account deletion is confirmed. */
   provider?: string;
 }
 
@@ -180,7 +180,7 @@ export const useLogout = () => {
 
 /**
  * Permanently delete the signed-in user's own account (`DELETE /auth/account`).
- * Tokens are cleared on success — no cache wipe here on purpose: clearing
+ * Tokens are cleared on success - no cache wipe here on purpose: clearing
  * active queries would refetch them without auth, trip the 401-refresh path
  * and hard-redirect to /login mid-transition. The caller does a full page
  * navigation afterwards, which discards all client state anyway.

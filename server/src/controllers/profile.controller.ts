@@ -163,7 +163,7 @@ export const updateProfile = async (req: Request, res: Response, next: NextFunct
         .filter(Boolean);
     }
 
-    // Employer discovery opt-in (Search Talent) — plain boolean; absent = untouched.
+    // Employer discovery opt-in (Search Talent) - plain boolean; absent = untouched.
     if (body.visibleToEmployers !== undefined) {
       data.visibleToEmployers = body.visibleToEmployers === true;
     }

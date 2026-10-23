@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { SearchIcon, XIcon } from 'lucide-react';
 
 /**
- * Generic search box (spec §8 SearchBar). Controlled — the parent owns the
+ * Generic search box (spec §8 SearchBar). Controlled - the parent owns the
  * query so it can debounce requests or filter client-side.
  */
 export const SearchBar: FC<{

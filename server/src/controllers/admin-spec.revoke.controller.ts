@@ -3,7 +3,7 @@ import prisma from '../lib/prisma';
 import { responses } from '../utils/response.utils';
 import { AdminRequest, logAdminAction, notifyUser } from './admin-spec.helpers';
 
-/** PATCH /api/admin/companies/:id/revoke — badge removed + audit. */
+/** PATCH /api/admin/companies/:id/revoke - badge removed + audit. */
 export async function revokeCompanyVerification(req: AdminRequest, res: Response, next: NextFunction) {
   try {
     const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;

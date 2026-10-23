@@ -6,7 +6,7 @@ import { emitToUser, isUserOnline } from '../lib/socket-server';
 import { classifyMessage, consumeMessageQuota } from '../utils/message-tagging.util';
 import { notifySocial, parsePage, publicUserSelect, toPublicUser, PublicUserRow } from '../utils/social.utils';
 
-/** Canonical pair ordering — matches the existing messaging system. */
+/** Canonical pair ordering - matches the existing messaging system. */
 const canonicalPair = (a: string, b: string): [string, string] => (a < b ? [a, b] : [b, a]);
 
 const MESSAGE_MAX = 500; // spec §VALIDATION: messages max 500 chars
@@ -80,7 +80,7 @@ export function serializeMessage(m: any, me: string) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// 1. GET /api/social/messages — list (filter + search + presence + unread)
+// 1. GET /api/social/messages - list (filter + search + presence + unread)
 // ════════════════════════════════════════════════════════════════════════════
 export async function listConversations(req: AuthRequest, res: Response) {
   const me = req.userId!;
@@ -88,7 +88,7 @@ export async function listConversations(req: AuthRequest, res: Response) {
   const search = String(req.query.search ?? '').trim().toLowerCase();
   const filter = String(req.query.filter ?? 'all').toLowerCase();
 
-  // Prefilter ids for content filters (one query each — never per-row).
+  // Prefilter ids for content filters (one query each - never per-row).
   let idAllow: string[] | null = null;
   const restrict = (ids: string[]) => {
     idAllow = idAllow === null ? ids : idAllow.filter((id) => ids.includes(id));
@@ -143,7 +143,7 @@ export async function listConversations(req: AuthRequest, res: Response) {
   ]);
 
   const ids = convs.map((c) => c.id);
-  // Batch unread counts — one groupBy instead of N per-row counts (no N+1).
+  // Batch unread counts - one groupBy instead of N per-row counts (no N+1).
   const unreadRows = ids.length
     ? await prisma.message.groupBy({
         by: ['conversationId'],
@@ -206,7 +206,7 @@ export async function listConversations(req: AuthRequest, res: Response) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// 2. GET /api/social/messages/search — conversations + matching messages
+// 2. GET /api/social/messages/search - conversations + matching messages
 // ════════════════════════════════════════════════════════════════════════════
 export async function searchConversations(req: AuthRequest, res: Response) {
   const me = req.userId!;
@@ -281,7 +281,7 @@ export async function searchConversations(req: AuthRequest, res: Response) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// 3. GET /api/social/messages/search/global — spec item 12 (message|user)
+// 3. GET /api/social/messages/search/global - spec item 12 (message|user)
 // ════════════════════════════════════════════════════════════════════════════
 export async function globalSearch(req: AuthRequest, res: Response) {
   const me = req.userId!;
@@ -341,7 +341,7 @@ export async function globalSearch(req: AuthRequest, res: Response) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// 4. GET /api/social/messages/:userId — history (presence + conversation flags)
+// 4. GET /api/social/messages/:userId - history (presence + conversation flags)
 // ════════════════════════════════════════════════════════════════════════════
 export async function getHistory(req: AuthRequest, res: Response) {
   const me = req.userId!;
@@ -393,7 +393,7 @@ export async function getHistory(req: AuthRequest, res: Response) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// 5. POST /api/social/messages/:userId — send (tagging, quota, photo, source)
+// 5. POST /api/social/messages/:userId - send (tagging, quota, photo, source)
 // ════════════════════════════════════════════════════════════════════════════
 export async function sendMessage(req: AuthRequest, res: Response) {
   const me = req.userId!;
@@ -426,7 +426,7 @@ export async function sendMessage(req: AuthRequest, res: Response) {
   const retryAfter = consumeMessageQuota(me);
   if (retryAfter !== null) {
     res.set('Retry-After', String(retryAfter));
-    return sendError(res, 429, 'Too many messages', `Please slow down — try again in ${retryAfter}s`);
+    return sendError(res, 429, 'Too many messages', `Please slow down - try again in ${retryAfter}s`);
   }
 
   // Auto-tagging; an explicit sender choice (manual tag) always wins.
@@ -489,7 +489,7 @@ export async function sendMessage(req: AuthRequest, res: Response) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// 6. PATCH /api/social/messages/:messageId/read — recipient only
+// 6. PATCH /api/social/messages/:messageId/read - recipient only
 // ════════════════════════════════════════════════════════════════════════════
 export async function markRead(req: AuthRequest, res: Response) {
   const me = req.userId!;
@@ -510,7 +510,7 @@ export async function markRead(req: AuthRequest, res: Response) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// 7. DELETE /api/social/messages/:messageId — sender only, soft delete
+// 7. DELETE /api/social/messages/:messageId - sender only, soft delete
 // ════════════════════════════════════════════════════════════════════════════
 export async function deleteMessage(req: AuthRequest, res: Response) {
   const me = req.userId!;
@@ -528,7 +528,7 @@ export async function deleteMessage(req: AuthRequest, res: Response) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// 8. PATCH /api/social/messages/:messageId/pin — sender only (spec #7)
+// 8. PATCH /api/social/messages/:messageId/pin - sender only (spec #7)
 // ════════════════════════════════════════════════════════════════════════════
 export async function pinMessage(req: AuthRequest, res: Response) {
   const me = req.userId!;
@@ -553,7 +553,7 @@ export async function pinMessage(req: AuthRequest, res: Response) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// 9. PATCH /api/social/messages/:messageId/reaction — either participant
+// 9. PATCH /api/social/messages/:messageId/reaction - either participant
 // ════════════════════════════════════════════════════════════════════════════
 export async function reactToMessage(req: AuthRequest, res: Response) {
   const me = req.userId!;
@@ -588,7 +588,7 @@ export async function reactToMessage(req: AuthRequest, res: Response) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// 10. PATCH /api/social/messages/:userId/conversation — pin/archive/mute flags
+// 10. PATCH /api/social/messages/:userId/conversation - pin/archive/mute flags
 // ════════════════════════════════════════════════════════════════════════════
 export async function updateConversationFlags(req: AuthRequest, res: Response) {
   const me = req.userId!;
@@ -615,7 +615,7 @@ export async function updateConversationFlags(req: AuthRequest, res: Response) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// 11. GET/PATCH /api/social/settings/notifications — per-user preferences
+// 11. GET/PATCH /api/social/settings/notifications - per-user preferences
 // ════════════════════════════════════════════════════════════════════════════
 export const DEFAULT_NOTIF_SETTINGS = {
   enableMessages: true,

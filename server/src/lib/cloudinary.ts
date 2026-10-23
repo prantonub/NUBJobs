@@ -112,7 +112,7 @@ export function getCloudinaryCloudName(): string | null {
   return null;
 }
 
-/** Masked API key (first 4 chars) — handy when debugging credentials. */
+/** Masked API key (first 4 chars) - handy when debugging credentials. */
 export function getCloudinaryApiKeyPreview(): string {
   const { apiKey, connectionString } = readCredentials();
   const key = apiKey || (connectionString.split('://')[1]?.split(':')[0] ?? '');
@@ -250,7 +250,7 @@ export function parseCloudinaryUrl(url: string | null | undefined): {
 
 /**
  * Delete a previously stored file. Safe to call with `null`, data URIs or
- * legacy local paths — those are simply ignored.
+ * legacy local paths - those are simply ignored.
  */
 export async function removeStoredFile(fileUrl: string | null | undefined): Promise<boolean> {
   const parsed = parseCloudinaryUrl(fileUrl);
@@ -307,12 +307,12 @@ function toUploadError(error: UploadApiErrorResponse): HttpError {
   const detail = (error.message || '').trim() || 'request rejected by Cloudinary';
 
   // Cloudinary answers 403 with `missing permissions (actions=["create"])` when
-  // the API key's role cannot create assets — a dashboard-side misconfiguration
+  // the API key's role cannot create assets - a dashboard-side misconfiguration
   // that is otherwise very hard to read from the SDK error.
   if (status === 403) {
     return httpError(
       status,
-      `Cloudinary rejected the upload (403): ${detail}. The API key (${getCloudinaryApiKeyPreview()}) most likely lacks upload ("create") permission — give the key a role with upload rights in the Cloudinary console (Settings → API keys) or create a new key and update CLOUDINARY_API_KEY / CLOUDINARY_API_SECRET in server/.env`
+      `Cloudinary rejected the upload (403): ${detail}. The API key (${getCloudinaryApiKeyPreview()}) most likely lacks upload ("create") permission - give the key a role with upload rights in the Cloudinary console (Settings → API keys) or create a new key and update CLOUDINARY_API_KEY / CLOUDINARY_API_SECRET in server/.env`
     );
   }
 

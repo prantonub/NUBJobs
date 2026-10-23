@@ -30,7 +30,7 @@ const JobsPageContent: FC = () => {
   const [syncedKeyword, setSyncedKeyword] = useState(urlKeyword);
 
   // Adjust the search box while rendering when the URL changes (hero search,
-  // footer links, back button) — the recommended alternative to an effect.
+  // footer links, back button) - the recommended alternative to an effect.
   if (urlKeyword !== syncedKeyword) {
     setSyncedKeyword(urlKeyword);
     setKeyword(urlKeyword);
@@ -52,7 +52,7 @@ const JobsPageContent: FC = () => {
     page: searchParams.get('page') ? parseInt(searchParams.get('page')!) : 1,
     // 12 = 4 full rows of the 3-column card grid. A non-multiple (e.g. 10)
     // leaves a lone card on the last row of every page and the page reads as
-    // "9 jobs" — matching the grid avoids the odd-looking orphan row.
+    // "9 jobs" - matching the grid avoids the odd-looking orphan row.
     limit: 12,
   };
 

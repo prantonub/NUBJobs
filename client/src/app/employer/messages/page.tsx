@@ -4,7 +4,7 @@ import { Suspense, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 /**
- * /employer/messages — merged into the unified inbox at /messages.
+ * /employer/messages - merged into the unified inbox at /messages.
  * Client-side redirect (the parent /employer layout is a client component,
  * so a server redirect() would never run here). Preserves ?user= / ?app=
  * so a deep link still opens the right thread; users see exactly one URL

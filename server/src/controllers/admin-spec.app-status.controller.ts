@@ -5,7 +5,7 @@ import { emitToUser } from '../lib/socket-server';
 import { sendApplicationStatusEmail } from '../services/email.service';
 import { AdminRequest, logAdminAction, notifyUser } from './admin-spec.helpers';
 
-/** PATCH /api/admin/applications/:id/status — transition + student email. */
+/** PATCH /api/admin/applications/:id/status - transition + student email. */
 export async function updateAdminApplicationStatus(req: AdminRequest, res: Response, next: NextFunction) {
   try {
     const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;

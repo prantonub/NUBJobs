@@ -59,7 +59,7 @@ export function Footer() {
             />
             <p className="mt-3 max-w-xs text-sm text-muted-foreground">
               The job & internship portal for Northern University Bangladesh
-              students — find opportunities, track applications, and launch your
+              students find opportunities, track applications, and launch your
               career.
             </p>
           </div>

@@ -10,7 +10,7 @@ import { ChatWindow } from '@/components/social/ChatWindow';
 import { useMessages, useHistoryMeta, flattenHistory } from '@/hooks/useSocialMessages';
 
 /**
- * /social/messages/:userId — DM thread. `?post=` carries the post the chat
+ * /social/messages/:userId - DM thread. `?post=` carries the post the chat
  * was started from (spec §DATABASE sourceType/sourceId) so the sender knows
  * the context and the message links back to it.
  */
@@ -60,7 +60,7 @@ export default function SocialMessageThreadPage({ params }: { params: Promise<{ 
       {sourceId && (
         <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border bg-muted/50 px-3 py-1.5 text-xs sm:px-4">
           <span className="truncate text-muted-foreground">
-            💬 Chatting about a post — your first message will link back to it.
+            💬 Chatting about a post your first message will link back to it.
           </span>
           <div className="flex shrink-0 items-center gap-1">
             <Button variant="ghost" size="sm" asChild className="h-7 text-xs">

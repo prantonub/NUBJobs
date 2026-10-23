@@ -221,7 +221,7 @@ export function removeListener(event: string): void {
 }
 
 // ============================================================
-// Direct messaging (spec §SOCKET.IO EVENTS) — student <-> employer
+// Direct messaging (spec §SOCKET.IO EVENTS) - student <-> employer
 // ============================================================
 
 /** Emit a direct message over the socket (spec EMIT §send_message). */
@@ -250,7 +250,7 @@ export function emitTypingStop(recipientId: string): void {
 
 /**
  * Subscribe to a direct-messaging server event.
- * Returns an unsubscribe function that removes exactly this handler —
+ * Returns an unsubscribe function that removes exactly this handler -
  * always use it in a React effect cleanup.
  */
 export function onMessagingEvent<T = any>(event: string, handler: (payload: T) => void): () => void {

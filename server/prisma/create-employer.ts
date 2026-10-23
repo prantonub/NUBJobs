@@ -10,7 +10,7 @@
  * script provisions the account with the company identity already set.
  *
  * Usage (run from `server/`):
- *   # preview only — nothing is written
+ *   # preview only - nothing is written
  *   npm run prisma:employer-create -- --email hr@acme.com --company "Acme Ltd" --dry-run
  *
  *   # create; a strong password is generated and printed once
@@ -158,7 +158,7 @@ function toDataUrl(filePath: string): string {
 
   if (!mime) {
     throw new Error(
-      `Unsupported image extension "${extname(filePath)}" — use png, jpg, jpeg, svg, webp or gif.`
+      `Unsupported image extension "${extname(filePath)}" - use png, jpg, jpeg, svg, webp or gif.`
     );
   }
 
@@ -166,7 +166,7 @@ function toDataUrl(filePath: string): string {
 }
 
 function randomPassword(): string {
-  // 12 base64url characters (~72 bits) — comfortably above the 8 char minimum.
+  // 12 base64url characters (~72 bits) - comfortably above the 8 char minimum.
   return randomBytes(9).toString('base64url');
 }
 
@@ -250,7 +250,7 @@ async function main() {
   );
 
   if (args.dryRun) {
-    console.log('\nDry run — nothing written.');
+    console.log('\nDry run - nothing written.');
     return;
   }
 
@@ -307,7 +307,7 @@ async function main() {
 
   console.log(`\nEmployer profiles in DB now: ${await prisma.employerProfile.count()}`);
   console.log(
-    'Next: sign in with this email + password, then post jobs — every job card, job page and "Latest Jobs" entry uses this company name and logo.'
+    'Next: sign in with this email + password, then post jobs - every job card, job page and "Latest Jobs" entry uses this company name and logo.'
   );
 }
 

@@ -38,7 +38,7 @@ async function main() {
 
   const health = await fetch(`${BASE}/health`).catch(() => null);
   if (!health || !health.ok) {
-    console.log(`  SKIP  server not reachable at ${BASE} — start it with "npm run dev"\n`);
+    console.log(`  SKIP  server not reachable at ${BASE} - start it with "npm run dev"\n`);
     skipped += 1;
     process.exitCode = 1;
     return;

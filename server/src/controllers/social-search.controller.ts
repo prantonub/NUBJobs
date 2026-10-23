@@ -85,7 +85,7 @@ export async function searchUsers(req: AuthRequest, res: Response) {
   });
 }
 
-/** GET /api/social/hashtags/:hashtag — posts carrying this hashtag. */
+/** GET /api/social/hashtags/:hashtag - posts carrying this hashtag. */
 export async function getHashtagPosts(req: AuthRequest, res: Response) {
   const me = req.userId!;
   const name = String(req.params.hashtag).trim().replace(/^#/, '').toLowerCase();
@@ -131,7 +131,7 @@ export async function trendingHashtags(req: AuthRequest, res: Response) {
   });
 }
 
-/** POST /api/social/report — report a post/comment/user (simple moderation). */
+/** POST /api/social/report - report a post/comment/user (simple moderation). */
 export async function listCommunityPosts(req: AuthRequest, res: Response) {
   const me = req.userId!;
   const { page, limit, skip, take } = parsePage(req.query);

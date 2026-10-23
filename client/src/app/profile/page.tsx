@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { FC, useState, useCallback } from 'react';
 import Link from 'next/link';
@@ -135,7 +135,7 @@ const ProfilePage: FC = () => {
               previewShape="circle"
               previewAlt={profile?.user?.name || 'Profile photo'}
               label="Drag & drop your photo here"
-              hint="JPG, PNG or WEBP · max 5MB · square crop, optimised automatically"
+              hint="JPG, PNG or WEBP Â· max 5MB Â· square crop, optimised automatically"
               successMessage="Profile photo updated!"
               errorMessage="Failed to upload photo"
               invalidateKeys={[['profile'], ['profileCompletion'], ['currentUser']]}
@@ -235,7 +235,7 @@ const ProfilePage: FC = () => {
                       onClick={() => handleRemoveSkill(i)}
                       className="ml-1 hover:text-red-600"
                     >
-                      ×
+                      Ã-
                     </button>
                   </Badge>
                 ))}
@@ -254,7 +254,7 @@ const ProfilePage: FC = () => {
                 extensions={['pdf', 'doc', 'docx']}
                 maxSizeMb={5}
                 label="Drag & drop your resume here"
-                hint="PDF, DOC or DOCX · max 5MB · old file is replaced automatically"
+                hint="PDF, DOC or DOCX Â· max 5MB Â· old file is replaced automatically"
                 successMessage="Resume uploaded!"
                 errorMessage="Failed to upload resume"
                 invalidateKeys={[['profile'], ['profileCompletion']]}
@@ -292,7 +292,7 @@ const ProfilePage: FC = () => {
                 <h2 className="text-base font-semibold">Show my profile to employers</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
                   Employers can find you in Search Talent when this is on. Your email,
-                  phone, CV and date of birth are never shown — only your name, program,
+                  phone, CV and date of birth are never shown â€” only your name, program,
                   graduation year, skills and photo.
                 </p>
               </div>
@@ -337,7 +337,7 @@ const ProfilePage: FC = () => {
                     <ClockIcon className="mt-0.5 size-4 shrink-0 text-amber-500" />
                     <span>
                       <span className="font-medium text-amber-600">Verification pending review.</span>{' '}
-                      A system admin will review your profile — you can apply to jobs once approved.
+                      A system admin will review your profile â€” you can apply to jobs once approved.
                     </span>
                   </p>
                 ) : (
@@ -352,7 +352,7 @@ const ProfilePage: FC = () => {
                     </p>
                     {profile?.verificationRejectReason ? (
                       <p className="mt-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
-                        Last review rejected: {profile.verificationRejectReason} — fix the issue and re-submit.
+                        Last review rejected: {profile.verificationRejectReason} â€” fix the issue and re-submit.
                       </p>
                     ) : null}
                   </>

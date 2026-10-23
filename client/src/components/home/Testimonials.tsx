@@ -34,14 +34,14 @@ const TESTIMONIALS: Testimonial[] = [
     department: "EEE, Batch 202",
     initials: "SH",
     quote:
-      "A campus drive on NUBJobs got my resume straight to the recruiter. The mock interview practice sealed it — I start at Tiger IT next month.",
+      "A campus drive on NUBJobs got my resume straight to the recruiter. The mock interview practice sealed it I start at Tiger IT next month.",
     tint: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-300",
   },
 ];
 
 /**
  * Student success stories. Three cards, each with an avatar (initials
- * fallback), name, department, star rating, and a quote — revealed in sequence.
+ * fallback), name, department, star rating, and a quote - revealed in sequence.
  */
 export function Testimonials() {
   return (

@@ -24,7 +24,7 @@ export interface AuthRequest extends Request {
   role?: string;
 }
 
-/** Express 5 query values can be arrays — normalise everything to a string. */
+/** Express 5 query values can be arrays - normalise everything to a string. */
 function readParam(value: unknown): string {
   if (Array.isArray(value)) return String(value[0] ?? '');
   return value === undefined || value === null ? '' : String(value);
@@ -54,7 +54,7 @@ const STUDENT_PUBLIC_SELECT = {
   isVerified: true, // blue verified badge shown to employers
 } as const;
 
-/** Empty counts for every status — keeps the dashboard cards stable. */
+/** Empty counts for every status - keeps the dashboard cards stable. */
 function emptyStatusCounts(): Record<string, number> {
   return Object.fromEntries(APPLICATION_STATUSES.map((status) => [status, 0]));
 }
@@ -114,7 +114,7 @@ export async function createApplication(req: AuthRequest, res: Response, next: N
       return responses.forbidden(res, 'Your account is banned. You cannot apply for jobs.');
     }
 
-    // Validation 0.5: the profile must carry the blue verified badge —
+    // Validation 0.5: the profile must carry the blue verified badge -
     // unverified profiles cannot apply until a system admin approves them.
     if (!student.isVerified) {
       return responses.forbidden(
@@ -155,7 +155,7 @@ export async function createApplication(req: AuthRequest, res: Response, next: N
       return responses.badRequest(res, 'Upload a resume to your profile before applying');
     }
 
-    // Validation 6: match score — shared formula so the persisted number equals
+    // Validation 6: match score - shared formula so the persisted number equals
     // the one shown in the Apply modal and on the job cards.
     const breakdown = matchBreakdown(student, job);
     const matchScore = breakdown.matchScore;
@@ -614,7 +614,7 @@ export async function withdrawApplication(req: AuthRequest, res: Response, next:
       data: { status: 'WITHDRAWN' },
     });
 
-    // Mirror the increment done on create — clamped at zero.
+    // Mirror the increment done on create - clamped at zero.
     if (application.job.applicantCount > 0) {
       await prisma.job.update({
         where: { id: application.jobId },
@@ -754,7 +754,7 @@ export async function getApplicationDetail(req: AuthRequest, res: Response, next
       data: { isRead: true },
     });
 
-    // Employer notes are private — never expose them to the student.
+    // Employer notes are private - never expose them to the student.
     const { notes, ...shared } = application;
 
     return responses.ok(res, 'Application detail', {

@@ -157,12 +157,12 @@ export function initializeSocket(app: any) {
             return;
           }
 
-          // Quota: 10/min + 100/hour per user (spec §SECURITY) — shares the
+          // Quota: 10/min + 100/hour per user (spec §SECURITY) - shares the
           // bucket with the REST path so no transport can bypass the limit.
           const retryAfter = consumeMessageQuota(senderId);
           if (retryAfter !== null) {
             socket.emit('message_error', {
-              message: `Too many messages — wait ${retryAfter}s`,
+              message: `Too many messages - wait ${retryAfter}s`,
               retryAfter,
             });
             return;
@@ -563,3 +563,4 @@ export function isUserOnline(userId: string): boolean {
 export function getOnlineUsers(): string[] {
   return Array.from(onlineUsers.keys());
 }
+

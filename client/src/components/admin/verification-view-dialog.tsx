@@ -6,7 +6,7 @@ import { VerifiedBadge } from '@/components/ui/verified-badge';
 
 /** One label/value line inside the review dialog. */
 export function ReviewRow({ k, v, wide, link }: { k: string; v: unknown; wide?: boolean; link?: string }) {
-  const text = v === null || v === undefined || v === '' ? '—' : String(v);
+  const text = v === null || v === undefined || v === '' ? '-' : String(v);
   const isUrl = typeof v === 'string' && /^https?:\/\//i.test(v);
   return (
     <div className={wide ? 'sm:col-span-2' : undefined}>

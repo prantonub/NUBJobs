@@ -82,7 +82,7 @@ export const CompanyInfoCard: FC<CompanyInfoCardProps> = ({
             </span>
             <span className="inline-flex items-center gap-1">
               <CalendarDays className="size-4" />
-              Founded {profile?.foundedYear ?? '—'}
+              Founded {profile?.foundedYear ?? '-'}
             </span>
             <span className="inline-flex items-center gap-1">
               <Users className="size-4" />

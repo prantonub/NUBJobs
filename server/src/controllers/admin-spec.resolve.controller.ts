@@ -3,7 +3,7 @@ import prisma from '../lib/prisma';
 import { responses } from '../utils/response.utils';
 import { AdminRequest, logAdminAction, notifyUser } from './admin-spec.helpers';
 
-/** PATCH /api/admin/disputes/:id/resolve — warn/ban/refund, both parties emailed. (spec #21) */
+/** PATCH /api/admin/disputes/:id/resolve - warn/ban/refund, both parties emailed. (spec #21) */
 export async function resolveDispute(req: AdminRequest, res: Response, next: NextFunction) {
   try {
     const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;

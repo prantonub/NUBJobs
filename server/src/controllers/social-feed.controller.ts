@@ -26,7 +26,7 @@ const commentInclude = {
   replies: { include: { author: { select: publicUserSelect } }, orderBy: { createdAt: 'asc' as const } },
 } as const;
 
-/** GET /api/social/feed — network-wide timeline (all users' posts, newest first). */
+/** GET /api/social/feed - network-wide timeline (all users' posts, newest first). */
 export async function getFeed(req: AuthRequest, res: Response) {
   const me = req.userId!;
   const { page, limit, skip, take } = parsePage(req.query);
@@ -55,7 +55,7 @@ export async function getFeed(req: AuthRequest, res: Response) {
   });
 }
 
-/** GET /api/social/feed/trending — popular posts from the last 7 days. */
+/** GET /api/social/feed/trending - popular posts from the last 7 days. */
 export async function getTrendingFeed(req: AuthRequest, res: Response) {
   const me = req.userId!;
   const { page, limit, skip, take } = parsePage(req.query);
@@ -84,7 +84,7 @@ export async function getTrendingFeed(req: AuthRequest, res: Response) {
   });
 }
 
-/** POST /api/social/posts — create (1-500 chars, ≤1 photo, 10/hour rate limit). */
+/** POST /api/social/posts - create (1-500 chars, ≤1 photo, 10/hour rate limit). */
 export async function createPost(req: AuthRequest, res: Response) {
   const me = req.userId!;
   const content = String(req.body?.content ?? '').trim();
@@ -139,7 +139,7 @@ export async function createPost(req: AuthRequest, res: Response) {
   responses.created(res, 'Post created', { post: serializePost(post, me, false) });
 }
 
-/** GET /api/social/posts/:id — post with threaded comments. */
+/** GET /api/social/posts/:id - post with threaded comments. */
 export async function getPost(req: AuthRequest, res: Response) {
   const me = req.userId!;
   const id = String(req.params.id);
@@ -174,7 +174,7 @@ export async function getPost(req: AuthRequest, res: Response) {
   });
 }
 
-/** PATCH /api/social/posts/:id — author only, within 30 minutes of creation. */
+/** PATCH /api/social/posts/:id - author only, within 30 minutes of creation. */
 export async function editPost(req: AuthRequest, res: Response) {
   const me = req.userId!;
   const id = String(req.params.id);
@@ -234,7 +234,7 @@ export async function editPost(req: AuthRequest, res: Response) {
   responses.ok(res, 'Post updated', { post: serializePost(updated, me, false) });
 }
 
-/** DELETE /api/social/posts/:id — /** POST /api/social/posts/photo -- upload a feed photo (multipart `photo`). */
+/** DELETE /api/social/posts/:id - /** POST /api/social/posts/photo -- upload a feed photo (multipart `photo`). */
 export async function uploadPostPhoto(req: AuthRequest, res: Response) {
   const me = req.userId!;
   const file = (req as any).file as Express.Multer.File | undefined;
@@ -308,7 +308,7 @@ export async function deletePost(req: AuthRequest, res: Response) {
   responses.ok(res, 'Post deleted', { success: true });
 }
 
-/** POST /api/social/posts/:id/like — one like per user per post. */
+/** POST /api/social/posts/:id/like - one like per user per post. */
 export async function likePost(req: AuthRequest, res: Response) {
   const me = req.userId!;
   const id = String(req.params.id);
@@ -335,7 +335,7 @@ export async function likePost(req: AuthRequest, res: Response) {
   responses.ok(res, 'Post liked', { likeCount: fresh.likeCount });
 }
 
-/** DELETE /api/social/posts/:id/like — remove my like. */
+/** DELETE /api/social/posts/:id/like - remove my like. */
 export async function unlikePost(req: AuthRequest, res: Response) {
   const me = req.userId!;
   const id = String(req.params.id);
@@ -356,7 +356,7 @@ export async function unlikePost(req: AuthRequest, res: Response) {
   responses.ok(res, 'Post unliked', { likeCount: floored });
 }
 
-/** POST /api/social/posts/:id/comments — create comment or threaded reply. */
+/** POST /api/social/posts/:id/comments - create comment or threaded reply. */
 export async function addComment(req: AuthRequest, res: Response) {
   const me = req.userId!;
   const postId = String(req.params.id);
@@ -425,7 +425,7 @@ export async function addComment(req: AuthRequest, res: Response) {
   });
 }
 
-/** GET /api/social/posts/:id/comments — threaded, paginated (oldest first). */
+/** GET /api/social/posts/:id/comments - threaded, paginated (oldest first). */
 export async function listComments(req: AuthRequest, res: Response) {
   const me = req.userId!;
   const postId = String(req.params.id);
@@ -506,7 +506,7 @@ export async function unlikeComment(req: AuthRequest, res: Response) {
   responses.ok(res, 'Comment unliked', { likeCount: floored });
 }
 
-/** DELETE /api/social/comments/:id — comment author, post author, or admin. */
+/** DELETE /api/social/comments/:id - comment author, post author, or admin. */
 export async function deleteComment(req: AuthRequest, res: Response) {
   const me = req.userId!;
   const id = String(req.params.id);

@@ -82,7 +82,7 @@ function EditProfileDialog({
   );
 }
 
-/** /social/profile/[username] — social profile. */
+/** /social/profile/[username] - social profile. */
 export default function SocialProfilePage({ params }: { params: Promise<{ username: string }> }) {
   const { username } = use(params);
   const profile = useUserProfile(username);
@@ -94,14 +94,14 @@ export default function SocialProfilePage({ params }: { params: Promise<{ userna
 
   const myPosts = useUserPosts(username, page);
 
-  // (2) Reset the feed when switching profiles — otherwise the
+  // (2) Reset the feed when switching profiles - otherwise the
   // previous user's posts stay visible while the new data loads.
   useEffect(() => {
     setPage(1);
     setAccumulated([]);
   }, [username]);
 
-  // (1) Merge paginated posts in an effect, never during render —
+  // (1) Merge paginated posts in an effect, never during render -
   // setState-during-render re-triggers the fetch in a loop.
   useEffect(() => {
     const rows: any[] = (myPosts.data as any)?.posts ?? [];
@@ -130,7 +130,7 @@ export default function SocialProfilePage({ params }: { params: Promise<{ userna
             isSelf={Boolean(u.isSelf)}
             onEdit={() => setEditorOpen(true)}
           />
-          {/* (3) Feed header + items only render after the profile resolves —
+          {/* (3) Feed header + items only render after the profile resolves -
               no floating "Posts" heading while loading, and the "No posts"
               empty state waits out the loader too. */}
           {profile.isLoading || !u ? null : (

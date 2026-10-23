@@ -1,5 +1,5 @@
 /**
- * Career blog content — static data for /blog and /blog/[slug].
+ * Career blog content - static data for /blog and /blog/[slug].
  *
  * Each body is an array of paragraph strings (one string = one paragraph)
  * so article pages render semantic <p> elements without any CMS.
@@ -20,7 +20,7 @@ export const BLOG_POSTS: BlogPost[] = [
     slug: "first-job-interview",
     title: "How to prepare for your first job interview",
     excerpt:
-      "A calm, practical checklist for interview day — from researching the company to sending a thank-you note.",
+      "A calm, practical checklist for interview day - from researching the company to sending a thank-you note.",
     date: "October 6, 2026",
     category: "Interviews",
     readingTime: "5 min read",
@@ -28,7 +28,7 @@ export const BLOG_POSTS: BlogPost[] = [
       "Start with the job advertisement and the company website. Read the role twice and note the three skills they mention most. When you can explain what the company does, who it serves, and why this role exists, your answers stop sounding generic and start sounding prepared.",
       "Prepare two or three short stories from your studies, projects, or part-time work. Use a simple structure: the situation, what you did, and the result. Stories about solving a problem, meeting a deadline, or working in a team are easy to reuse for many different questions.",
       "Practice saying your answers out loud, not just in your head. Rehearse with a friend or record yourself on your phone. Aim for answers that are about one minute long. Practice also lowers nerves, because your brain has already said the words once before.",
-      "Plan the practical details the day before. Choose your outfit, check the route, and charge your phone. If the interview is online, test your camera and microphone early. Being ten minutes early — or five minutes early online — shows respect for the interviewer's time.",
+      "Plan the practical details the day before. Choose your outfit, check the route, and charge your phone. If the interview is online, test your camera and microphone early. Being ten minutes early - or five minutes early online - shows respect for the interviewer's time.",
       "After the interview, send a short thank-you message within a day. Mention one specific thing you discussed to make it memorable. If you do not get the role, ask for feedback. Every interview is practice, and each one makes the next one easier.",
     ],
   },
@@ -52,7 +52,7 @@ export const BLOG_POSTS: BlogPost[] = [
     slug: "internships-build-career",
     title: "Using internships to build your career",
     excerpt:
-      "Internships are more than resume filler — they are a low-risk way to test a career and build real contacts.",
+      "Internships are more than resume filler - they are a low-risk way to test a career and build real contacts.",
     date: "September 10, 2026",
     category: "Career growth",
     readingTime: "4 min read",

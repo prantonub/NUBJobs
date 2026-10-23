@@ -148,7 +148,7 @@ export function MessageBubble({
         </PopoverContent>
       </Popover>
 
-      {/* Sender profile photo — shown on incoming bubbles (spec §ChatWindow avatar) */}
+      {/* Sender profile photo - shown on incoming bubbles (spec §ChatWindow avatar) */}
       {!isMine && (
         <span className="w-7 shrink-0 self-end pb-0.5" aria-hidden={!showAvatar}>
           {showAvatar && avatar ? <UserAvatar user={avatar} size="sm" /> : null}

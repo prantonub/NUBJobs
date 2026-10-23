@@ -5,7 +5,7 @@ import { responses } from '../utils/response.utils';
 import { hashPassword } from '../utils/password.utils';
 import { AdminRequest, logAdminAction } from './admin-spec.helpers';
 
-/** GET /api/admin/admins — SUPER_ADMIN lists admin accounts. */
+/** GET /api/admin/admins - SUPER_ADMIN lists admin accounts. */
 export async function listAdmins(req: AdminRequest, res: Response, next: NextFunction) {
   try {
     const admins = await prisma.user.findMany({
@@ -19,7 +19,7 @@ export async function listAdmins(req: AdminRequest, res: Response, next: NextFun
   }
 }
 
-/** POST /api/admin/admins — SUPER_ADMIN creates an admin (temp password). */
+/** POST /api/admin/admins - SUPER_ADMIN creates an admin (temp password). */
 export async function createAdminAccount(req: AdminRequest, res: Response, next: NextFunction) {
   try {
     const { email, name, password, adminRole } = req.body as { email?: string; name?: string; password?: string; adminRole?: string };
@@ -45,7 +45,7 @@ export async function createAdminAccount(req: AdminRequest, res: Response, next:
   }
 }
 
-/** GET /api/admin/settings — platform config with safe defaults. */
+/** GET /api/admin/settings - platform config with safe defaults. */
 const DEFAULT_SETTINGS: Record<string, string> = {
   platformName: 'NUBJobs',
   platformDescription: 'Jobs for Northern University Bangladesh students and alumni.',
@@ -69,7 +69,7 @@ export async function getPlatformSettings(req: AdminRequest, res: Response, next
   }
 }
 
-/** PATCH /api/admin/settings — upsert keys + audit. */
+/** PATCH /api/admin/settings - upsert keys + audit. */
 export async function updatePlatformSettings(req: AdminRequest, res: Response, next: NextFunction) {
   try {
     const entries = Object.entries(req.body as Record<string, unknown>)

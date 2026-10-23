@@ -9,7 +9,7 @@ import {
   improveDescription,
 } from '../controllers/job-posting.controller';
 import { authenticate, requireRole, validate } from '../middleware/auth.middleware';
-// Same schemas as POST/PATCH /api/jobs — one definition of what a valid job is.
+// Same schemas as POST/PATCH /api/jobs - one definition of what a valid job is.
 import { createJobSchema, updateJobSchema } from '../utils/job-validation.utils';
 import { z } from 'zod';
 

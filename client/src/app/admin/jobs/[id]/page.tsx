@@ -19,7 +19,7 @@ import {
 } from '@/hooks/useAdmin';
 import { getErrorMessage } from '@/lib/utils';
 
-const fmt = (v?: string | null) => (v ? new Date(v).toLocaleDateString() : '—');
+const fmt = (v?: string | null) => (v ? new Date(v).toLocaleDateString() : '-');
 const statusVariant = (s: string) =>
   s === 'ACTIVE' ? 'outline' : s === 'PENDING' ? 'secondary' : s === 'REJECTED' ? 'destructive' : 'secondary';
 
@@ -103,13 +103,13 @@ export default function AdminJobDetailPage() {
           <CardHeader><CardTitle>Job details</CardTitle></CardHeader>
           <CardContent className="space-y-4 text-sm">
             <dl className="grid grid-cols-2 gap-3 md:grid-cols-3">
-              <div><dt className="text-muted-foreground">Category</dt><dd className="font-medium">{job.category ?? '—'}</dd></div>
-              <div><dt className="text-muted-foreground">Type</dt><dd className="font-medium">{job.type ?? '—'}</dd></div>
-              <div><dt className="text-muted-foreground">Location</dt><dd className="font-medium">{job.location ?? '—'}</dd></div>
+              <div><dt className="text-muted-foreground">Category</dt><dd className="font-medium">{job.category ?? '-'}</dd></div>
+              <div><dt className="text-muted-foreground">Type</dt><dd className="font-medium">{job.type ?? '-'}</dd></div>
+              <div><dt className="text-muted-foreground">Location</dt><dd className="font-medium">{job.location ?? '-'}</dd></div>
               <div><dt className="text-muted-foreground">Salary</dt>
-                <dd className="font-medium">{job.salaryMin ? `${job.salaryMin}` : '—'}{job.salaryMax ? ` – ${job.salaryMax}` : ''}</dd>
+                <dd className="font-medium">{job.salaryMin ? `${job.salaryMin}` : '-'}{job.salaryMax ? ` – ${job.salaryMax}` : ''}</dd>
               </div>
-              <div><dt className="text-muted-foreground">Min CGPA</dt><dd className="font-medium">{job.minCgpa ?? '—'}</dd></div>
+              <div><dt className="text-muted-foreground">Min CGPA</dt><dd className="font-medium">{job.minCgpa ?? '-'}</dd></div>
               <div><dt className="text-muted-foreground">Deadline</dt><dd className="font-medium">{fmt(job.deadline)}</dd></div>
             </dl>
             <div className="flex flex-wrap gap-1">
@@ -126,7 +126,7 @@ export default function AdminJobDetailPage() {
                   <BadgeCheckIcon className="size-4 text-primary" aria-label="Verified company" />
                 )}
               </p>
-              <p className="text-muted-foreground">{employer.user?.email} · {employer.location ?? '—'}</p>
+              <p className="text-muted-foreground">{employer.user?.email} · {employer.location ?? '-'}</p>
             </div>
           </CardContent>
         </Card>
@@ -143,7 +143,7 @@ export default function AdminJobDetailPage() {
                 <div>
                   <p className="mb-1 font-medium">Notes (optional, sent to employer)</p>
                   <Textarea rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Any notes for approval..." />
-                  <Button className="mt-2 w-full" onClick={() => run(() => approveJob.mutateAsync({ id: job.id, notes: notes || undefined }), 'Job approved — now ACTIVE')}>
+                  <Button className="mt-2 w-full" onClick={() => run(() => approveJob.mutateAsync({ id: job.id, notes: notes || undefined }), 'Job approved - now ACTIVE')}>
                     Approve job
                   </Button>
                 </div>

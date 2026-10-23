@@ -1,5 +1,5 @@
 /**
- * /about — public "About NUBJobs" page (server component, App Router).
+ * /about - public "About NUBJobs" page (server component, App Router).
  *
  * All copy lives in the constants below (stats, mission, features, steps,
  * founder bio, links & trust) so content can be edited in one place
@@ -25,7 +25,7 @@ export const metadata = {
 
 // ═══ Editable content ══════════════════════════════════════════════════════
 
-/** Hero stats — placeholder numbers; swap in real platform numbers anytime. */
+/** Hero stats - placeholder numbers; swap in real platform numbers anytime. */
 const STATS = [
   { label: "Students", value: "5,000+" },
   { label: "Employers", value: "300+" },
@@ -35,11 +35,11 @@ const STATS = [
 const MISSION = {
   heading: "Every student deserves a fair first chance",
   paragraph:
-    "NUBJobs exists so Northern University Bangladesh students can earn, learn and build a career while they study. Jobs, community and mentorship live together in one campus-built platform — so finding your first opportunity takes days, not months.",
+    "NUBJobs exists so Northern University Bangladesh students can earn, learn and build a career while they study. Jobs, community and mentorship live together in one campus-built platform so finding your first opportunity takes days, not months.",
   commitments: [
     {
       title: "Free for every student",
-      description: "Browsing, applying, posting and messaging are free — now and always.",
+      description: "Browsing, applying, posting and messaging are free now and always.",
     },
     {
       title: "Verified employers",
@@ -128,7 +128,7 @@ const STEPS = [
   {
     title: "Find or post opportunities",
     description:
-      "Browse filtered jobs or publish a vacancy — every post is approved by admins first.",
+      "Browse filtered jobs or publish a vacancy every post is approved by admins first.",
   },
   {
     title: "Connect, apply and get hired",
@@ -141,7 +141,7 @@ const FOUNDER = {
   name: "Tauhidul Islam Pranto",
   initials: "TP",
   photo: founderPhoto,
-  bio: "NUBJobs was built for the students of Northern University Bangladesh — because finding that first internship or job on campus shouldn't be a struggle. Tauhidul created NUBJobs to give every NUB student one trusted place to discover opportunities, meet mentors and take the next step in their career.",
+  bio: "NUBJobs was built for the students of Northern University Bangladesh because finding that first internship or job on campus shouldn't be a struggle. Tauhidul created NUBJobs to give every NUB student one trusted place to discover opportunities, meet mentors and take the next step in their career.",
   email: "support@nubjobs.online",
   linkedin: "#",
   github: "#",

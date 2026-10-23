@@ -36,7 +36,7 @@ export function ApplicationChat({ applicationId }: { applicationId: string }) {
 
   useEffect(() => {
     // After a hard refresh no socket exists yet (AuthContext only dials one on
-    // login) — dial it here or this handler would silently never register.
+    // login) - dial it here or this handler would silently never register.
     const socket = ensureMessagingSocket();
     if (!socket) return;
     const handler = (payload: any) => {
@@ -51,7 +51,7 @@ export function ApplicationChat({ applicationId }: { applicationId: string }) {
   }, [applicationId, queryClient]);
 
   // The legacy GET marks the whole thread read server-side the moment it loads
-  // (and on every refetch triggered by a live `new_message`) — mirror that into
+  // (and on every refetch triggered by a live `new_message`) - mirror that into
   // the badge queries so the "(1)" disappears immediately, not on refresh.
   useEffect(() => {
     if (!data) return;

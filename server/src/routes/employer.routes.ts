@@ -23,7 +23,7 @@ import {
   getVerificationStatus,
 } from '../controllers/company-profile.controller';
 // ONE implementation of the status change is shared with
-// PATCH /api/applications/:id/status — pipeline rules, student email,
+// PATCH /api/applications/:id/status - pipeline rules, student email,
 // notification and the Socket.io event all live there.
 import { updateApplicationStatus } from '../controllers/applications-enhanced.controller';
 import { authenticate, requireRole, validate, AuthRequest } from '../middleware/auth.middleware';
@@ -138,7 +138,7 @@ router.get('/talent', async (req, res, next) => {
     const retryAfter = talentSearchLimited(userId);
     if (retryAfter !== null) {
       res.set('Retry-After', String(retryAfter));
-      return sendError(res, 429, 'Too many talent searches — try again shortly');
+      return sendError(res, 429, 'Too many talent searches - try again shortly');
     }
 
     const parsed = talentQuerySchema.safeParse(req.query);
@@ -178,7 +178,7 @@ router.get('/talent', async (req, res, next) => {
       prisma.studentProfile.count({ where }),
       prisma.studentProfile.findMany({
         where,
-        // Privacy-safe projection ONLY — no email/phone/resume/DOB.
+        // Privacy-safe projection ONLY - no email/phone/resume/DOB.
         select: {
           id: true,
           department: true,

@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useAdminDisputeDetail, useResolveDispute } from '@/hooks/useAdmin';
 import { getErrorMessage } from '@/lib/utils';
 
-const fmt = (v?: string | null) => (v ? new Date(v).toLocaleString() : '—');
+const fmt = (v?: string | null) => (v ? new Date(v).toLocaleString() : '-');
 const ACTIONS = ['NONE', 'WARN_STUDENT', 'WARN_EMPLOYER', 'BAN_STUDENT', 'BAN_EMPLOYER', 'REFUND', 'OTHER'];
 const VARIANT: Record<string, 'secondary' | 'outline' | 'destructive'> = {
   OPEN: 'destructive', RESOLVED: 'outline', CLOSED: 'secondary',
@@ -44,7 +44,7 @@ export default function AdminDisputeDetailPage() {
     if (!resolution.trim()) return toast.error('A resolution description is required');
     try {
       await resolveDispute.mutateAsync({ id: dispute.id, payload: { resolution: resolution.trim(), action } });
-      toast.success('Dispute resolved — both parties notified');
+      toast.success('Dispute resolved both parties notified');
       refetch();
     } catch (e) {
       toast.error(getErrorMessage(e, 'Failed to resolve dispute'));
@@ -53,22 +53,22 @@ export default function AdminDisputeDetailPage() {
 
   return (
     <div className="grid gap-6 xl:grid-cols-3">
-      {/* Left — parties */}
+      {/* Left - parties */}
       <Card>
         <CardHeader><CardTitle>Parties involved</CardTitle></CardHeader>
         <CardContent className="space-y-4 text-sm">
           <div>
             <p className="text-xs uppercase tracking-wide text-muted-foreground">Student</p>
-            <p className="font-medium">{student.user?.name ?? '—'}</p>
-            <p className="text-muted-foreground">{student.user?.email ?? '—'}</p>
+            <p className="font-medium">{student.user?.name ?? '-'}</p>
+            <p className="text-muted-foreground">{student.user?.email ?? '-'}</p>
             {student.userId && (
               <Link className="text-xs underline" href={`/admin/users/${student.userId}`}>View profile</Link>
             )}
           </div>
           <div>
             <p className="text-xs uppercase tracking-wide text-muted-foreground">Employer</p>
-            <p className="font-medium">{employer.companyName ?? '—'}</p>
-            <p className="text-muted-foreground">{employer.user?.email ?? '—'}</p>
+            <p className="font-medium">{employer.companyName ?? '-'}</p>
+            <p className="text-muted-foreground">{employer.user?.email ?? '-'}</p>
             {employer.userId && (
               <Link className="text-xs underline" href={`/admin/users/${employer.userId}`}>View profile</Link>
             )}
@@ -82,7 +82,7 @@ export default function AdminDisputeDetailPage() {
         </CardContent>
       </Card>
 
-      {/* Center — complaint + timeline + chat */}
+      {/* Center - complaint + timeline + chat */}
       <div className="space-y-6">
         <Card>
           <CardHeader>
@@ -126,7 +126,7 @@ export default function AdminDisputeDetailPage() {
         </Card>
       </div>
 
-      {/* Right — resolution */}
+      {/* Right - resolution */}
       <Card className="xl:sticky xl:top-4 xl:self-start">
         <CardHeader><CardTitle>Resolution</CardTitle></CardHeader>
         <CardContent className="space-y-3 text-sm">
@@ -136,7 +136,7 @@ export default function AdminDisputeDetailPage() {
               {dispute.action && <p className="text-muted-foreground">Action taken: {dispute.action}</p>}
               {dispute.resolution && <p className="mt-1 text-muted-foreground">{dispute.resolution}</p>}
               <p className="mt-2 text-xs text-muted-foreground">
-                Resolved {fmt(dispute.resolvedAt)} — audit trail locked.
+                Resolved {fmt(dispute.resolvedAt)} audit trail locked.
               </p>
             </div>
           ) : (
@@ -150,7 +150,7 @@ export default function AdminDisputeDetailPage() {
                 {ACTIONS.map((a) => <option key={a} value={a}>{a}</option>)}
               </select>
               <Textarea
-                placeholder="Resolution notes — both parties will be notified..."
+                placeholder="Resolution notes both parties will be notified..."
                 value={resolution}
                 onChange={(e) => setResolution(e.target.value)}
                 rows={4}

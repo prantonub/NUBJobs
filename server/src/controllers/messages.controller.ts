@@ -13,7 +13,7 @@ export interface AuthRequest extends Request {
 // Shared helpers (direct messaging)
 // ============================================
 
-/** Canonical pair ordering — one Conversation row per user pair. */
+/** Canonical pair ordering - one Conversation row per user pair. */
 function canonicalPair(a: string, b: string): [string, string] {
   return a < b ? [a, b] : [b, a];
 }
@@ -84,7 +84,7 @@ function formatMessage(msg: any, sender?: { name: string; avatarUrl: string | nu
   return {
     id: msg.id,
     senderId: msg.senderId,
-    // Server-computed side flag — the client renders "mine → right" from this
+    // Server-computed side flag - the client renders "mine → right" from this
     // even when its auth cache has no user id (null/stale currentUserId).
     ...(viewerId ? { isOwn: msg.senderId === viewerId } : {}),
     ...(msg.recipientId ? { recipientId: msg.recipientId } : {}),
@@ -183,7 +183,7 @@ interface InboxItem {
 /**
  * Legacy application threads (student <-> employer chats tied to a job
  * application). These predate the Conversation model and must stay visible in
- * the same inbox — otherwise years of existing chats "disappear".
+ * the same inbox - otherwise years of existing chats "disappear".
  */
 async function legacyApplicationThreads(userId: string, search: string): Promise<InboxItem[]> {
   const [student, employer] = await Promise.all([
@@ -407,7 +407,7 @@ export async function getConversations(req: AuthRequest, res: Response, next: Ne
     );
 
     // Unified inbox: direct conversations PLUS legacy application threads.
-    // (The legacy threads are why "old chats disappear" — they predate the
+    // (The legacy threads are why "old chats disappear" - they predate the
     // Conversation model and a direct-only list can never show them.)
     const legacy = await legacyApplicationThreads(userId, search);
 
@@ -440,7 +440,7 @@ export async function getConversations(req: AuthRequest, res: Response, next: Ne
 /**
  * Legacy application-scoped thread. ApplicationChat reads `data.data` as a
  * bare array of `{ id, content, createdAt, senderId, sender }`, so this path
- * must keep that exact shape — only the direct-messaging branch (a real User
+ * must keep that exact shape - only the direct-messaging branch (a real User
  * id) returns the spec's `{ otherUser, job, messages, pagination }` envelope.
  */
 async function getApplicationThread(req: AuthRequest, res: Response, applicationId: string) {
@@ -573,7 +573,7 @@ async function processSend(
   const resetIn = rateLimited(senderId);
   if (resetIn !== null) {
     res.set('Retry-After', String(resetIn));
-    return sendError(res, 429, 'Too many messages', `Please slow down — try again in ${resetIn}s`);
+    return sendError(res, 429, 'Too many messages', `Please slow down - try again in ${resetIn}s`);
   }
 
   // ── Legacy application thread (POST /messages, ApplicationChat) ──
@@ -668,7 +668,7 @@ export async function sendMessage(req: AuthRequest, res: Response, next: NextFun
   }
 }
 
-/** POST /api/messages/send — spec route (recipientId + optional jobId). */
+/** POST /api/messages/send - spec route (recipientId + optional jobId). */
 export async function sendDirectMessage(req: AuthRequest, res: Response, next: NextFunction) {
   try {
     return await processSend(req, res, req.body);
@@ -723,7 +723,7 @@ export async function markConversationRead(req: AuthRequest, res: Response, next
     if (!userId) return responses.unauthorized(res);
 
     const conv = await findConversationWith(userId, otherId);
-    // Deep links (?user=<id>) open threads before any message exists —
+    // Deep links (?user=<id>) open threads before any message exists -
     // there is nothing to mark read yet, so succeed instead of 404'ing.
     if (!conv) return responses.ok(res, 'Nothing to mark read', { success: true });
 
@@ -760,7 +760,7 @@ export async function deleteMessage(req: AuthRequest, res: Response, next: NextF
     if (!message) return responses.notFound(res, 'Message not found');
     if (message.senderId !== userId) return responses.forbidden(res, 'You can only delete your own messages');
 
-    // Soft delete — keep the row for the audit trail (spec).
+    // Soft delete - keep the row for the audit trail (spec).
     await prisma.message.update({ where: { id: messageId }, data: { isDeleted: true } });
 
     // Notify BOTH parties so the bubble disappears on every open tab.
@@ -929,7 +929,7 @@ export async function getUnreadCount(req: AuthRequest, res: Response, next: Next
     });
 
     // Legacy application threads predate `conversationId` (and often
-    // `recipientId`), so they must be counted separately — the same
+    // `recipientId`), so they must be counted separately - the same
     // participant-aware helper the unified inbox uses. Opening one of these
     // threads marks its messages read, so the badge clears exactly like a
     // direct conversation.
@@ -945,7 +945,7 @@ export async function getUnreadCount(req: AuthRequest, res: Response, next: Next
 
 /**
  * Auxiliary: recipient auto-complete for /messages/new (spec §FRONTEND PAGE 2
- * "Search for recipient"). Authenticated, but never admin-only — students and
+ * "Search for recipient"). Authenticated, but never admin-only - students and
  * employers need it to start threads. Returns the opposite role by default so
  * students find employers and vice versa.
  */

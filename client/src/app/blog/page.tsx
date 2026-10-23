@@ -10,7 +10,7 @@ import { PageContainer } from "@/components/ui/PageContainer";
 export const metadata: Metadata = {
   title: { absolute: "Career Blog | NUBJobs" },
   description:
-    "Practical career advice for NUB students — interview preparation, resume writing, and making the most of internships.",
+    "Practical career advice for NUB students interview preparation, resume writing, and making the most of internships.",
 };
 
 export default function BlogPage() {

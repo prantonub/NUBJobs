@@ -139,7 +139,7 @@ router.delete('/jobs/:id/remove', requirePermission('delete_job'), validate(z.ob
 router.get('/companies', listAllCompanies);
 router.get('/companies/verification-requests', listVerificationRequests);
 
-// Profile verification queue — students + employers (blue verified badge).
+// Profile verification queue - students + employers (blue verified badge).
 // approve/reject reuse the company-verify permission tiers (SUPER_ADMIN +
 // CONTENT_MODERATOR); the Support tier can only view the queue.
 router.get('/verifications', requirePermission('view'), listProfileVerifications);
@@ -223,3 +223,4 @@ router.patch(
 );
 
 export default router;
+

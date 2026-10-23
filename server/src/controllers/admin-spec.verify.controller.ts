@@ -5,7 +5,7 @@ import { emitToUser } from '../lib/socket-server';
 import { sendVerificationDecisionEmail } from '../services/email.service';
 import { AdminRequest, logAdminAction, notifyUser } from './admin-spec.helpers';
 
-/** PATCH /api/admin/companies/:id/verify — badge + email + audit. (spec #15) */
+/** PATCH /api/admin/companies/:id/verify - badge + email + audit. (spec #15) */
 export async function verifyCompany(req: AdminRequest, res: Response, next: NextFunction) {
   try {
     const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
@@ -27,7 +27,7 @@ export async function verifyCompany(req: AdminRequest, res: Response, next: Next
   }
 }
 
-/** PATCH /api/admin/companies/:id/reject-verification — reason + email + audit. (spec #16) */
+/** PATCH /api/admin/companies/:id/reject-verification - reason + email + audit. (spec #16) */
 export async function rejectCompanyVerification(req: AdminRequest, res: Response, next: NextFunction) {
   try {
     const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;

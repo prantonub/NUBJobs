@@ -9,7 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useCommunityPosts, useCommunityMembers } from '@/hooks/useSocial';
 import { useState } from 'react';
 
-/** /social/community/posts — all posts across communities. */
+/** /social/community/posts - all posts across communities. */
 export default function CommunityPostsPage() {
   const [page, setPage] = useState(1);
   const posts = useCommunityPosts(page);

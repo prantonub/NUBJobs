@@ -8,7 +8,7 @@ import { getSocket } from '@/lib/socket-client';
  *   message_reaction · conversation:update · typing_indicator · stop_typing ·
  *   user_online · user_offline · notification
  *
- * Every subscribe returns an unsubscribe — always call it in an effect
+ * Every subscribe returns an unsubscribe - always call it in an effect
  * cleanup so no handler leaks across navigations.
  */
 export const MESSAGE_EVENTS = {
@@ -79,7 +79,7 @@ export function notifyIncoming(opts: {
 
 let audioCtx: AudioContext | null = null;
 
-/** Two-tone "ding" via WebAudio — no asset needed, works on mobile too. */
+/** Two-tone "ding" via WebAudio - no asset needed, works on mobile too. */
 export function playMessageSound(): void {
   try {
     const Ctx = window.AudioContext ?? (window as any).webkitAudioContext;
@@ -101,6 +101,6 @@ export function playMessageSound(): void {
       osc.stop(now + i * 0.12 + 0.25);
     });
   } catch {
-    /* autoplay restrictions — ignore */
+    /* autoplay restrictions - ignore */
   }
 }

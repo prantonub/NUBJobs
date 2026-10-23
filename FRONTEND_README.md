@@ -1,43 +1,43 @@
-# NUBJobs Frontend — Complete Setup Guide
+# NUBJobs Frontend - Complete Setup Guide
 
 This is the **production-ready frontend** for NUBJobs, built with React 18, Vite, and Tailwind CSS v4.
 
 ## What's Included
 
-✅ **15+ Complete Pages** — all styled per design system
-✅ **Responsive Design** — works on mobile, tablet, desktop
-✅ **Dark Mode** — toggle in navbar
-✅ **Mock Data** — full sample data for jobs, users, applications
-✅ **Context API** — Auth state management
-✅ **Reusable Components** — Button, Card, Input, Modal, Badge, Skeleton, etc.
-✅ **No Backend Required** — runs standalone with mock data
+✅ **15+ Complete Pages** - all styled per design system
+✅ **Responsive Design** - works on mobile, tablet, desktop
+✅ **Dark Mode** - toggle in navbar
+✅ **Mock Data** - full sample data for jobs, users, applications
+✅ **Context API** - Auth state management
+✅ **Reusable Components** - Button, Card, Input, Modal, Badge, Skeleton, etc.
+✅ **No Backend Required** - runs standalone with mock data
 
 ## Pages Built
 
 ### Public Pages
-- `Home` — hero, features, comparison table, CTA
-- `Login` — email/password auth mock
-- `Register` — sign up with role selection
-- `JobListing` — browse jobs with filters
-- `JobDetail` — full job description and apply
+- `Home` - hero, features, comparison table, CTA
+- `Login` - email/password auth mock
+- `Register` - sign up with role selection
+- `JobListing` - browse jobs with filters
+- `JobDetail` - full job description and apply
 
 ### Student Pages (protected)
-- `StudentDashboard` — overview, stats, recommended jobs, feature cards
-- `MyApplications` — track application status with timeline
-- `StudentProfileEdit` — build profile with CGPA, skills, education
-- `ApplyToJob` — cover letter (with AI generation demo)
-- `ResumeAnalysis` — AI-powered resume scoring demo
-- `MockInterview` — practice with AI scoring
-- `CampusEvents` — RSVP to recruitment events
-- `ChatPage` — real-time messaging (mock)
+- `StudentDashboard` - overview, stats, recommended jobs, feature cards
+- `MyApplications` - track application status with timeline
+- `StudentProfileEdit` - build profile with CGPA, skills, education
+- `ApplyToJob` - cover letter (with AI generation demo)
+- `ResumeAnalysis` - AI-powered resume scoring demo
+- `MockInterview` - practice with AI scoring
+- `CampusEvents` - RSVP to recruitment events
+- `ChatPage` - real-time messaging (mock)
 
 ### Employer Pages (protected)
-- `EmployerDashboard` — stats, Kanban board, applications
-- `PostJob` — create job listings
-- `EmployerProfileEdit` — company profile
+- `EmployerDashboard` - stats, Kanban board, applications
+- `PostJob` - create job listings
+- `EmployerProfileEdit` - company profile
 
 ### Admin Pages (protected)
-- `AdminDashboard` — analytics, user/job tables, management
+- `AdminDashboard` - analytics, user/job tables, management
 
 ## Setup Instructions
 
@@ -49,7 +49,7 @@ npm install
 All deps are already in package.json:
 - `react` 18
 - `react-router-dom` v6
-- `lucide-react` — icons
+- `lucide-react` - icons
 - `tailwindcss` v4
 
 ### 2. Run Dev Server
@@ -87,7 +87,7 @@ src/
 - Manages user state (logged in / logged out)
 - Provides `login`, `logout`, `register` functions
 - Stores token in memory (no localStorage initially)
-- Mock auth — any email/password works
+- Mock auth - any email/password works
 
 ### Theme Context
 - Toggle between light/dark modes

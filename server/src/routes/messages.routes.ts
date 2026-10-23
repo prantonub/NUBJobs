@@ -24,13 +24,13 @@ import { authenticate, validate } from '../middleware/auth.middleware';
 const router = Router();
 
 // Validation schemas
-// Legacy application-scoped send (ApplicationChat) — applicationId + content.
+// Legacy application-scoped send (ApplicationChat) - applicationId + content.
 const sendMessageSchema = z.object({
   applicationId: z.string().min(1),
   content: z.string().min(1).max(5000),
 });
 
-// Spec §3 send — recipientId (+ optional jobId). applicationId allowed too so
+// Spec §3 send - recipientId (+ optional jobId). applicationId allowed too so
 // the same schema can front both routes (processSend branches on it).
 const sendDirectSchema = z.object({
   recipientId: z.string().min(1).optional(),
@@ -58,7 +58,7 @@ router.post('/send', validate(sendDirectSchema), sendDirectMessage); // 3
 router.post('/block/:userId', blockUser); // 13
 router.delete('/block/:userId', unblockUser); // 14
 
-// Conversation-scoped ops (param name is a USER id — see route 2)
+// Conversation-scoped ops (param name is a USER id - see route 2)
 router.get('/conversation/:userId', getConversation); // 2
 router.patch('/conversation/:userId/read-all', markConversationRead); // 5
 router.patch('/conversation/:userId/archive', archiveConversation); // 8

@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 
 /**
  * NUBJobs brand glyph: a bold "N" monogram (Northern University Bangladesh)
- * whose right stem launches an upward arrow — the N identity with a career
+ * whose right stem launches an upward arrow - the N identity with a career
  * growth trajectory built into it. No literal objects, pure geometric mark.
  *
  * Drawn in currentColor so it inherits the brand gradient tile around it;
@@ -19,7 +19,7 @@ export function BrandLogo({ className }: { className?: string }) {
     >
       {/* Left stem (full height). */}
       <rect x="5.5" y="7" width="5.5" height="19" rx="1.6" fill="currentColor" />
-      {/* Right stem — shorter, so the arrow rises clear above it. */}
+      {/* Right stem - shorter, so the arrow rises clear above it. */}
       <rect x="21" y="11" width="5.5" height="15" rx="1.6" fill="currentColor" />
       {/* The N's diagonal. */}
       <path
@@ -27,7 +27,7 @@ export function BrandLogo({ className }: { className?: string }) {
         stroke="currentColor"
         strokeWidth={5.2}
       />
-      {/* Upward arrowhead atop the right stem — growth / ascent. */}
+      {/* Upward arrowhead atop the right stem - growth / ascent. */}
       <path d="M23.75 3.8 27.4 11.3H20.1L23.75 3.8Z" fill="currentColor" />
     </svg>
   );

@@ -10,7 +10,7 @@ import { useUserProfile, useUpdateProfile } from '@/hooks/useSocial';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
-/** /social/settings — account settings. */
+/** /social/settings - account settings. */
 export default function SettingsPage() {
   const profile = useUserProfile('me');
   const update = useUpdateProfile();

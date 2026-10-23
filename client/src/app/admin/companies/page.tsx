@@ -15,7 +15,7 @@ import { getErrorMessage } from '@/lib/utils';
 
 const TABS = ['PENDING', 'VERIFIED', 'REJECTED'] as const;
 type Tab = (typeof TABS)[number];
-const fmt = (v?: string | null) => (v ? new Date(v).toLocaleDateString() : '—');
+const fmt = (v?: string | null) => (v ? new Date(v).toLocaleDateString() : '-');
 
 export default function AdminCompaniesPage() {
   const [tab, setTab] = useState<Tab>('PENDING');
@@ -111,7 +111,7 @@ export default function AdminCompaniesPage() {
               {isLoading ? (
                 <tr><td colSpan={4} className="p-4 text-muted-foreground">Loading...</td></tr>
               ) : requests.length === 0 ? (
-                <tr><td colSpan={4} className="p-4 text-muted-foreground">Nothing here — no {tab.toLowerCase()} companies.</td></tr>
+                <tr><td colSpan={4} className="p-4 text-muted-foreground">Nothing here - no {tab.toLowerCase()} companies.</td></tr>
               ) : requests.map((r: any) => {
                 const verified = verifiedById.get(r.id);
                 return (

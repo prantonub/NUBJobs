@@ -34,7 +34,7 @@ export const siteUrl: string =
 export const siteName = process.env.NEXT_PUBLIC_APP_NAME || "NUBJobs";
 
 export const siteDescription =
-  "Discover jobs and internships, track applications, and connect with employers — the career portal built for Northern University Bangladesh students.";
+  "Discover jobs and internships, track applications, and connect with employers - the career portal built for Northern University Bangladesh students.";
 
 export const siteKeywords = [
   "NUBJobs",
@@ -71,7 +71,7 @@ export interface PublicRoute {
 /**
  * Publicly indexable routes. Authenticated sections (dashboard, admin,
  * employer, profile, messages, settings, invitations, reviews) and the offline
- * / design-system utilities are deliberately excluded — see `privateRoutePaths`.
+ * / design-system utilities are deliberately excluded - see `privateRoutePaths`.
  */
 export const publicRoutes: PublicRoute[] = [
   { path: "/", changeFrequency: "daily", priority: 1 },
